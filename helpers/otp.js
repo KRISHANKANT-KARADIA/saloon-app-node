@@ -1,0 +1,10 @@
+// helpers/otp.js
+
+export function generateOtpCode(length = 6) {
+  return Math.floor(Math.pow(10, length - 1) + Math.random() * 9 * Math.pow(10, length - 1)).toString();
+}
+
+export async function sendOtpToMobile(mobile, otp) {
+  // TODO: Integrate with actual SMS provider (like Twilio, MSG91, etc.)
+  console.log(`📲 Sending OTP ${otp} to mobile ${mobile}`);
+}
