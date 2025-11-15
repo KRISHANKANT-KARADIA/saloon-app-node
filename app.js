@@ -75,4 +75,12 @@ const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => console.log("Server started on port", PORT));
 
 
+
+
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => console.log("MongoDB Connected Successfully"))
+  .catch((err) => console.log("MongoDB Connection Failed", err));
+
+
+
 // 10.223.66.210
