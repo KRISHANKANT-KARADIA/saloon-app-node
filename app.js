@@ -14,7 +14,7 @@ import countryRoutes from './routes/country.routes.js';
 import customerRoutes from './routes/customer.routes.js';
 import customerVersionRoutes from './routes/customerVersion.routes.js';
 import ownerCountryRoutes from './routes/ownerCountry.routes.js'; //
-
+import mongoose from "mongoose";
 
 
 
