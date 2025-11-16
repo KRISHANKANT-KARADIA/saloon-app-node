@@ -14,7 +14,7 @@ import countryRoutes from './routes/country.routes.js';
 import customerRoutes from './routes/customer.routes.js';
 import customerVersionRoutes from './routes/customerVersion.routes.js';
 import ownerCountryRoutes from './routes/ownerCountry.routes.js'; //
-import mongoose from "mongoose";
+
 
 
 
@@ -77,9 +77,9 @@ app.listen(PORT, () => console.log("Server started on port", PORT));
 
 
 
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log("MongoDB Connected Successfully"))
-  .catch((err) => console.log("MongoDB Connection Failed", err));
+// mongoose.connect(process.env.MONGO_URI)
+//   .then(() => console.log("MongoDB Connected Successfully"))
+//   .catch((err) => console.log("MongoDB Connection Failed", err));
 
 
 
