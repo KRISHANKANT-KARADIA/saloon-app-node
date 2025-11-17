@@ -2,9 +2,9 @@ import express from 'express';
 import mongoose from 'mongoose';
 import { AuthMiddlewares } from '../middlewares/auth.middleware.js';
 import Location from '../models/location.model.js';
-import Saloon from '../models/saloon.model.js'; 
-import { getAllUsers, createUser ,getMySaloonProfile, updateSaloonInfo, getRegisteredMobileNumber} from '../controllers/user.controller.js';
-import {  addSaloonContent,getPublicSaloonContent, deleteSaloonImage, getAllImages, getFullSaloonDetails, getFullSaloonDetailsUsingId, getOperatingHours, getPublicOperatingHours, getPublicOwnerLocation, getSaloonDetails, getSaloonUsingId, getSocialLinks, registerSaloon, updateOperatingHours, updateSaloonData, updateSaloonMobileNumber, updateSocialLinks, uploadSaloonImages, uploadSaloonLogo, getAppointmentsBySaloon, getSaloonDashboardStats, getLast7DaysDashboardStats, getUpcomingAppointments,getTodayRevenue,getTotalAppointments,getDashboardData,getPendingAppointments,getRevenueGrowth,getPastAppointments, addOfflineAppointment, getOfflineAppointments, deleteOfflineAppointment, updateOfflineAppointmentStatus, getOfflineAppointmentById, getAppointmentById, updateAppointmentStatus, filterAppointments, getOwnerSaloonContent, getServiceWiseCounts } from '../controllers/saloon.controller.js';
+import Saloon from '../models/saloon.model.js';
+import { getAllUsers, createUser, getMySaloonProfile, updateSaloonInfo, getRegisteredMobileNumber } from '../controllers/user.controller.js';
+import { addSaloonContent, getPublicSaloonContent, deleteSaloonImage, getAllImages, getFullSaloonDetails, getFullSaloonDetailsUsingId, getOperatingHours, getPublicOperatingHours, getPublicOwnerLocation, getSaloonDetails, getSaloonUsingId, getSocialLinks, registerSaloon, updateOperatingHours, updateSaloonData, updateSaloonMobileNumber, updateSocialLinks, uploadSaloonImages, uploadSaloonLogo, getAppointmentsBySaloon, getSaloonDashboardStats, getLast7DaysDashboardStats, getUpcomingAppointments, getTodayRevenue, getTotalAppointments, getDashboardData, getPendingAppointments, getRevenueGrowth, getPastAppointments, addOfflineAppointment, getOfflineAppointments, deleteOfflineAppointment, updateOfflineAppointmentStatus, getOfflineAppointmentById, getAppointmentById, updateAppointmentStatus, filterAppointments, getOwnerSaloonContent, getServiceWiseCounts, getSaloonByOwnerId } from '../controllers/saloon.controller.js';
 import { addSaloonLocation, getSaloonLocation, putSaloonNewLocation } from '../controllers/location.controller.js';
 import { updateSaloonDetails } from '../controllers/updateSaloonDetails.js';
 import { deleteSaloonLocation, updateSaloonLocation } from '../controllers/updateSaloonLocation.js';
@@ -28,7 +28,7 @@ import { getLocationBySaloonId } from '../controllers/ownerCountry.controller.js
 
 import { saloonNotification } from "../middlewares/saloonNotification.js";
 import { addCoupon, getAllCoupons, getCoupon, verifyCoupon } from '../controllers/couponController.js';
-import { addOffer, deleteOffer, getAllActiveOffers, getOfferById, getOffers, getOffersWithData, getTrendingSaloons, replyToReview, updateOffer, updateTrendingSaloons ,forMultipleSaloonReview, forMultipleSaloonReviews, addReply, getSaloonReview} from '../controllers/offer.controller.js';
+import { addOffer, deleteOffer, getAllActiveOffers, getOfferById, getOffers, getOffersWithData, getTrendingSaloons, replyToReview, updateOffer, updateTrendingSaloons, forMultipleSaloonReview, forMultipleSaloonReviews, addReply, getSaloonReview } from '../controllers/offer.controller.js';
 
 
 
@@ -41,7 +41,7 @@ const router = express.Router();
 
 const uploadDir = path.join(process.cwd(), 'uploads/saloon');
 if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir, { recursive: true });
+  fs.mkdirSync(uploadDir, { recursive: true });
 }
 
 // ✅ Multer setup
@@ -133,21 +133,21 @@ export const uploadsaloonservice = multer({ storage: storageImageSaloon });
 router.post(
   '/coupon/add',
   AuthMiddlewares.checkAuth,
- addCoupon
+  addCoupon
 );
 
 // ➤ Get coupon by code
 router.get(
   '/coupon/:code',
   AuthMiddlewares.checkAuth,
- getCoupon
+  getCoupon
 );
 
 // ➤ Verify coupon at checkout
 router.post(
   '/coupon/verify',
   // अगर public verify चाहिए तो हटा सकते हो
-verifyCoupon
+  verifyCoupon
 );
 
 router.get(
@@ -216,18 +216,18 @@ router.get('/saloon/fetch/details', AuthMiddlewares.checkAuth, async (req, res, 
 
     const lastCreated = locations.length > 0 ? locations[0].createdAt : null;
 
-const ownersId = res.locals.user.id;
-const user = await ownerModel.findById(ownersId);
-if (!user) throw new Error('User not found');
+    const ownersId = res.locals.user.id;
+    const user = await ownerModel.findById(ownersId);
+    if (!user) throw new Error('User not found');
 
-  res.json({
-  success: true,
-user,
-  saloon,
-  locations,
-  owner_state_status: user.owner_state_status,
-  lastCreated
-});
+    res.json({
+      success: true,
+      user,
+      saloon,
+      locations,
+      owner_state_status: user.owner_state_status,
+      lastCreated
+    });
   } catch (error) {
     next(error);
   }
@@ -375,12 +375,12 @@ router.get('/owner/location', AuthMiddlewares.checkAuth, getLocationBySaloonId);
 router.get(
   '/saloon/:saloonId/appointments',
   // AdminAuthMiddleware.checkAuth, // optional: only admin/saloon owner
-getAppointmentsBySaloon
+  getAppointmentsBySaloon
 );
 
 router.get(
   "/saloon/dashboard",
-   AuthMiddlewares.checkAuth,
+  AuthMiddlewares.checkAuth,
   getSaloonDashboardStats
 );
 
@@ -436,7 +436,7 @@ router.get(
 // 
 
 
-router.get('/saloon/dashboard/7days',  AuthMiddlewares.checkAuth, getLast7DaysDashboardStats);
+router.get('/saloon/dashboard/7days', AuthMiddlewares.checkAuth, getLast7DaysDashboardStats);
 
 router.get("/saloon/dashboard11", AuthMiddlewares.checkAuth, async (req, res, next) => {
   try {
@@ -580,7 +580,7 @@ router.get("/saloon/week/dashboard1", AuthMiddlewares.checkAuth, async (req, res
       .sort({ date: 1, time: 1 });
 
     const today = new Date();
-    const todayStr = today.toDateString(); 
+    const todayStr = today.toDateString();
 
     const todaysAppointments = appointments.filter(a => new Date(a.date).toDateString() === todayStr);
 
@@ -739,7 +739,7 @@ router.put(
 
 
 router.post('/saloon/offline/appointments', AuthMiddlewares.checkAuth, addOfflineAppointment);
-router.get('/saloon/offline/appointmentsssss',   AuthMiddlewares.checkAuth, getOfflineAppointments);
+router.get('/saloon/offline/appointmentsssss', AuthMiddlewares.checkAuth, getOfflineAppointments);
 
 router.delete(
   '/saloon/offline/appointments/:id',
@@ -802,7 +802,7 @@ router.get('/saloon/fetch/location', AuthMiddlewares.checkAuth, async (req, res,
 
 
 router.post('/onwer/register', AuthMiddlewares.checkAuth,
-    upload.single("profileImage"),  registerSaloon);
+  upload.single("profileImage"), registerSaloon);
 
 
 
@@ -826,7 +826,7 @@ router.get('/nearby/salons', getNearbySalonsController);
 router.put('/saloon/details/update', AuthMiddlewares.checkAuth, updateSaloonDetails);
 router.put('/saloon/location/update', AuthMiddlewares.checkAuth, updateSaloonLocation);
 router.delete('/saloon/location/delete', AuthMiddlewares.checkAuth, deleteSaloonLocation);
-router.delete('/saloon/location/deletes',  deleteSaloonLocation);
+router.delete('/saloon/location/deletes', deleteSaloonLocation);
 router.get('/saloon/mobile/num', AuthMiddlewares.checkAuth, getRegisteredMobileNumber);
 router.get('/saloon/register/mobile', AuthMiddlewares.checkAuth, getSaloonRegisteredMobileNumber);
 router.put('/saloon/update-mobile', AuthMiddlewares.checkAuth, updateSaloonMobileNumber);
@@ -841,7 +841,7 @@ router.get('/saloon/fetch/social-links', AuthMiddlewares.checkAuth, getSocialLin
 router.post(
   "/saloon/content",
   AuthMiddlewares.checkAuth,
-  upload.single("profile"), 
+  upload.single("profile"),
   addSaloonContent
 );
 router.get('/saloon/content/:saloonId', getPublicSaloonContent);
@@ -1009,7 +1009,7 @@ router.get('/saloons/search', SaloonsController.searchSaloons);
 router.get('/saloon/nearby', LocationownerController.getNearbySaloons);
 router.get('/all-saloons', LocationownerController.getAllSaloons);
 
-
+router.get('/saloon/by-owner', getSaloonByOwnerId);
 
 
 router.post(
@@ -1092,15 +1092,15 @@ router.get("/offer/all/active", AuthMiddlewares.checkAuth, getOffersWithData);
 
 
 // Get single offer by ID
-router.get("/offer/:id", AuthMiddlewares.checkAuth,getOfferById);
+router.get("/offer/:id", AuthMiddlewares.checkAuth, getOfferById);
 
 // Update an offer
 router.put("/update/offer/:id", AuthMiddlewares.checkAuth, updateOffer);
 
 // Delete an offer
-router.delete("/offer/:id", AuthMiddlewares.checkAuth,deleteOffer);
+router.delete("/offer/:id", AuthMiddlewares.checkAuth, deleteOffer);
 
-router.put("/admin/trending/update", AuthMiddlewares.checkAuth,updateTrendingSaloons);
+router.put("/admin/trending/update", AuthMiddlewares.checkAuth, updateTrendingSaloons);
 
 // Public or authenticated route to get trending saloons
 router.get("/saloons/trending", getTrendingSaloons);
@@ -1108,15 +1108,15 @@ router.get("/saloons/trending", getTrendingSaloons);
 // Get reviews of a saloon
 // router.get("/saloons/:saloonId/reviews", getSaloonReviews);
 
- router.get("/saloons/:saloonId/reviews", forMultipleSaloonReview);
+router.get("/saloons/:saloonId/reviews", forMultipleSaloonReview);
 router.get("/saloons/:saloonId/reviews/list", forMultipleSaloonReviews);
-router.post("/add-reply",  AuthMiddlewares.checkAuth ,addReply);
+router.post("/add-reply", AuthMiddlewares.checkAuth, addReply);
 
- router.get("/saloons/reply/:saloonId/reviews", getSaloonReview);
+router.get("/saloons/reply/:saloonId/reviews", getSaloonReview);
 
 
 
- 
+
 
 
 // Saloon owner replies to review

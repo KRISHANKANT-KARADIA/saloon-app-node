@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 import Saloon from '../models/saloon.model.js';
-import Location from '../models/location.model.js'; 
+import Location from '../models/location.model.js';
 import Owner from '../models/owner.model.js'
 import ownerModel from '../models/owner.model.js';
 import OfflineBooking from "../models/OfflineBooking.js";
@@ -56,8 +56,8 @@ export const getSaloonUsingId = async (req, res, next) => {
     // 2. Find location for this saloon
     // 👉 If Location schema has saloon field, use { saloon: saloon._id }
     // 👉 If Location schema has owner field, use { owner: saloon.owner }
-    const location = await Location.findOne({ saloon: saloon._id }) || 
-                     await Location.findOne({ owner: saloon.owner });
+    const location = await Location.findOne({ saloon: saloon._id }) ||
+      await Location.findOne({ owner: saloon.owner });
 
     // 3. Operating hours are already inside saloon.operatingHours
     const operatingHours = saloon.operatingHours || null;
@@ -103,6 +103,98 @@ export const getSaloonUsingId = async (req, res, next) => {
 // };
 
 
+export const getSaloonByOwnerId = async (req, res) => {
+  try {
+    const { lat, long } = req.query;
+
+    if (!lat || !long) {
+      return res.status(400).json({
+        success: false,
+        message: "Latitude and Longitude are required",
+      });
+    }
+
+    const latitude = parseFloat(lat);
+    const longitude = parseFloat(long);
+    const radiusInMeters = 40 * 1000; // 40 KM radius
+
+    const userPoint = {
+      type: "Point",
+      coordinates: [longitude, latitude],
+    };
+
+    // STEP 1: Find nearest location (without saloon filter)
+    const nearestLocation = await Location.aggregate([
+      {
+        $geoNear: {
+          near: userPoint,
+          distanceField: "distance",
+          spherical: true,
+          maxDistance: radiusInMeters,
+        },
+      },
+      { $limit: 1 },
+    ]);
+
+    if (!nearestLocation.length) {
+      return res.status(404).json({
+        success: false,
+        message: "No saloon found near your location",
+      });
+    }
+
+    const location = nearestLocation[0];
+
+    // STEP 2: Fetch saloon details
+    // if saloon reference exists → fetch
+    let saloon = null;
+
+    if (location.saloon) {
+      saloon = await Saloon.findById(location.saloon)
+        .select("name logo rating city owner description operatingHours");
+    }
+
+    // fallback → find saloon using owner if needed
+    if (!saloon && location.owner) {
+      saloon = await Saloon.findOne({ owner: location.owner })
+        .select("name logo rating city owner description operatingHours");
+    }
+
+    if (!saloon) {
+      return res.status(404).json({
+        success: false,
+        message: "Saloon data missing for this location",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Nearest saloon fetched successfully",
+      userCoordinates: { latitude, longitude },
+      saloonCoordinates: location.geoLocation.coordinates,
+      distanceInKm: (location.distance / 1000).toFixed(2),
+
+      // full saloon data
+      saloon,
+
+      // full location data
+      location,
+
+      // saloon operating hours
+      operatingHours: saloon.operatingHours || null
+    });
+
+  } catch (err) {
+    console.error("Error fetching saloon:", err.message);
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+};
+
+
+
 export const addSaloonContent = async (req, res, next) => {
   try {
     const { title, description } = req.body;
@@ -135,7 +227,7 @@ export const addSaloonContent = async (req, res, next) => {
 
 
 export const getPublicSaloonContent = async (req, res, next) => {
-   try {
+  try {
     const { saloonId } = req.params;
     const saloon = await Saloon.findById(saloonId);
     if (!saloon) {
@@ -376,15 +468,15 @@ export const updateAppointmentStatus = async (req, res, next) => {
     }
 
     // Allowed statuses
-const allowedStatuses = [
-  "pending",
-  "accepted",
-  "confirmed",
-  "completed",
-  "cancelled",
-  "Reschedule",
-  "schedule",
-];
+    const allowedStatuses = [
+      "pending",
+      "accepted",
+      "confirmed",
+      "completed",
+      "cancelled",
+      "Reschedule",
+      "schedule",
+    ];
     if (!allowedStatuses.includes(status)) {
       return next(
         new AppError(`Invalid status. Allowed: ${allowedStatuses.join(", ")}`, STATUS_CODES.BAD_REQUEST)
@@ -431,7 +523,7 @@ export const getSaloonDashboardStats = async (req, res, next) => {
     const today = new Date();
     const options = { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' };
     const todayStr = today.toDateString(); // e.g., "Mon Sep 15 2025"
-    
+
     // Or if you want the exact format from your examples: "Mon, Sep 15, 2025"
     const todayStr2 = today.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }).replace(',', '');
 
@@ -1275,7 +1367,7 @@ export const registerSaloon = async (req, res, next) => {
 //     return res.status(201).json({ 
 //       message: 'Saloon registered successfully.', 
 //       saloon,
-      
+
 //       owner_state_status: 4
 //     });
 
