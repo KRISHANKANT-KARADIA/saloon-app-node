@@ -14,7 +14,7 @@ LocationownerController.getNearbySaloons = async (req, res, next) => {
 
     const latitude = parseFloat(lat);
     const longitude = parseFloat(long);
-    const radiusInMeters = 5 * 1000; // 5 km
+    const radiusInMeters = 1 * 1000; // 5 km
 
     const nearbyLocations = await Location.find({
       geoLocation: {
@@ -75,15 +75,15 @@ LocationownerController.getNearbySaloons = async (req, res, next) => {
 
 // New API to get all saloons
 LocationownerController.getAllSaloons = async (req, res, next) => {
-    try {
-        const allLocations = await Location.find().populate('saloon'); // populate saloon details
+  try {
+    const allLocations = await Location.find().populate('saloon'); // populate saloon details
 
-        return res.status(STATUS_CODES.OK).json({
-            success: true,
-            count: allLocations.length,
-            data: allLocations
-        });
-    } catch (err) {
-        next(err);
-    }
+    return res.status(STATUS_CODES.OK).json({
+      success: true,
+      count: allLocations.length,
+      data: allLocations
+    });
+  } catch (err) {
+    next(err);
+  }
 };
