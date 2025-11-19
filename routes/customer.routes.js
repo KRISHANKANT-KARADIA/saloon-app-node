@@ -29,7 +29,7 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 
-router.get("/offers/active",CustomerAuthMiddleware.checkAuth, getAllActiveOffers);
+router.get("/offers/active", CustomerAuthMiddleware.checkAuth, getAllActiveOffers);
 
 router.post('/customer/add/partial/profile', CustomerAuthMiddleware.checkAuth, partialCustomerProfile);
 
@@ -42,7 +42,7 @@ router.get('/customer/getdetails', CustomerAuthMiddleware.checkAuth, getUserDeta
 router.post(
   "/customer/add/profile",
   CustomerAuthMiddleware.checkAuth,
-  upload.single("profileImage"),  
+  upload.single("profileImage"),
   CustomerController.addOrUpdateProfile
 );
 
@@ -64,6 +64,14 @@ router.post(
   AppointmentController.addAppointment
 );
 
+
+
+router.post(
+  '/customer/appointments',
+  CustomerAuthMiddleware.checkAuth,
+  AppointmentController.addAppointments
+);
+
 router.post(
   '/customer/appointment/payment',
   CustomerAuthMiddleware.checkAuth,
@@ -72,24 +80,24 @@ router.post(
 
 router.get('/appointment/pending', CustomerAuthMiddleware.checkAuth, AppointmentNewController.getPendingAppointments);
 
-router.get('/appointments/:appointmentId',CustomerAuthMiddleware.checkAuth, AppointmentNewController.getAppointmentById);
+router.get('/appointments/:appointmentId', CustomerAuthMiddleware.checkAuth, AppointmentNewController.getAppointmentById);
 
 
 router.get(
-  '/customer/appointments', 
-  CustomerAuthMiddleware.checkAuth, 
+  '/customer/appointments',
+  CustomerAuthMiddleware.checkAuth,
   AppointmentNewController.getAllAppointments
 );
 
 router.put(
-  '/customer/appointments/update/:id', 
-  CustomerAuthMiddleware.checkAuth, 
+  '/customer/appointments/update/:id',
+  CustomerAuthMiddleware.checkAuth,
   AppointmentNewController.updateAppointment
 );
 
 router.put(
   '/customer/appointments/cancel/:id',
-  CustomerAuthMiddleware.checkAuth, 
+  CustomerAuthMiddleware.checkAuth,
   AppointmentNewController.cancelAppointments
 );
 
