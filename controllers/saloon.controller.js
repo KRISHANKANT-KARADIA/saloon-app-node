@@ -103,6 +103,66 @@ export const getSaloonUsingId = async (req, res, next) => {
 // };
 
 
+
+export const registerSaloons = async (req, res, next) => {
+  try {
+    const { name, ownerName, mobile } = req.body;
+    const ownerId = res.locals.user.id;
+
+    // 🔥 Create full image URL
+    let logo = null;
+    if (req.file) {
+      logo = `${req.protocol}://${req.get("host")}/uploads/saloon/${req.file.filename}`;
+    }
+
+    if (!name || !ownerName || !mobile) {
+      return res.status(400).json({
+        success: false,
+        message: 'All fields (name, ownerName, mobile) are required.'
+      });
+    }
+
+    let saloon = await Saloon.findOne({ owner: ownerId });
+
+    if (saloon) {
+      saloon.name = name;
+      if (logo) saloon.logo = logo;
+      saloon.ownerName = ownerName;
+      saloon.mobile = mobile;
+      saloon.status = 'active';
+      await saloon.save();
+    } else {
+      saloon = new Saloon({
+        name,
+        logo,
+        ownerName,
+        mobile,
+        owner: ownerId,
+        status: 'active'
+      });
+      await saloon.save();
+    }
+
+    await ownerModel.findByIdAndUpdate(ownerId, { owner_state_status: 4 });
+
+    return res.status(201).json({
+      success: true,
+      message: 'Saloon registered successfully.',
+      saloon,
+      owner_state_status: 4
+    });
+
+  } catch (err) {
+    console.error('Error registering saloon:', err);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error while registering saloon.',
+      error: err.message
+    });
+  }
+};
+
+
 export const getSaloonByOwnerId = async (req, res) => {
   try {
     const { lat, long } = req.query;

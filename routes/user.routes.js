@@ -1020,7 +1020,8 @@ router.post(
 
 
 
-
+router.post('/onwer/register/new', AuthMiddlewares.checkAuth,
+  upload.single("profileImage"), registerSaloons);
 
 router.post('/saloon/create', AuthMiddlewares.checkAuth, createUser);
 
