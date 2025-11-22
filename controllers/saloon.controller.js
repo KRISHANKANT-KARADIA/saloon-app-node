@@ -104,16 +104,70 @@ export const getSaloonUsingId = async (req, res, next) => {
 
 
 
+// export const registerSaloons = async (req, res, next) => {
+//   try {
+//     const { name, ownerName, mobile } = req.body;
+//     const ownerId = res.locals.user.id;
+
+//     // 🔥 Create full image URL
+//     let logo = null;
+//     if (req.file) {
+//       logo = `${req.protocol}://${req.get("host")}/uploads/saloon/${req.file.filename}`;
+//     }
+
+//     if (!name || !ownerName || !mobile) {
+//       return res.status(400).json({
+//         success: false,
+//         message: 'All fields (name, ownerName, mobile) are required.'
+//       });
+//     }
+
+//     let saloon = await Saloon.findOne({ owner: ownerId });
+
+//     if (saloon) {
+//       saloon.name = name;
+//       if (logo) saloon.logo = logo;
+//       saloon.ownerName = ownerName;
+//       saloon.mobile = mobile;
+//       saloon.status = 'active';
+//       await saloon.save();
+//     } else {
+//       saloon = new Saloon({
+//         name,
+//         logo,
+//         ownerName,
+//         mobile,
+//         owner: ownerId,
+//         status: 'active'
+//       });
+//       await saloon.save();
+//     }
+
+//     await ownerModel.findByIdAndUpdate(ownerId, { owner_state_status: 4 });
+
+//     return res.status(201).json({
+//       success: true,
+//       message: 'Saloon registered successfully.',
+//       saloon,
+//       owner_state_status: 4
+//     });
+
+//   } catch (err) {
+//     console.error('Error registering saloon:', err);
+//     return res.status(500).json({
+//       success: false,
+//       message: 'Server error while registering saloon.',
+//       error: err.message
+//     });
+//   }
+// };
+
 export const registerSaloons = async (req, res, next) => {
   try {
     const { name, ownerName, mobile } = req.body;
     const ownerId = res.locals.user.id;
 
-    // 🔥 Create full image URL
-    let logo = null;
-    if (req.file) {
-      logo = `${req.protocol}://${req.get("host")}/uploads/saloon/${req.file.filename}`;
-    }
+    const logo = req.file ? req.file.filename : null;
 
     if (!name || !ownerName || !mobile) {
       return res.status(400).json({
@@ -126,19 +180,21 @@ export const registerSaloons = async (req, res, next) => {
 
     if (saloon) {
       saloon.name = name;
-      if (logo) saloon.logo = logo;
       saloon.ownerName = ownerName;
       saloon.mobile = mobile;
+
+      if (logo) saloon.logo = logo;
+
       saloon.status = 'active';
       await saloon.save();
     } else {
       saloon = new Saloon({
         name,
-        logo,
         ownerName,
         mobile,
+        logo,
         owner: ownerId,
-        status: 'active'
+        status: 'active',
       });
       await saloon.save();
     }
@@ -163,95 +219,96 @@ export const registerSaloons = async (req, res, next) => {
 };
 
 
-export const getSaloonByOwnerId = async (req, res) => {
-  try {
-    const { lat, long } = req.query;
 
-    if (!lat || !long) {
-      return res.status(400).json({
-        success: false,
-        message: "Latitude and Longitude are required",
-      });
-    }
+// export const getSaloonByOwnerId = async (req, res) => {
+//   try {
+//     const { lat, long } = req.query;
 
-    const latitude = parseFloat(lat);
-    const longitude = parseFloat(long);
-    const radiusInMeters = 40 * 1000; // 40 KM radius
+//     if (!lat || !long) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "Latitude and Longitude are required",
+//       });
+//     }
 
-    const userPoint = {
-      type: "Point",
-      coordinates: [longitude, latitude],
-    };
+//     const latitude = parseFloat(lat);
+//     const longitude = parseFloat(long);
+//     const radiusInMeters = 40 * 1000; // 40 KM radius
 
-    // STEP 1: Find nearest location (without saloon filter)
-    const nearestLocation = await Location.aggregate([
-      {
-        $geoNear: {
-          near: userPoint,
-          distanceField: "distance",
-          spherical: true,
-          maxDistance: radiusInMeters,
-        },
-      },
-      { $limit: 1 },
-    ]);
+//     const userPoint = {
+//       type: "Point",
+//       coordinates: [longitude, latitude],
+//     };
 
-    if (!nearestLocation.length) {
-      return res.status(404).json({
-        success: false,
-        message: "No saloon found near your location",
-      });
-    }
+//     // STEP 1: Find nearest location (without saloon filter)
+//     const nearestLocation = await Location.aggregate([
+//       {
+//         $geoNear: {
+//           near: userPoint,
+//           distanceField: "distance",
+//           spherical: true,
+//           maxDistance: radiusInMeters,
+//         },
+//       },
+//       { $limit: 1 },
+//     ]);
 
-    const location = nearestLocation[0];
+//     if (!nearestLocation.length) {
+//       return res.status(404).json({
+//         success: false,
+//         message: "No saloon found near your location",
+//       });
+//     }
 
-    // STEP 2: Fetch saloon details
-    // if saloon reference exists → fetch
-    let saloon = null;
+//     const location = nearestLocation[0];
 
-    if (location.saloon) {
-      saloon = await Saloon.findById(location.saloon)
-        .select("name logo rating city owner description operatingHours");
-    }
+//     // STEP 2: Fetch saloon details
+//     // if saloon reference exists → fetch
+//     let saloon = null;
 
-    // fallback → find saloon using owner if needed
-    if (!saloon && location.owner) {
-      saloon = await Saloon.findOne({ owner: location.owner })
-        .select("name logo rating city owner description operatingHours");
-    }
+//     if (location.saloon) {
+//       saloon = await Saloon.findById(location.saloon)
+//         .select("name logo rating city owner description operatingHours");
+//     }
 
-    if (!saloon) {
-      return res.status(404).json({
-        success: false,
-        message: "Saloon data missing for this location",
-      });
-    }
+//     // fallback → find saloon using owner if needed
+//     if (!saloon && location.owner) {
+//       saloon = await Saloon.findOne({ owner: location.owner })
+//         .select("name logo rating city owner description operatingHours");
+//     }
 
-    return res.status(200).json({
-      success: true,
-      message: "Nearest saloon fetched successfully",
-      userCoordinates: { latitude, longitude },
-      saloonCoordinates: location.geoLocation.coordinates,
-      distanceInKm: (location.distance / 1000).toFixed(2),
+//     if (!saloon) {
+//       return res.status(404).json({
+//         success: false,
+//         message: "Saloon data missing for this location",
+//       });
+//     }
 
-      // full saloon data
-      saloon,
+//     return res.status(200).json({
+//       success: true,
+//       message: "Nearest saloon fetched successfully",
+//       userCoordinates: { latitude, longitude },
+//       saloonCoordinates: location.geoLocation.coordinates,
+//       distanceInKm: (location.distance / 1000).toFixed(2),
 
-      // full location data
-      location,
+//       // full saloon data
+//       saloon,
 
-      // saloon operating hours
-      operatingHours: saloon.operatingHours || null
-    });
+//       // full location data
+//       location,
 
-  } catch (err) {
-    console.error("Error fetching saloon:", err.message);
-    return res.status(500).json({
-      success: false,
-      message: "Server error",
-    });
-  }
-};
+//       // saloon operating hours
+//       operatingHours: saloon.operatingHours || null
+//     });
+
+//   } catch (err) {
+//     console.error("Error fetching saloon:", err.message);
+//     return res.status(500).json({
+//       success: false,
+//       message: "Server error",
+//     });
+//   }
+// };
 
 
 
@@ -285,6 +342,93 @@ export const getSaloonByOwnerId = async (req, res) => {
 //   }
 // };
 
+
+export const getSaloonByOwnerId = async (req, res) => {
+  try {
+    const { lat, long } = req.query;
+
+    if (!lat || !long) {
+      return res.status(400).json({
+        success: false,
+        message: "Latitude and Longitude are required",
+      });
+    }
+
+    const latitude = parseFloat(lat);
+    const longitude = parseFloat(long);
+    const radiusInMeters = 40 * 1000; // 40 KM radius
+
+    const userPoint = {
+      type: "Point",
+      coordinates: [longitude, latitude],
+    };
+
+    // STEP 1: Find nearest salon location
+    const nearestLocation = await Location.aggregate([
+      {
+        $geoNear: {
+          near: userPoint,
+          distanceField: "distance",
+          spherical: true,
+          maxDistance: radiusInMeters,
+        },
+      },
+      { $limit: 1 },
+    ]);
+
+    if (!nearestLocation.length) {
+      return res.status(404).json({
+        success: false,
+        message: "No saloon found near your location",
+      });
+    }
+
+    const location = nearestLocation[0];
+
+    // STEP 2: Fetch saloon details
+    let saloon = null;
+
+    if (location.saloon) {
+      saloon = await Saloon.findById(location.saloon)
+        .select("name logo rating city owner description operatingHours");
+    }
+
+    if (!saloon && location.owner) {
+      saloon = await Saloon.findOne({ owner: location.owner })
+        .select("name logo rating city owner description operatingHours");
+    }
+
+    if (!saloon) {
+      return res.status(404).json({
+        success: false,
+        message: "Saloon data missing for this location",
+      });
+    }
+
+    // ✅ FIX LOGO URL ALWAYS
+    if (saloon.logo && !saloon.logo.startsWith("http")) {
+      saloon.logo = `${req.protocol}://${req.get("host")}/uploads/saloon/${saloon.logo}`;
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Nearest saloon fetched successfully",
+      userCoordinates: { latitude, longitude },
+      saloonCoordinates: location.geoLocation.coordinates,
+      distanceInKm: (location.distance / 1000).toFixed(2),
+      saloon,
+      location,
+      operatingHours: saloon.operatingHours || null,
+    });
+
+  } catch (err) {
+    console.error("Error fetching saloon:", err.message);
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+};
 
 export const addSaloonContent = async (req, res, next) => {
   try {
