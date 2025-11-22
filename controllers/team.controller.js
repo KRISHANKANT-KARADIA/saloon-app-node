@@ -1,6 +1,52 @@
 import TeamMember from '../models/teamMember.model.js';
 import Saloon from '../models/saloon.model.js';
 
+// export const addTeamMember = async (req, res, next) => {
+//   try {
+//     const ownerId = res.locals.user.id;
+
+//     // Find saloon by owner
+//     const saloon = await Saloon.findOne({ owner: ownerId });
+//     if (!saloon) {
+//       return res.status(404).json({ message: 'Saloon not found' });
+//     }
+
+//     const {
+//       name,
+//       role,
+//       services,
+//       startTime,
+//       endTime,
+//       workingDays,
+//       mobile,
+//       email
+//     } = req.body;
+
+//     // profile image path (if uploaded)
+//     const profile = req.file ? `/uploads/teamMembers/${req.file.filename}` : null;
+
+//     const teamMember = new TeamMember({
+//       saloon: saloon._id,
+//       profile,
+//       name,
+//       role,
+//       services,        // make sure client sends array or string array
+//       startTime,
+//       endTime,
+//       workingDays,     // array of days expected
+//       mobile,
+//       email
+//     });
+
+//     await teamMember.save();
+
+//     return res.status(201).json({ message: 'Team member added', teamMember });
+//   } catch (error) {
+//     next(error);
+//   }
+// };
+
+
 export const addTeamMember = async (req, res, next) => {
   try {
     const ownerId = res.locals.user.id;
@@ -8,7 +54,10 @@ export const addTeamMember = async (req, res, next) => {
     // Find saloon by owner
     const saloon = await Saloon.findOne({ owner: ownerId });
     if (!saloon) {
-      return res.status(404).json({ message: 'Saloon not found' });
+      return res.status(404).json({
+        success: false,
+        message: "Saloon not found"
+      });
     }
 
     const {
@@ -22,29 +71,43 @@ export const addTeamMember = async (req, res, next) => {
       email
     } = req.body;
 
-    // profile image path (if uploaded)
-    const profile = req.file ? `/uploads/teamMembers/${req.file.filename}` : null;
+    // Build base URL dynamically
+    const baseUrl = `${req.protocol}://${req.get("host")}`;
+
+    // Store full URL of uploaded image
+    const profile = req.file
+      ? `${baseUrl}/uploads/teamMembers/${req.file.filename}`
+      : null;
 
     const teamMember = new TeamMember({
       saloon: saloon._id,
       profile,
       name,
       role,
-      services,        // make sure client sends array or string array
+      services: Array.isArray(services) ? services : JSON.parse(services || "[]"),
       startTime,
       endTime,
-      workingDays,     // array of days expected
+      workingDays: Array.isArray(workingDays)
+        ? workingDays
+        : JSON.parse(workingDays || "[]"),
       mobile,
       email
     });
 
     await teamMember.save();
 
-    return res.status(201).json({ message: 'Team member added', teamMember });
+    return res.status(201).json({
+      success: true,
+      message: "Team member added successfully",
+      teamMember
+    });
+
   } catch (error) {
+    console.error("Error adding team member:", error);
     next(error);
   }
 };
+
 
 
 export const getTeamMembers = async (req, res, next) => {

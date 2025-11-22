@@ -1,8 +1,45 @@
 import Service from '../models/service.model.js';
-import Saloon from '../models/saloon.model.js'; 
+import Saloon from '../models/saloon.model.js';
 import { AppError } from '../helpers/error.js';
 import { STATUS_CODES } from '../helpers/constants.js';
 
+
+// export const createService = async (req, res, next) => {
+//   try {
+//     const ownerId = res.locals.user.id;
+
+//     // Find saloon of owner
+//     const saloon = await Saloon.findOne({ owner: ownerId });
+//     if (!saloon) {
+//       return next(new AppError("Saloon not found", STATUS_CODES.NOT_FOUND));
+//     }
+
+//     const { name, category, description, duration, price, status } = req.body;
+
+//     // Multer file: req.file
+//     const logo = req.file ? `/uploads/services/${req.file.filename}` : null;
+
+//     const newService = new Service({
+//       saloon: saloon._id,
+//       name,
+//       category,
+//       description,
+//       duration,
+//       price,
+//       logo,
+//       status: status || "active",
+//     });
+
+//     await newService.save();
+
+//     res.status(201).json({
+//       message: "Service registered successfully",
+//       data: newService,
+//     });
+//   } catch (err) {
+//     next(err);
+//   }
+// };
 
 // export const createService = async (req, res, next) => {
 //   try {
@@ -45,7 +82,7 @@ export const createService = async (req, res, next) => {
   try {
     const ownerId = res.locals.user.id;
 
-    // Find saloon of owner
+    // Find saloon by owner
     const saloon = await Saloon.findOne({ owner: ownerId });
     if (!saloon) {
       return next(new AppError("Saloon not found", STATUS_CODES.NOT_FOUND));
@@ -53,8 +90,20 @@ export const createService = async (req, res, next) => {
 
     const { name, category, description, duration, price, status } = req.body;
 
-    // Multer file: req.file
-    const logo = req.file ? `/uploads/services/${req.file.filename}` : null;
+    if (!name || !category || !duration || !price) {
+      return res.status(400).json({
+        success: false,
+        message: "Name, category, duration and price are required",
+      });
+    }
+
+    // Base URL
+    const baseUrl = `${req.protocol}://${req.get("host")}`;
+
+    // Full image URL (if uploaded)
+    const logo = req.file
+      ? `${baseUrl}/uploads/services/${req.file.filename}`
+      : null;
 
     const newService = new Service({
       saloon: saloon._id,
@@ -70,15 +119,15 @@ export const createService = async (req, res, next) => {
     await newService.save();
 
     res.status(201).json({
+      success: true,
       message: "Service registered successfully",
       data: newService,
     });
   } catch (err) {
+    console.error("Error creating service:", err);
     next(err);
   }
 };
-
-
 
 
 
@@ -331,7 +380,7 @@ export const searchSalons = async (req, res, next) => {
 
     // 🔹 Find services matching the query
     const matchedServices = await Service.find({
-      name: { $regex: regex }, 
+      name: { $regex: regex },
       status: 'active'
     });
 

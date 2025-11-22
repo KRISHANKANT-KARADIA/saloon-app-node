@@ -255,20 +255,74 @@ export const getSaloonByOwnerId = async (req, res) => {
 
 
 
+// export const addSaloonContent = async (req, res, next) => {
+//   try {
+//     const { title, description } = req.body;
+//     const ownerId = res.locals.user.id;
+
+//     const saloon = await Saloon.findOne({ owner: ownerId });
+//     if (!saloon) {
+//       return res.status(404).json({ message: "Saloon not found for this owner." });
+//     }
+
+//     // If file uploaded, store path
+//     let images = [];
+//     if (req.file) {
+//       images.push(`/uploads/saloonContent/${req.file.filename}`);
+//     }
+
+//     const content = new SaloonContentModel({
+//       saloon: saloon._id,
+//       title,
+//       description,
+//       images,
+//     });
+
+//     await content.save();
+//     res.status(201).json({ message: "Saloon content added successfully", content });
+//   } catch (error) {
+//     next(error);
+//   }
+// };
+
+
 export const addSaloonContent = async (req, res, next) => {
   try {
     const { title, description } = req.body;
     const ownerId = res.locals.user.id;
 
+    // Find owner's saloon
     const saloon = await Saloon.findOne({ owner: ownerId });
     if (!saloon) {
-      return res.status(404).json({ message: "Saloon not found for this owner." });
+      return res.status(404).json({
+        success: false,
+        message: "Saloon not found for this owner."
+      });
     }
 
-    // If file uploaded, store path
+    // Input validation
+    if (!title || !description) {
+      return res.status(400).json({
+        success: false,
+        message: "Title and description are required."
+      });
+    }
+
+    // Base URL (to return full image URLs)
+    const baseUrl = `${req.protocol}://${req.get("host")}`;
+
     let images = [];
+
+    // Single image upload (req.file)
     if (req.file) {
-      images.push(`/uploads/saloonContent/${req.file.filename}`);
+      images.push(`${baseUrl}/uploads/saloonContent/${req.file.filename}`);
+    }
+
+    // Multiple image upload support (req.files)
+    if (req.files && req.files.length > 0) {
+      images = req.files.map(file =>
+        `${baseUrl}/uploads/saloonContent/${file.filename}`
+      );
     }
 
     const content = new SaloonContentModel({
@@ -279,12 +333,18 @@ export const addSaloonContent = async (req, res, next) => {
     });
 
     await content.save();
-    res.status(201).json({ message: "Saloon content added successfully", content });
+
+    return res.status(201).json({
+      success: true,
+      message: "Saloon content added successfully",
+      data: content
+    });
+
   } catch (error) {
+    console.error("Error while adding saloon content:", error);
     next(error);
   }
 };
-
 
 export const getPublicSaloonContent = async (req, res, next) => {
   try {
@@ -1742,6 +1802,51 @@ export const uploadSaloonLogo = async (req, res, next) => {
 
 
 
+// export const uploadSaloonImages = async (req, res, next) => {
+//   try {
+//     const ownerId = res.locals.user.id;
+
+//     const saloon = await Saloon.findOne({ owner: ownerId });
+//     if (!saloon) {
+//       return res.status(404).json({ message: 'Saloon not found' });
+//     }
+
+//     if (!req.files || req.files.length === 0) {
+//       return res.status(400).json({ message: 'No images uploaded' });
+//     }
+
+//     // Convert old string images to proper objects and filter invalid entries
+//     saloon.images = (saloon.images || [])
+//       .map(img => {
+//         if (!img) return null; // remove null / undefined
+//         if (typeof img === 'string') {
+//           return { id: uuidv4(), path: img };
+//         }
+//         if (img.id && img.path) return img; // valid object
+//         return null; // remove invalid objects
+//       })
+//       .filter(Boolean); // remove nulls
+
+//     const baseUrl = `${req.protocol}://${req.get('host')}`;
+//     const imageObjects = req.files.map(file => ({
+//       id: uuidv4(),
+//       path: `${baseUrl}/uploads/saloons/${file.filename}`
+//     }));
+
+//     saloon.images.push(...imageObjects);
+
+//     await saloon.save();
+
+//     res.status(200).json({
+//       message: 'Images uploaded successfully',
+//       images: saloon.images
+//     });
+//   } catch (err) {
+//     console.error('Error uploading saloon images:', err);
+//     next(err);
+//   }
+// };
+
 export const uploadSaloonImages = async (req, res, next) => {
   try {
     const ownerId = res.locals.user.id;
@@ -1755,38 +1860,52 @@ export const uploadSaloonImages = async (req, res, next) => {
       return res.status(400).json({ message: 'No images uploaded' });
     }
 
-    // Convert old string images to proper objects and filter invalid entries
+    // Normalize old image entries
     saloon.images = (saloon.images || [])
       .map(img => {
-        if (!img) return null; // remove null / undefined
-        if (typeof img === 'string') {
-          return { id: uuidv4(), path: img };
+        if (!img) return null;
+
+        // Old string format → convert to object
+        if (typeof img === "string") {
+          return {
+            id: uuidv4(),
+            path: img.startsWith("http")
+              ? img
+              : `${req.protocol}://${req.get("host")}${img}`
+          };
         }
-        if (img.id && img.path) return img; // valid object
-        return null; // remove invalid objects
+
+        // Already valid object
+        if (img.id && img.path) return img;
+
+        return null;
       })
-      .filter(Boolean); // remove nulls
+      .filter(Boolean);
 
-    const baseUrl = `${req.protocol}://${req.get('host')}`;
-    const imageObjects = req.files.map(file => ({
-      id: uuidv4(),
-      path: `${baseUrl}/uploads/saloons/${file.filename}`
-    }));
+    // Correct folder must be saloon (not saloons)
+    const baseUrl = `${req.protocol}://${req.get("host")}`;
 
-    saloon.images.push(...imageObjects);
+    const uploadedImages = req.files.map(file => {
+      return {
+        id: uuidv4(),
+        path: `${baseUrl}/uploads/saloon/${file.filename}`
+      };
+    });
+
+    saloon.images.push(...uploadedImages);
 
     await saloon.save();
 
     res.status(200).json({
-      message: 'Images uploaded successfully',
+      message: "Images uploaded successfully",
       images: saloon.images
     });
+
   } catch (err) {
-    console.error('Error uploading saloon images:', err);
+    console.error("Error uploading saloon images:", err);
     next(err);
   }
 };
-
 
 
 

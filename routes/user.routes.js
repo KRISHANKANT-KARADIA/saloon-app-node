@@ -238,10 +238,53 @@ router.get('/saloon/fetch/details', AuthMiddlewares.checkAuth, async (req, res, 
 // update 
 
 // Update Saloon details
+// router.put(
+//   '/saloon/update/:id',
+//   AuthMiddlewares.checkAuth,
+//   upload.single('logo'), // multer for logo
+//   async (req, res, next) => {
+//     try {
+//       const { id } = req.params;
+//       const ownerId = res.locals.user.id;
+//       const { name, ownerName, mobile } = req.body;
+
+//       // Check saloon exists & belongs to owner
+//       const saloon = await Saloon.findOne({ _id: id, owner: ownerId });
+//       if (!saloon) {
+//         return res.status(404).json({
+//           success: false,
+//           message: 'Saloon not found or unauthorized'
+//         });
+//       }
+
+//       // Update text fields
+//       if (name) saloon.name = name;
+//       if (ownerName) saloon.ownerName = ownerName;
+//       if (mobile) saloon.mobile = mobile;
+
+//       // Update logo if file uploaded
+//       if (req.file) {
+//         saloon.logo = `/uploads/saloon/${req.file.filename}`;
+//       }
+
+//       await saloon.save();
+
+//       res.json({
+//         success: true,
+//         message: 'Saloon updated successfully',
+//         saloon
+//       });
+//     } catch (error) {
+//       next(error);
+//     }
+//   }
+// );
+
+
 router.put(
   '/saloon/update/:id',
   AuthMiddlewares.checkAuth,
-  upload.single('logo'), // multer for logo
+  upload.single('logo'),
   async (req, res, next) => {
     try {
       const { id } = req.params;
@@ -264,7 +307,7 @@ router.put(
 
       // Update logo if file uploaded
       if (req.file) {
-        saloon.logo = `/uploads/saloon/${req.file.filename}`;
+        saloon.logo = `${req.protocol}://${req.get("host")}/uploads/saloon/${req.file.filename}`;
       }
 
       await saloon.save();
@@ -274,11 +317,16 @@ router.put(
         message: 'Saloon updated successfully',
         saloon
       });
+
     } catch (error) {
       next(error);
     }
   }
 );
+
+
+
+
 
 
 // Saloon Details Without Auth
