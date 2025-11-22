@@ -1847,53 +1847,105 @@ export const uploadSaloonLogo = async (req, res, next) => {
 //   }
 // };
 
+// export const uploadSaloonImages = async (req, res, next) => {
+//   try {
+//     const ownerId = res.locals.user.id;
+
+//     const saloon = await Saloon.findOne({ owner: ownerId });
+//     if (!saloon) {
+//       return res.status(404).json({ message: 'Saloon not found' });
+//     }
+
+//     if (!req.files || req.files.length === 0) {
+//       return res.status(400).json({ message: 'No images uploaded' });
+//     }
+
+//     // Normalize old image entries
+//     saloon.images = (saloon.images || [])
+//       .map(img => {
+//         if (!img) return null;
+
+//         // Old string format → convert to object
+//         if (typeof img === "string") {
+//           return {
+//             id: uuidv4(),
+//             path: img.startsWith("http")
+//               ? img
+//               : `${req.protocol}://${req.get("host")}${img}`
+//           };
+//         }
+
+//         // Already valid object
+//         if (img.id && img.path) return img;
+
+//         return null;
+//       })
+//       .filter(Boolean);
+
+//     // Correct folder must be saloon (not saloons)
+//     const baseUrl = `${req.protocol}://${req.get("host")}`;
+
+//     const uploadedImages = req.files.map(file => {
+//       return {
+//         id: uuidv4(),
+//         path: `${baseUrl}/uploads/saloon/${file.filename}`
+//       };
+//     });
+
+//     saloon.images.push(...uploadedImages);
+
+//     await saloon.save();
+
+//     res.status(200).json({
+//       message: "Images uploaded successfully",
+//       images: saloon.images
+//     });
+
+//   } catch (err) {
+//     console.error("Error uploading saloon images:", err);
+//     next(err);
+//   }
+// };
+
 export const uploadSaloonImages = async (req, res, next) => {
   try {
     const ownerId = res.locals.user.id;
 
     const saloon = await Saloon.findOne({ owner: ownerId });
     if (!saloon) {
-      return res.status(404).json({ message: 'Saloon not found' });
+      return res.status(404).json({ message: "Saloon not found" });
     }
 
     if (!req.files || req.files.length === 0) {
-      return res.status(400).json({ message: 'No images uploaded' });
+      return res.status(400).json({ message: "No images uploaded" });
     }
 
-    // Normalize old image entries
     saloon.images = (saloon.images || [])
       .map(img => {
         if (!img) return null;
 
-        // Old string format → convert to object
         if (typeof img === "string") {
           return {
             id: uuidv4(),
             path: img.startsWith("http")
               ? img
-              : `${req.protocol}://${req.get("host")}${img}`
+              : `https://${req.get("host")}${img}`
           };
         }
 
-        // Already valid object
         if (img.id && img.path) return img;
-
         return null;
       })
       .filter(Boolean);
 
-    // Correct folder must be saloon (not saloons)
-    const baseUrl = `${req.protocol}://${req.get("host")}`;
+    const baseUrl = `https://${req.get("host")}`;
 
-    const uploadedImages = req.files.map(file => {
-      return {
-        id: uuidv4(),
-        path: `${baseUrl}/uploads/saloon/${file.filename}`
-      };
-    });
+    const uploadedImages = req.files.map(file => ({
+      id: uuidv4(),
+      path: `${baseUrl}/uploads/saloon/${file.filename}`,   // ✅ Correct
+    }));
 
     saloon.images.push(...uploadedImages);
-
     await saloon.save();
 
     res.status(200).json({
@@ -1906,7 +1958,6 @@ export const uploadSaloonImages = async (req, res, next) => {
     next(err);
   }
 };
-
 
 
 export const deleteSaloonImage = async (req, res, next) => {

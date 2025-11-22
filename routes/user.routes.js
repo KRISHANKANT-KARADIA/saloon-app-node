@@ -67,7 +67,7 @@ const uploadservice = multer({ storageser });
 
 
 
-const uploadSaloonImageData = path.join(process.cwd(), "uploads/saloons");
+const uploadSaloonImageData = path.join(process.cwd(), "uploads/saloon");
 if (!fs.existsSync(uploadSaloonImageData)) {
   fs.mkdirSync(uploadSaloonImageData, { recursive: true });
 }
