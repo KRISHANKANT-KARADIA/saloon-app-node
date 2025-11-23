@@ -884,6 +884,58 @@ export const getAppointmentById = async (req, res, next) => {
 
 
 
+export const getTopPerformers = async (req, res) => {
+  try {
+    const { saloonId } = req.params;
+
+    const top = await Appointment.aggregate([
+      {
+        $match: {
+          saloonId: saloonId.toString(),
+          status: { $nin: ["cancelled"] } // cancelled orders include nahi honge
+        }
+      },
+      {
+        $group: {
+          _id: "$professionalId",
+          totalAppointments: { $sum: 1 },
+          totalRevenue: { $sum: { $toInt: "$price" } }
+        }
+      },
+      {
+        $lookup: {
+          from: "professionals",
+          localField: "_id",
+          foreignField: "_id",
+          as: "professional"
+        }
+      },
+      { $unwind: { path: "$professional", preserveNullAndEmptyArrays: true } },
+      {
+        $project: {
+          _id: 0,
+          professionalId: "$_id",
+          name: { $ifNull: ["$professional.name", "Not Assigned"] },
+          totalAppointments: 1,
+          totalRevenue: 1
+        }
+      },
+      { $sort: { totalAppointments: -1 } } // highest first
+    ]);
+
+    res.json({
+      success: true,
+      topPerformers: top
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
+
+
 export const updateAppointmentStatus = async (req, res, next) => {
   try {
     const ownerId = res.locals.user?.id; // ✅ token se aaya

@@ -129,56 +129,107 @@ export const getTeamMembers = async (req, res, next) => {
   }
 };
 
-export const getTopPerformers = async (req, res, next) => {
+// export const getTopPerformers = async (req, res, next) => {
+//   try {
+//     const ownerId = res.locals.user.id;
+
+//     // 1️⃣ Find the saloon of this owner
+//     const saloon = await Saloon.findOne({ owner: ownerId });
+//     if (!saloon) {
+//       return res.status(404).json({ message: "Saloon not found" });
+//     }
+
+//     // 2️⃣ Get all team members
+//     const teamMembers = await TeamMember.find({ saloon: saloon._id });
+
+//     // 3️⃣ Get date range for current month
+//     const now = new Date();
+//     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+//     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+
+//     // 4️⃣ Get all appointments in this month
+//     const appointments = await Appointment.find({
+//       saloonId: saloon._id,
+//       date: { $gte: startOfMonth, $lte: endOfMonth },
+//       status: "confirmed"
+//     });
+
+//     // 5️⃣ Calculate appointments and revenue per team member
+//     const membersStats = teamMembers.map(member => {
+//       const memberAppointments = appointments.filter(a => a.professionalId.toString() === member._id.toString());
+//       const totalAmount = memberAppointments.reduce((sum, a) => sum + Number(a.price || 0), 0);
+
+//       return {
+//         id: member._id,
+//         name: member.name,
+//         totalAppointments: memberAppointments.length,
+//         totalRevenue: totalAmount,
+//       };
+//     });
+
+//     // 6️⃣ Sort descending by totalAppointments
+//     membersStats.sort((a, b) => b.totalAppointments - a.totalAppointments);
+
+//     return res.status(200).json({
+//       success: true,
+//       topPerformers: membersStats
+//     });
+
+//   } catch (err) {
+//     next(err);
+//   }
+// };
+
+export const getTopPerformers = async (req, res) => {
   try {
-    const ownerId = res.locals.user.id;
+    const { saloonId } = req.params;
 
-    // 1️⃣ Find the saloon of this owner
-    const saloon = await Saloon.findOne({ owner: ownerId });
-    if (!saloon) {
-      return res.status(404).json({ message: "Saloon not found" });
-    }
+    const top = await Appointment.aggregate([
+      {
+        $match: {
+          saloonId: saloonId.toString(),
+          status: { $nin: ["cancelled"] } // cancelled orders include nahi honge
+        }
+      },
+      {
+        $group: {
+          _id: "$professionalId",
+          totalAppointments: { $sum: 1 },
+          totalRevenue: { $sum: { $toInt: "$price" } }
+        }
+      },
+      {
+        $lookup: {
+          from: "professionals",
+          localField: "_id",
+          foreignField: "_id",
+          as: "professional"
+        }
+      },
+      { $unwind: { path: "$professional", preserveNullAndEmptyArrays: true } },
+      {
+        $project: {
+          _id: 0,
+          professionalId: "$_id",
+          name: { $ifNull: ["$professional.name", "Not Assigned"] },
+          totalAppointments: 1,
+          totalRevenue: 1
+        }
+      },
+      { $sort: { totalAppointments: -1 } } // highest first
+    ]);
 
-    // 2️⃣ Get all team members
-    const teamMembers = await TeamMember.find({ saloon: saloon._id });
-
-    // 3️⃣ Get date range for current month
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
-
-    // 4️⃣ Get all appointments in this month
-    const appointments = await Appointment.find({
-      saloonId: saloon._id,
-      date: { $gte: startOfMonth, $lte: endOfMonth },
-      status: "confirmed"
-    });
-
-    // 5️⃣ Calculate appointments and revenue per team member
-    const membersStats = teamMembers.map(member => {
-      const memberAppointments = appointments.filter(a => a.professionalId.toString() === member._id.toString());
-      const totalAmount = memberAppointments.reduce((sum, a) => sum + Number(a.price || 0), 0);
-
-      return {
-        id: member._id,
-        name: member.name,
-        totalAppointments: memberAppointments.length,
-        totalRevenue: totalAmount,
-      };
-    });
-
-    // 6️⃣ Sort descending by totalAppointments
-    membersStats.sort((a, b) => b.totalAppointments - a.totalAppointments);
-
-    return res.status(200).json({
+    res.json({
       success: true,
-      topPerformers: membersStats
+      topPerformers: top
     });
 
-  } catch (err) {
-    next(err);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Internal Server Error" });
   }
 };
+
 
 
 export const updateTeamMember = async (req, res, next) => {
