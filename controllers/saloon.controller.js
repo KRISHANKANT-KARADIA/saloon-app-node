@@ -725,9 +725,53 @@ export const getServiceWiseCounts = async (req, res, next) => {
 
 
 
+// export const getAppointmentById = async (req, res, next) => {
+//   try {
+//     const ownerId = res.locals.user?.id; // ✅ token se aaya
+//     if (!ownerId) {
+//       return next(new AppError("Unauthorized", STATUS_CODES.UNAUTHORIZED));
+//     }
+
+//     // Find saloon of this owner
+//     const saloon = await Saloon.findOne({ owner: ownerId });
+//     if (!saloon) {
+//       return next(new AppError("Saloon not found", STATUS_CODES.NOT_FOUND));
+//     }
+
+//     const appointmentId = req.params.id;
+//     if (!appointmentId) {
+//       return next(new AppError("Appointment ID required", STATUS_CODES.BAD_REQUEST));
+//     }
+
+//     // Find single appointment by ID & saloon
+//     const appointment = await Appointment.findOne({
+//       _id: appointmentId,
+//       saloonId: saloon._id,
+//     })
+//       .populate("customer.id", "name mobile")
+//       .populate("serviceIds", "name price")
+//       .populate("professionalId", "name");
+
+//     if (!appointment) {
+//       return next(
+//         new AppError("Appointment not found or not authorized", STATUS_CODES.NOT_FOUND)
+//       );
+//     }
+
+//     return res.status(200).json({
+//       success: true,
+//       message: `Appointment ${appointmentId} fetched successfully`,
+//       data: appointment,
+//     });
+//   } catch (err) {
+//     console.error(err);
+//     next(err);
+//   }
+// };
+
 export const getAppointmentById = async (req, res, next) => {
   try {
-    const ownerId = res.locals.user?.id; // ✅ token se aaya
+    const ownerId = res.locals.user?.id;
     if (!ownerId) {
       return next(new AppError("Unauthorized", STATUS_CODES.UNAUTHORIZED));
     }
@@ -750,7 +794,7 @@ export const getAppointmentById = async (req, res, next) => {
     })
       .populate("customer.id", "name mobile")
       .populate("serviceIds", "name price")
-      .populate("professionalId", "name");
+      .populate("professionalId", "name"); // populate professional name
 
     if (!appointment) {
       return next(
@@ -758,16 +802,28 @@ export const getAppointmentById = async (req, res, next) => {
       );
     }
 
+    // Build professional info
+    const professional = appointment.professionalId
+      ? { id: appointment.professionalId._id, name: appointment.professionalId.name }
+      : { id: null, name: "Not assigned" };
+
+    // Return response
     return res.status(200).json({
       success: true,
       message: `Appointment ${appointmentId} fetched successfully`,
-      data: appointment,
+      data: {
+        ...appointment.toObject(),
+        professional, // override professional info
+      },
     });
   } catch (err) {
     console.error(err);
     next(err);
   }
 };
+
+
+
 
 export const updateAppointmentStatus = async (req, res, next) => {
   try {
