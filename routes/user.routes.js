@@ -749,7 +749,7 @@ router.get("/saloon/week/dashboard1", AuthMiddlewares.checkAuth, async (req, res
     const revenueByWeek = [0, 0, 0, 0]; // Week 1, 2, 3, 4
 
     appointments.forEach(a => {
-      if (a.status === "confirmed") {
+      if (a.status === "confirmed" || a.status === "accepted" || a.status === "completed") {
         const date = new Date(a.date);
         if (date.getMonth() === today.getMonth() && date.getFullYear() === today.getFullYear()) {
           const day = date.getDate();
