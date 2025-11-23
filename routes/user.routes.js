@@ -708,6 +708,10 @@ router.get("/saloon/week/dashboard1", AuthMiddlewares.checkAuth, async (req, res
       .populate("professionalId", "name")
       .sort({ date: 1, time: 1 });
 
+    appointments.forEach(a => {
+      console.log(a.professionalId); // Check what is actually coming
+    });
+
     // ---------- Date ranges ----------
     const today = new Date();
     const todayStart = new Date(today);
