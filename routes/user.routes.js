@@ -929,101 +929,98 @@ router.get("/saloon/week/dashboard1", AuthMiddlewares.checkAuth, async (req, res
   try {
     const ownerId = res.locals.user.id;
 
-    // 1️⃣ Get saloon of this owner
+    // 1️⃣ Find saloon
     const saloon = await Saloon.findOne({ owner: ownerId });
     if (!saloon) return next(new AppError("Saloon not found", 404));
 
-    // 2️⃣ Fetch all appointments for this saloon (populate all required fields)
+    // 2️⃣ Fetch all appointments
     const appointments = await Appointment.find({ saloonId: saloon._id })
       .populate("customer.id", "name mobile")
       .populate("serviceIds", "name price")
       .populate("professionalId", "name")
-      .sort({ date: 1, time: 1 });
+      .sort({ createdAt: -1 });
 
-    // -------------------------------
-    // 📌 FIXED DATE HANDLING
-    // -------------------------------
-
+    // DATE CALCULATION FIX
     const now = new Date();
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const todayEnd = new Date();
+    todayEnd.setHours(23, 59, 59, 999);
 
-    // Today start/end
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
-    const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
-
-    // Yesterday start/end
     const yesterdayStart = new Date(todayStart);
     yesterdayStart.setDate(yesterdayStart.getDate() - 1);
 
     const yesterdayEnd = new Date(todayEnd);
     yesterdayEnd.setDate(yesterdayEnd.getDate() - 1);
 
-    // -------------------------------
-    // 📌 FILTER TODAY/YESTERDAY DATA
-    // -------------------------------
-
+    // Filter today's appointments
     const todaysAppointments = appointments.filter(a => {
-      const apptDate = new Date(a.date);
-      return apptDate >= todayStart && apptDate <= todayEnd;
+      const d = new Date(a.date);
+      return d >= todayStart && d <= todayEnd;
     });
 
+    // Yesterday appointments
     const yesterdayAppointments = appointments.filter(a => {
-      const apptDate = new Date(a.date);
-      return apptDate >= yesterdayStart && apptDate <= yesterdayEnd;
+      const d = new Date(a.date);
+      return d >= yesterdayStart && d <= yesterdayEnd;
     });
 
-    // -------------------------------
-    // 📌 STATS
-    // -------------------------------
-
+    // Stats
     const totalAppointments = todaysAppointments.length;
     const pendingCount = todaysAppointments.filter(a => a.status === "pending").length;
     const confirmedCount = todaysAppointments.filter(a => a.status === "confirmed").length;
 
+    // STATUS allowed for revenue
+    const revenueStatuses = [
+      "pending",
+      "accepted",
+      "confirmed",
+      "completed",
+      "Reschedule",
+      "schedule"
+    ];
+
     const todayRevenue = todaysAppointments
-      .filter(a => a.status === "confirmed")
+      .filter(a => revenueStatuses.includes(a.status))
       .reduce((sum, a) => sum + Number(a.price || 0), 0);
 
-    const growthRatio = yesterdayAppointments.length > 0
-      ? ((totalAppointments - yesterdayAppointments.length) / yesterdayAppointments.length) * 100
-      : 0;
+    // Growth ratio
+    const growthRatio =
+      yesterdayAppointments.length > 0
+        ? ((totalAppointments - yesterdayAppointments.length) / yesterdayAppointments.length) * 100
+        : 0;
 
-    // -------------------------------
-    // 📌 WEEKLY REVENUE (FIXED)
-    // -------------------------------
-
-    const revenueByWeek = [0, 0, 0, 0]; // Week 1–4
+    //  WEEKLY REVENUE FIX
+    const revenueByWeek = [0, 0, 0, 0];
 
     appointments.forEach(a => {
-      if (a.status !== "confirmed") return;
+      if (!revenueStatuses.includes(a.status)) return;
 
-      const date = new Date(a.date);
+      const d = new Date(a.date);
+      if (d.getMonth() !== now.getMonth()) return;
 
-      if (date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear()) {
-        const day = date.getDate();
+      const day = d.getDate();
+      const price = Number(a.price || 0);
 
-        if (day <= 7) revenueByWeek[0] += Number(a.price || 0);
-        else if (day <= 14) revenueByWeek[1] += Number(a.price || 0);
-        else if (day <= 21) revenueByWeek[2] += Number(a.price || 0);
-        else revenueByWeek[3] += Number(a.price || 0);
-      }
+      if (day <= 7) revenueByWeek[0] += price;
+      else if (day <= 14) revenueByWeek[1] += price;
+      else if (day <= 21) revenueByWeek[2] += price;
+      else revenueByWeek[3] += price;
     });
 
-    // -------------------------------
-    // 📌 TOP SERVICES
-    // -------------------------------
-
+    // Top services
     const serviceMap = {};
-
     appointments.forEach(a => {
-      if (a.serviceIds && a.serviceIds.length > 0) {
-        a.serviceIds.forEach(s => {
-          if (!serviceMap[s.name]) {
-            serviceMap[s.name] = { count: 0, amount: 0 };
-          }
-          serviceMap[s.name].count += 1;
-          serviceMap[s.name].amount += Number(s.price || 0);
-        });
-      }
+      if (!a.serviceIds) return;
+
+      a.serviceIds.forEach(s => {
+        if (!serviceMap[s.name]) {
+          serviceMap[s.name] = { count: 0, amount: 0 };
+        }
+
+        serviceMap[s.name].count += 1;
+        serviceMap[s.name].amount += Number(s.price || 0);
+      });
     });
 
     const topServices = Object.keys(serviceMap)
@@ -1035,10 +1032,7 @@ router.get("/saloon/week/dashboard1", AuthMiddlewares.checkAuth, async (req, res
       .sort((a, b) => b.bookings - a.bookings)
       .slice(0, 5);
 
-    // -------------------------------
-    // 📌 RECENT APPOINTMENTS (PROFESSIONAL FIXED)
-    // -------------------------------
-
+    // Recent appointments
     const recentAppointmentsFormatted = todaysAppointments
       .slice(-5)
       .reverse()
@@ -1062,10 +1056,6 @@ router.get("/saloon/week/dashboard1", AuthMiddlewares.checkAuth, async (req, res
         notes: a.notes,
         bookingRef: a.bookingRef,
       }));
-
-    // -------------------------------
-    // 📌 FINAL RESPONSE
-    // -------------------------------
 
     res.status(200).json({
       success: true,
