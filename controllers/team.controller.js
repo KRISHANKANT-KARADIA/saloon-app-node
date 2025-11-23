@@ -1,6 +1,6 @@
 import TeamMember from '../models/teamMember.model.js';
 import Saloon from '../models/saloon.model.js';
-
+import Appointment from '../models/appointment.model.js';
 // export const addTeamMember = async (req, res, next) => {
 //   try {
 //     const ownerId = res.locals.user.id;
