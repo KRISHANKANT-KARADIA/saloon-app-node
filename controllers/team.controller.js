@@ -180,53 +180,74 @@ export const getTeamMembers = async (req, res, next) => {
 //   }
 // };
 
-export const getTopPerformers = async (req, res) => {
+
+export const getTopPerformers = async (req, res, next) => {
   try {
-    const { saloonId } = req.params;
+    const ownerId = res.locals.user.id;
 
-    const top = await Appointment.aggregate([
-      {
-        $match: {
-          saloonId: saloonId.toString(),
-          status: { $nin: ["cancelled"] } // cancelled orders include nahi honge
-        }
-      },
-      {
-        $group: {
-          _id: "$professionalId",
-          totalAppointments: { $sum: 1 },
-          totalRevenue: { $sum: { $toInt: "$price" } }
-        }
-      },
-      {
-        $lookup: {
-          from: "professionals",
-          localField: "_id",
-          foreignField: "_id",
-          as: "professional"
-        }
-      },
-      { $unwind: { path: "$professional", preserveNullAndEmptyArrays: true } },
-      {
-        $project: {
-          _id: 0,
-          professionalId: "$_id",
-          name: { $ifNull: ["$professional.name", "Not Assigned"] },
-          totalAppointments: 1,
-          totalRevenue: 1
-        }
-      },
-      { $sort: { totalAppointments: -1 } } // highest first
-    ]);
+    // 1️⃣ Owner ka saloon
+    const saloon = await Saloon.findOne({ owner: ownerId });
+    if (!saloon) {
+      return res.status(404).json({ success: false, message: "Saloon not found" });
+    }
 
-    res.json({
-      success: true,
-      topPerformers: top
+    // 2️⃣ Saloon ke saare professionals
+    const teamMembers = await TeamMember.find({ saloon: saloon._id });
+
+    // 3️⃣ Date FIX  ❗=> Reminder: Appointment.date string nahin chalti
+    // Appointment.date STRING hai ( "Wed, Nov 26, 2025" ) — ye directly compare nahi hoti
+    // Isliye hum createdAt se month filter करेंगे  
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+
+    // 4️⃣ Get Appointments of this month (createdAt se match)
+    const appointments = await Appointment.find({
+      saloonId: saloon._id,
+      createdAt: { $gte: startOfMonth, $lte: endOfMonth },     // FIXED DATE FILTER
+      status: { $in: ["completed", "accepted", "schedule"] }
+    })
+      .populate("serviceIds", "price")
+      .exec();
+
+    // 5️⃣ Calculate revenue and appointment count
+    const membersStats = teamMembers.map(member => {
+      const memberAppointments = appointments.filter(
+        ap => ap.professionalId?.toString() === member._id.toString()
+      );
+
+      // Revenue = All service prices sum
+      const totalAmount = memberAppointments.reduce((sum, ap) => {
+        const serviceTotal = ap.serviceIds?.reduce(
+          (s, srv) => s + (Number(srv.price) || 0),
+          0
+        );
+        return sum + serviceTotal;
+      }, 0);
+
+      return {
+        id: member._id,
+        name: member.name,
+        totalAppointments: memberAppointments.length,
+        totalRevenue: totalAmount,
+      };
     });
 
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Internal Server Error" });
+    // 6️⃣ Sort (highest performer first)
+    membersStats.sort((a, b) => b.totalAppointments - a.totalAppointments);
+
+    return res.status(200).json({
+      success: true,
+      topPerformers: membersStats
+    });
+
+  } catch (err) {
+    console.log("🔥 TOP PERFORMER API ERROR:", err); // Debug print
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+      error: err.message
+    });
   }
 };
 
