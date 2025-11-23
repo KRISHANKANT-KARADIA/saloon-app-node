@@ -605,20 +605,72 @@ export const getAppointmentsBySaloon = async (req, res, next) => {
   }
 };
 
+// export const getServiceWiseCounts = async (req, res, next) => {
+//   try {
+//     const ownerId = res.locals.user.id;
+//     if (!ownerId) {
+//       return next(new AppError("Unauthorized", 401));
+//     }
+
+//     // Find saloon of this owner
+//     const saloon = await Saloon.findOne({ owner: ownerId });
+//     if (!saloon) {
+//       return next(new AppError("Saloon not found", 404));
+//     }
+
+//     // Define start and end of current month
+//     const startOfMonth = new Date();
+//     startOfMonth.setDate(1);
+//     startOfMonth.setHours(0, 0, 0, 0);
+
+//     const endOfMonth = new Date();
+//     endOfMonth.setMonth(endOfMonth.getMonth() + 1, 0);
+//     endOfMonth.setHours(23, 59, 59, 999);
+
+//     // Fetch appointments of this month
+//     const appointments = await Appointment.find({
+//       saloonId: saloon._id,
+//       date: { $gte: startOfMonth, $lte: endOfMonth },
+//     }).populate("serviceIds", "name");
+
+//     // Initialize counts
+//     const counts = {
+//       Hair: 0,
+//       Nail: 0,
+//       Skin: 0,
+//       Other: 0,
+//     };
+
+//     appointments.forEach((appt) => {
+//       appt.serviceIds.forEach((service) => {
+//         const name = service.name.toLowerCase();
+//         if (name.includes("hair")) counts.Hair += 1;
+//         else if (name.includes("nail")) counts.Nail += 1;
+//         else if (name.includes("skin")) counts.Skin += 1;
+//         else counts.Other += 1;
+//       });
+//     });
+
+//     return res.status(200).json({
+//       success: true,
+//       totalAppointments: appointments.length,
+//       counts,
+//     });
+//   } catch (err) {
+//     next(err);
+//   }
+// };
+
 export const getServiceWiseCounts = async (req, res, next) => {
   try {
     const ownerId = res.locals.user.id;
-    if (!ownerId) {
-      return next(new AppError("Unauthorized", 401));
-    }
+    if (!ownerId) return next(new AppError("Unauthorized", 401));
 
     // Find saloon of this owner
     const saloon = await Saloon.findOne({ owner: ownerId });
-    if (!saloon) {
-      return next(new AppError("Saloon not found", 404));
-    }
+    if (!saloon) return next(new AppError("Saloon not found", 404));
 
-    // Define start and end of current month
+    // Month range
     const startOfMonth = new Date();
     startOfMonth.setDate(1);
     startOfMonth.setHours(0, 0, 0, 0);
@@ -627,34 +679,44 @@ export const getServiceWiseCounts = async (req, res, next) => {
     endOfMonth.setMonth(endOfMonth.getMonth() + 1, 0);
     endOfMonth.setHours(23, 59, 59, 999);
 
-    // Fetch appointments of this month
-    const appointments = await Appointment.find({
-      saloonId: saloon._id,
-      date: { $gte: startOfMonth, $lte: endOfMonth },
-    }).populate("serviceIds", "name");
+    // Fetch all appointments for this saloon
+    const appointments = await Appointment.find({ saloonId: saloon._id }).populate("serviceIds", "name price");
 
-    // Initialize counts
-    const counts = {
-      Hair: 0,
-      Nail: 0,
-      Skin: 0,
-      Other: 0,
-    };
+    // Filter appointments of this month (works even if date is string)
+    const monthAppointments = appointments.filter(a => {
+      const apptDate = new Date(a.date);
+      return apptDate >= startOfMonth && apptDate <= endOfMonth;
+    });
 
-    appointments.forEach((appt) => {
-      appt.serviceIds.forEach((service) => {
+    // Count services
+    const counts = { Hair: 0, Nail: 0, Skin: 0, Other: 0 };
+    const revenue = { Hair: 0, Nail: 0, Skin: 0, Other: 0 };
+
+    monthAppointments.forEach(appt => {
+      appt.serviceIds.forEach(service => {
         const name = service.name.toLowerCase();
-        if (name.includes("hair")) counts.Hair += 1;
-        else if (name.includes("nail")) counts.Nail += 1;
-        else if (name.includes("skin")) counts.Skin += 1;
-        else counts.Other += 1;
+        const price = Number(service.price || 0);
+        if (name.includes("hair")) {
+          counts.Hair += 1;
+          revenue.Hair += price;
+        } else if (name.includes("nail")) {
+          counts.Nail += 1;
+          revenue.Nail += price;
+        } else if (name.includes("skin")) {
+          counts.Skin += 1;
+          revenue.Skin += price;
+        } else {
+          counts.Other += 1;
+          revenue.Other += price;
+        }
       });
     });
 
     return res.status(200).json({
       success: true,
-      totalAppointments: appointments.length,
+      totalAppointments: monthAppointments.length,
       counts,
+      revenue,
     });
   } catch (err) {
     next(err);
