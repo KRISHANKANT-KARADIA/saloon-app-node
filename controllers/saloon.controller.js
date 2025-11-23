@@ -769,59 +769,118 @@ export const getServiceWiseCounts = async (req, res, next) => {
 //   }
 // };
 
+// export const getAppointmentById = async (req, res, next) => {
+//   try {
+//     const ownerId = res.locals.user?.id;
+//     if (!ownerId) {
+//       return next(new AppError("Unauthorized", STATUS_CODES.UNAUTHORIZED));
+//     }
+
+//     // Find saloon of this owner
+//     const saloon = await Saloon.findOne({ owner: ownerId });
+//     if (!saloon) {
+//       return next(new AppError("Saloon not found", STATUS_CODES.NOT_FOUND));
+//     }
+
+//     const appointmentId = req.params.id;
+//     if (!appointmentId) {
+//       return next(new AppError("Appointment ID required", STATUS_CODES.BAD_REQUEST));
+//     }
+
+//     // Find single appointment by ID & saloon
+//     const appointment = await Appointment.findOne({
+//       _id: appointmentId,
+//       saloonId: saloon._id,
+//     })
+//       .populate("customer.id", "name mobile")
+//       .populate("serviceIds", "name price")
+//       .populate("professionalId", "name"); // populate professional name
+
+//     if (!appointment) {
+//       return next(
+//         new AppError("Appointment not found or not authorized", STATUS_CODES.NOT_FOUND)
+//       );
+//     }
+
+//     // Build professional info
+//     const professional = appointment.professionalId
+//       ? { id: appointment.professionalId._id, name: appointment.professionalId.name }
+//       : { id: null, name: "Not assigned" };
+
+//     // Return response
+//     return res.status(200).json({
+//       success: true,
+//       message: `Appointment ${appointmentId} fetched successfully`,
+//       data: {
+//         ...appointment.toObject(),
+//         professional, // override professional info
+//       },
+//     });
+//   } catch (err) {
+//     console.error(err);
+//     next(err);
+//   }
+// };
+
+
 export const getAppointmentById = async (req, res, next) => {
   try {
     const ownerId = res.locals.user?.id;
     if (!ownerId) {
-      return next(new AppError("Unauthorized", STATUS_CODES.UNAUTHORIZED));
+      return next(new AppError("Unauthorized", 401));
     }
 
-    // Find saloon of this owner
+    // 1️⃣ Get saloon
     const saloon = await Saloon.findOne({ owner: ownerId });
-    if (!saloon) {
-      return next(new AppError("Saloon not found", STATUS_CODES.NOT_FOUND));
-    }
+    if (!saloon) return next(new AppError("Saloon not found", 404));
 
     const appointmentId = req.params.id;
-    if (!appointmentId) {
-      return next(new AppError("Appointment ID required", STATUS_CODES.BAD_REQUEST));
-    }
+    if (!appointmentId) return next(new AppError("Appointment ID required", 400));
 
-    // Find single appointment by ID & saloon
+    // 2️⃣ Fetch all appointments for this saloon (to check professional info)
+    const allAppointments = await Appointment.find({ saloonId: saloon._id })
+      .populate("professionalId", "name")
+      .lean(); // use lean for plain JS objects
+
+    // Build a map: appointmentId => professional info
+    const professionalMap = {};
+    allAppointments.forEach(appt => {
+      professionalMap[appt._id.toString()] = appt.professionalId
+        ? { id: appt.professionalId._id, name: appt.professionalId.name }
+        : { id: null, name: "Not assigned" };
+    });
+
+    // 3️⃣ Fetch the requested appointment
     const appointment = await Appointment.findOne({
       _id: appointmentId,
       saloonId: saloon._id,
     })
       .populate("customer.id", "name mobile")
       .populate("serviceIds", "name price")
-      .populate("professionalId", "name"); // populate professional name
+      .lean();
 
     if (!appointment) {
-      return next(
-        new AppError("Appointment not found or not authorized", STATUS_CODES.NOT_FOUND)
-      );
+      return next(new AppError("Appointment not found or not authorized", 404));
     }
 
-    // Build professional info
-    const professional = appointment.professionalId
-      ? { id: appointment.professionalId._id, name: appointment.professionalId.name }
-      : { id: null, name: "Not assigned" };
+    // 4️⃣ Attach professional info from map
+    const professional = professionalMap[appointment._id.toString()] || { id: null, name: "Not assigned" };
 
-    // Return response
+    // 5️⃣ Return response
     return res.status(200).json({
       success: true,
       message: `Appointment ${appointmentId} fetched successfully`,
       data: {
-        ...appointment.toObject(),
-        professional, // override professional info
-      },
+        ...appointment,
+        professional
+      }
     });
+
   } catch (err) {
     console.error(err);
     next(err);
   }
 };
-
 
 
 
