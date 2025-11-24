@@ -14,7 +14,7 @@ const ownerSchema = new mongoose.Schema({
     unique: true,
     sparse: true   // ✅ Allows email to be optional
   },
- 
+
   role: {
     type: String,
     enum: ['owner'],
@@ -29,11 +29,12 @@ const ownerSchema = new mongoose.Schema({
   otp: String,
   otpExpiresAt: Date,
   lastTokenIssuedAt: Date,
- owner_state_status: {
-  type: Number,
-  enum: [1, 2, 3, 4], // extend as needed
-  default: 1 // first-time users
-},
+  owner_state_status: {
+    type: Number,
+    enum: [1, 2, 3, 4], // extend as needed
+    default: 1 // first-time users
+  },
+  fcmToken: { type: String },
   country: { type: mongoose.Schema.Types.ObjectId, ref: 'Country' },
 }, { timestamps: true });
 

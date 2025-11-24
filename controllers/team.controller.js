@@ -47,6 +47,67 @@ import Appointment from '../models/appointment.model.js';
 // };
 
 
+// export const addTeamMember = async (req, res, next) => {
+//   try {
+//     const ownerId = res.locals.user.id;
+
+//     // Find saloon by owner
+//     const saloon = await Saloon.findOne({ owner: ownerId });
+//     if (!saloon) {
+//       return res.status(404).json({
+//         success: false,
+//         message: "Saloon not found"
+//       });
+//     }
+
+//     const {
+//       name,
+//       role,
+//       services,
+//       startTime,
+//       endTime,
+//       workingDays,
+//       mobile,
+//       email
+//     } = req.body;
+
+//     // Build base URL dynamically
+//     const baseUrl = `${req.protocol}://${req.get("host")}`;
+
+//     // Store full URL of uploaded image
+//     const profile = req.file
+//       ? `${baseUrl}/uploads/teamMembers/${req.file.filename}`
+//       : null;
+
+//     const teamMember = new TeamMember({
+//       saloon: saloon._id,
+//       profile,
+//       name,
+//       role,
+//       services: Array.isArray(services) ? services : JSON.parse(services || "[]"),
+//       startTime,
+//       endTime,
+//       workingDays: Array.isArray(workingDays)
+//         ? workingDays
+//         : JSON.parse(workingDays || "[]"),
+//       mobile,
+//       email
+//     });
+
+//     await teamMember.save();
+
+//     return res.status(201).json({
+//       success: true,
+//       message: "Team member added successfully",
+//       teamMember
+//     });
+
+//   } catch (error) {
+//     console.error("Error adding team member:", error);
+//     next(error);
+//   }
+// };
+
 export const addTeamMember = async (req, res, next) => {
   try {
     const ownerId = res.locals.user.id;
@@ -54,10 +115,7 @@ export const addTeamMember = async (req, res, next) => {
     // Find saloon by owner
     const saloon = await Saloon.findOne({ owner: ownerId });
     if (!saloon) {
-      return res.status(404).json({
-        success: false,
-        message: "Saloon not found"
-      });
+      return res.status(404).json({ message: 'Saloon not found' });
     }
 
     const {
@@ -71,20 +129,21 @@ export const addTeamMember = async (req, res, next) => {
       email
     } = req.body;
 
-    // Build base URL dynamically
-    const baseUrl = `${req.protocol}://${req.get("host")}`;
-
-    // Store full URL of uploaded image
-    const profile = req.file
-      ? `${baseUrl}/uploads/teamMembers/${req.file.filename}`
-      : null;
+    // FULL IMAGE URL
+    let profile = null;
+    if (req.file) {
+      const baseUrl = `${req.protocol}://${req.get("host")}`;
+      profile = `${baseUrl}/uploads/teamMembers/${req.file.filename}`;
+    }
 
     const teamMember = new TeamMember({
       saloon: saloon._id,
       profile,
       name,
       role,
-      services: Array.isArray(services) ? services : JSON.parse(services || "[]"),
+      services: Array.isArray(services)
+        ? services
+        : JSON.parse(services || "[]"),
       startTime,
       endTime,
       workingDays: Array.isArray(workingDays)
@@ -96,19 +155,31 @@ export const addTeamMember = async (req, res, next) => {
 
     await teamMember.save();
 
+    // 🔥 Get owner FCM Token
+    const owner = await ownerModel.findById(ownerId);
+    const token = owner?.fcmToken;
+
+    // 🔥 Send Notification
+    await sendNotification(
+      token,
+      "New Team Member Added",
+      `${name} has joined your saloon team.`,
+      {
+        type: "TEAM_MEMBER_ADDED",
+        teamMemberId: teamMember._id.toString()
+      }
+    );
+
     return res.status(201).json({
-      success: true,
-      message: "Team member added successfully",
+      message: 'Team member added',
       teamMember
     });
 
   } catch (error) {
-    console.error("Error adding team member:", error);
+    console.error("Add Team Member Error:", error);
     next(error);
   }
 };
-
-
 
 export const getTeamMembers = async (req, res, next) => {
   try {
