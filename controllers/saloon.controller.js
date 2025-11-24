@@ -2662,126 +2662,126 @@ export const updateSaloonData = async (req, res, next) => {
 
 
 
-export const filterAppointments = async (req, res, next) => {
-  try {
-    const saloonId = res.locals.user?.id; // Saloon owner
-    const {
-      dateRange,
-      startDate: customStartDate,
-      endDate: customEndDate,
-      customerName,
-      staffId,
-      status,
-      serviceId,
-      paymentStatus,
-    } = req.body;
+// export const filterAppointments = async (req, res, next) => {
+//   try {
+//     const saloonId = res.locals.user?.id; // Saloon owner
+//     const {
+//       dateRange,
+//       startDate: customStartDate,
+//       endDate: customEndDate,
+//       customerName,
+//       staffId,
+//       status,
+//       serviceId,
+//       paymentStatus,
+//     } = req.body;
 
-    if (!saloonId) {
-      return res.status(401).json({ success: false, message: "Unauthorized" });
-    }
+//     if (!saloonId) {
+//       return res.status(401).json({ success: false, message: "Unauthorized" });
+//     }
 
-    // ---------- Date Filter ----------
-    let startDate, endDate;
-    const today = new Date();
-    const tomorrow = new Date();
-    tomorrow.setDate(today.getDate() + 1);
+//     // ---------- Date Filter ----------
+//     let startDate, endDate;
+//     const today = new Date();
+//     const tomorrow = new Date();
+//     tomorrow.setDate(today.getDate() + 1);
 
-    if (customStartDate && customEndDate) {
-      // अगर user ने manual date दी है
-      startDate = new Date(customStartDate);
-      startDate.setHours(0, 0, 0, 0);
+//     if (customStartDate && customEndDate) {
+//       // अगर user ने manual date दी है
+//       startDate = new Date(customStartDate);
+//       startDate.setHours(0, 0, 0, 0);
 
-      endDate = new Date(customEndDate);
-      endDate.setHours(23, 59, 59, 999);
-    } else {
-      // Predefined ranges
-      switch (dateRange) {
-        case "today":
-          startDate = new Date();
-          startDate.setHours(0, 0, 0, 0);
-          endDate = new Date();
-          endDate.setHours(23, 59, 59, 999);
-          break;
-        case "tomorrow":
-          startDate = new Date(tomorrow.setHours(0, 0, 0, 0));
-          endDate = new Date(tomorrow.setHours(23, 59, 59, 999));
-          break;
-        case "this_week":
-          const first = today.getDate() - today.getDay();
-          startDate = new Date(today.setDate(first));
-          startDate.setHours(0, 0, 0, 0);
-          endDate = new Date(today.setDate(first + 6));
-          endDate.setHours(23, 59, 59, 999);
-          break;
-        case "this_month":
-          startDate = new Date(today.getFullYear(), today.getMonth(), 1);
-          endDate = new Date(
-            today.getFullYear(),
-            today.getMonth() + 1,
-            0,
-            23,
-            59,
-            59,
-            999
-          );
-          break;
-      }
-    }
+//       endDate = new Date(customEndDate);
+//       endDate.setHours(23, 59, 59, 999);
+//     } else {
+//       // Predefined ranges
+//       switch (dateRange) {
+//         case "today":
+//           startDate = new Date();
+//           startDate.setHours(0, 0, 0, 0);
+//           endDate = new Date();
+//           endDate.setHours(23, 59, 59, 999);
+//           break;
+//         case "tomorrow":
+//           startDate = new Date(tomorrow.setHours(0, 0, 0, 0));
+//           endDate = new Date(tomorrow.setHours(23, 59, 59, 999));
+//           break;
+//         case "this_week":
+//           const first = today.getDate() - today.getDay();
+//           startDate = new Date(today.setDate(first));
+//           startDate.setHours(0, 0, 0, 0);
+//           endDate = new Date(today.setDate(first + 6));
+//           endDate.setHours(23, 59, 59, 999);
+//           break;
+//         case "this_month":
+//           startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+//           endDate = new Date(
+//             today.getFullYear(),
+//             today.getMonth() + 1,
+//             0,
+//             23,
+//             59,
+//             59,
+//             999
+//           );
+//           break;
+//       }
+//     }
 
-    // ---------- Build Filter ----------
-    const filter = { saloonId: new mongoose.Types.ObjectId(saloonId) };
+//     // ---------- Build Filter ----------
+//     const filter = { saloonId: new mongoose.Types.ObjectId(saloonId) };
 
-    if (startDate && endDate) {
-      filter.date = { $gte: startDate, $lte: endDate };
-    }
+//     if (startDate && endDate) {
+//       filter.date = { $gte: startDate, $lte: endDate };
+//     }
 
-    if (customerName) {
-      filter.customerName = { $regex: customerName, $options: "i" };
-    }
+//     if (customerName) {
+//       filter.customerName = { $regex: customerName, $options: "i" };
+//     }
 
-    if (status) {
-      filter.status = new RegExp(`^${status}$`, "i"); // case-insensitive
-    }
+//     if (status) {
+//       filter.status = new RegExp(`^${status}$`, "i"); // case-insensitive
+//     }
 
-    if (paymentStatus && paymentStatus !== "all") {
-      filter.paymentStatus = paymentStatus;
-    }
+//     if (paymentStatus && paymentStatus !== "all") {
+//       filter.paymentStatus = paymentStatus;
+//     }
 
-    // ---------- Combine OR Conditions ----------
-    const orConditions = [];
-    if (staffId) {
-      orConditions.push(
-        { professionalId: new mongoose.Types.ObjectId(staffId) },
-        { teamMemberId: new mongoose.Types.ObjectId(staffId) }
-      );
-    }
-    if (serviceId) {
-      orConditions.push(
-        { serviceId: new mongoose.Types.ObjectId(serviceId) },
-        { serviceIds: new mongoose.Types.ObjectId(serviceId) }
-      );
-    }
-    if (orConditions.length) {
-      filter.$or = orConditions;
-    }
+//     // ---------- Combine OR Conditions ----------
+//     const orConditions = [];
+//     if (staffId) {
+//       orConditions.push(
+//         { professionalId: new mongoose.Types.ObjectId(staffId) },
+//         { teamMemberId: new mongoose.Types.ObjectId(staffId) }
+//       );
+//     }
+//     if (serviceId) {
+//       orConditions.push(
+//         { serviceId: new mongoose.Types.ObjectId(serviceId) },
+//         { serviceIds: new mongoose.Types.ObjectId(serviceId) }
+//       );
+//     }
+//     if (orConditions.length) {
+//       filter.$or = orConditions;
+//     }
 
-    console.log("Final Filter:", filter);
+//     console.log("Final Filter:", filter);
 
-    // ---------- Fetch Appointments ----------
-    const [onlineAppointments, offlineAppointments] = await Promise.all([
-      Appointment.find(filter),
-      OfflineAppointment.find(filter),
-    ]);
+//     // ---------- Fetch Appointments ----------
+//     const [onlineAppointments, offlineAppointments] = await Promise.all([
+//       Appointment.find(filter),
+//       OfflineAppointment.find(filter),
+//     ]);
 
-    return res.status(200).json({
-      success: true,
-      data: [...onlineAppointments, ...offlineAppointments],
-    });
-  } catch (error) {
-    console.error("Filter Error:", error);
-    res.status(500).json({ success: false, message: "Server Error" });
-  }
-};
+//     return res.status(200).json({
+//       success: true,
+//       data: [...onlineAppointments, ...offlineAppointments],
+//     });
+//   } catch (error) {
+//     console.error("Filter Error:", error);
+//     res.status(500).json({ success: false, message: "Server Error" });
+//   }
+// };
 
 
 // export const deleteSaloonImage = async (req, res, next) => {
@@ -2820,6 +2820,101 @@ export const filterAppointments = async (req, res, next) => {
 //   }
 // };
 
+
+export const filterAppointments = async (req, res) => {
+  try {
+    const saloonId = res.locals.user?.id;
+
+    if (!saloonId) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+
+    const {
+      dateRange,
+      startDate: customStartDate,
+      endDate: customEndDate,
+      customerName,
+      staffId,
+      status,
+      serviceId,
+      paymentStatus,
+    } = req.body;
+
+    // -------------------------
+    // DATE RANGE LOGIC (simple)
+    // -------------------------
+
+    let startDate, endDate;
+    const today = new Date();
+
+    if (customStartDate && customEndDate) {
+      startDate = new Date(customStartDate);
+      startDate.setHours(0, 0, 0, 0);
+
+      endDate = new Date(customEndDate);
+      endDate.setHours(23, 59, 59, 999);
+    } else {
+      switch (dateRange) {
+        case "today":
+          startDate = new Date();
+          startDate.setHours(0, 0, 0, 0);
+          endDate = new Date();
+          endDate.setHours(23, 59, 59, 999);
+          break;
+      }
+    }
+
+    // -------------------------
+    // FILTER BUILD
+    // -------------------------
+    const filter = { saloonId };
+
+    if (startDate && endDate) {
+      filter.date = { $gte: startDate, $lte: endDate };
+    }
+
+    if (customerName) {
+      filter["customer.id.name"] = { $regex: customerName, $options: "i" };
+    }
+
+    if (status) {
+      filter.status = status;
+    }
+
+    if (paymentStatus && paymentStatus !== "all") {
+      filter.paymentStatus = paymentStatus;
+    }
+
+    if (staffId) {
+      filter.$or = [
+        { professionalId: staffId },
+        { teamMemberId: staffId },
+      ];
+    }
+
+    if (serviceId) {
+      filter.serviceIds = serviceId;
+    }
+
+    // -------------------------
+    // FINAL QUERY (Single Model)
+    // -------------------------
+    const appointments = await Appointment.find(filter)
+      .populate("customer.id", "name mobile")
+      .populate("serviceIds", "name price")
+      .populate("professionalId", "name")
+      .sort({ date: 1 });
+
+    res.status(200).json({
+      success: true,
+      data: appointments,
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
 
 
 
