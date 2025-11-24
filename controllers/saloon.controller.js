@@ -886,29 +886,50 @@ export const getTodayAppointments = async (req, res, next) => {
   try {
     const ownerId = res.locals.user.id;
 
+    // 1️⃣ Get the saloon of the logged-in owner
     const saloon = await Saloon.findOne({ owner: ownerId });
     if (!saloon) return next(new AppError("Saloon not found", 404));
 
-    // CREATE today string: "2025-01-25"
-    const today = new Date();
-    const todayString = today.toISOString().split("T")[0];
+    // 🕒 Today start → 00:00:00
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
 
-    console.log("TODAY STRING =", todayString);
+    // 🕒 Tomorrow start → 00:00:00
+    const tomorrowStart = new Date(todayStart);
+    tomorrowStart.setDate(todayStart.getDate() + 1);
 
-    // Fetch all appointments of saloon where date = today
-    const todayAppointments = await Appointment.find({
-      saloonId: saloon._id,
-      date: todayString,        // <-- MATCH STRING
-    })
+    // 2️⃣ Fetch all appointments
+    const appointments = await Appointment.find({ saloonId: saloon._id })
       .populate("customer.id", "name mobile")
       .populate("serviceIds", "name price")
       .populate("professionalId", "name")
-      .sort({ time: 1 });
+      .sort({ date: 1, time: 1 });
+
+    // 3️⃣ Today Appointments
+    const todayAppointments = appointments.filter((a) => {
+      const d = new Date(a.date);
+      return d >= todayStart && d < tomorrowStart;
+    });
+
+    // 4️⃣ Upcoming (future only)
+    const upcomingAppointments = appointments.filter((a) => {
+      const d = new Date(a.date);
+      return d >= tomorrowStart;
+    });
+
+    // 5️⃣ Summary
+    const totalAppointments = appointments.length;
+    const pendingAppointments = appointments.filter(a => a.status === "pending").length;
 
     res.status(200).json({
       success: true,
-      message: `Today appointments for saloon ${saloon._id}`,
-      data: todayAppointments,
+      message: `Appointment summary for saloon ${saloon._id}`,
+      data: {
+        totalAppointments,
+        pendingAppointments,
+        todayAppointments,
+        upcomingAppointments,
+      },
     });
 
   } catch (err) {
