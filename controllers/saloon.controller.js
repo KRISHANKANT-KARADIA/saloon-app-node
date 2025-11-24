@@ -882,6 +882,44 @@ export const getAppointmentById = async (req, res, next) => {
   }
 };
 
+export const getTodayAppointments = async (req, res, next) => {
+  try {
+    const ownerId = res.locals.user.id;
+
+    // 1️⃣ Get saloon of logged-in owner
+    const saloon = await Saloon.findOne({ owner: ownerId });
+    if (!saloon) return next(new AppError("Saloon not found", 404));
+
+    // 2️⃣ Build today's date range
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
+    const todayEnd = new Date();
+    todayEnd.setHours(23, 59, 59, 999);
+
+    // 3️⃣ Fetch only today's appointments
+    const todayAppointments = await Appointment.find({
+      saloonId: saloon._id,
+      date: {
+        $gte: todayStart,
+        $lte: todayEnd
+      }
+    })
+      .populate("customer.id", "name mobile")
+      .populate("serviceIds", "name price")
+      .populate("professionalId", "name")
+      .sort({ time: 1 });
+
+    res.status(200).json({
+      success: true,
+      message: `Today's appointments for saloon ${saloon._id}`,
+      data: todayAppointments,
+    });
+
+  } catch (err) {
+    next(err);
+  }
+};
 
 
 export const getTopPerformers = async (req, res) => {
