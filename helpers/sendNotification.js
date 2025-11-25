@@ -19,4 +19,4 @@ const sendNotification = async () => {
   }
 };
 
-sendTestNotification();
+sendNotification();
