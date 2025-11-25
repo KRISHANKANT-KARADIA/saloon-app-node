@@ -200,7 +200,23 @@ router.put('/saloon/owner/update-mobile', AuthMiddlewares.checkAuth, async (req,
   }
 });
 
+router.put('/owner/update-fcm-token', AuthMiddlewares.checkAuth, async (req, res) => {
+  try {
+    const ownerId = res.locals.user.id;
+    const { fcmToken } = req.body;
 
+    if (!fcmToken) {
+      return res.status(400).json({ success: false, message: "FCM token is required" });
+    }
+
+    await ownerModel.findByIdAndUpdate(ownerId, { fcmToken });
+     console.error("FCM Response _____________:", res.json);
+    return res.json({ success: true, message: "FCM token updated successfully" });
+  } catch (err) {
+    console.error("Error updating FCM token:", err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
 
 router.get('/saloon/fetch/details', AuthMiddlewares.checkAuth, async (req, res, next) => {
   try {

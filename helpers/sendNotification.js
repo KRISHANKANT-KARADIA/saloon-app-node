@@ -1,22 +1,26 @@
+import axios from "axios";
+import { getAccessToken } from "./generateAccessToken.js";
 
-import admin from './controllers/firebase.js';
-const fcmToken = "fCKrSnFGQceCgdy8n7P1PN:APA91bHsWieeIm0ZBv9wI-MTKMdiy4p8qudcMdcsmkM1YRfR-uogCvUuVYqJa7IeBNWCAdz1I3ksAIUv4YC3-XkjjesXR9d2xIRDoTUaKl7lMqKfS6RJEns";
+export const sendNotification = async (token, title, body, data = {}) => {
+  const accessToken = getAccessToken();
 
-const message = {
-  notification: {
-    title: "Test Notification",
-    body: "Firebase integration is working ✅",
-  },
-  token: fcmToken,
+  const url =
+    "https://fcm.googleapis.com/v1/projects/saloonapp-227b0/messages:send";
+
+  const message = {
+    message: {
+      token,
+      notification: { title, body },
+      data,
+    },
+  };
+
+  const response = await axios.post(url, message, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+  });
+
+  return response.data;
 };
-
-const sendNotification = async () => {
-  try {
-    const response = await admin.messaging().send(message);
-    console.log("Notification sent successfully:", response);
-  } catch (error) {
-    console.error("Error sending notification:", error);
-  }
-};
-
-sendNotification();
