@@ -160,21 +160,20 @@ export const addTeamMember = async (req, res, next) => {
 
     await teamMember.save();
 
-    // Owner का FCM Token
+    // Owner FCM token
     const owner = await ownerModel.findById(ownerId);
     const token = owner?.fcmToken;
 
-    if (token) {
-      await sendNotification(
-        token,
-        "New Team Member Added",
-        `${name} has joined your saloon team.`,
-        {
-          type: "TEAM_MEMBER_ADDED",
-          teamMemberId: teamMember._id.toString()
-        }
-      );
-    }
+    // 🔥 Send push notification
+    await sendNotification(
+      token,
+      "New Team Member Added",
+      `${name} has joined your saloon team.`,
+      {
+        type: "TEAM_MEMBER_ADDED",
+        teamMemberId: teamMember._id.toString()
+      }
+    );
 
     return res.status(201).json({
       message: 'Team member added',
@@ -186,6 +185,8 @@ export const addTeamMember = async (req, res, next) => {
     next(error);
   }
 };
+
+
 // export const addTeamMember = async (req, res, next) => {
 //   try {
 //     const ownerId = res.locals.user.id;

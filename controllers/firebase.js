@@ -1,22 +1,15 @@
 import admin from "firebase-admin";
-import { readFileSync } from "fs";
-import path from "path";
-import { fileURLToPath } from "url";
+import { createRequire } from "module";
+const require = createRequire(import.meta.url);
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// Load service account file
+const serviceAccount = require("./service-account.json");
 
-// service-account.json का path
-const serviceAccountPath = path.join(__dirname, "./service-account.json");
-
-const serviceAccount = JSON.parse(
-  readFileSync(serviceAccountPath, "utf8")
-);
-
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-});
-
-console.log("🔥 Firebase Admin Connected");
+// Initialize Firebase Admin
+if (!admin.apps.length) {
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount),
+  });
+}
 
 export default admin;
