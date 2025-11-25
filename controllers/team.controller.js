@@ -1,8 +1,8 @@
-import TeamMember from '../models/teamMember.model.js';
-import Saloon from '../models/saloon.model.js';
-import Appointment from '../models/appointment.model.js';
-import ownerModel from '../models/owner.model.js';
-import { sendNotification } from '../helpers/sendNotification.js';
+// import TeamMember from '../models/teamMember.model.js';
+// import Saloon from '../models/saloon.model.js';
+// import Appointment from '../models/appointment.model.js';
+// import ownerModel from '../models/owner.model.js';
+// import { sendNotification } from '../helpers/sendNotification.js';
 // export const addTeamMember = async (req, res, next) => {
 //   try {
 //     const ownerId = res.locals.user.id;
@@ -109,7 +109,11 @@ import { sendNotification } from '../helpers/sendNotification.js';
 //     next(error);
 //   }
 // };
-
+import TeamMember from '../models/teamMember.model.js';
+import Saloon from '../models/saloon.model.js';
+import Appointment from '../models/appointment.model.js';
+import ownerModel from '../models/owner.model.js';
+import { sendNotification } from '../helpers/sendNotification.js';
 export const addTeamMember = async (req, res, next) => {
   try {
     const ownerId = res.locals.user.id;
@@ -183,6 +187,23 @@ export const addTeamMember = async (req, res, next) => {
   }
 };
 
+router.put('/owner/update-fcm-token', AuthMiddlewares.checkAuth, async (req, res) => {
+  try {
+    const ownerId = res.locals.user.id;
+    const { fcmToken } = req.body;
+
+    if (!fcmToken) {
+      return res.status(400).json({ success: false, message: "FCM token is required" });
+    }
+
+    await ownerModel.findByIdAndUpdate(ownerId, { fcmToken });
+     console.error("FCM Response _____________:", res.json);
+    return res.json({ success: true, message: "FCM token updated successfully" });
+  } catch (err) {
+    console.error("Error updating FCM token:", err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
 export const getTeamMembers = async (req, res, next) => {
   try {
     const ownerId = res.locals.user.id;
