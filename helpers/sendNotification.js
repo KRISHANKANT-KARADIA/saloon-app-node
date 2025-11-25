@@ -1,26 +1,20 @@
-import axios from "axios";
-import { getAccessToken } from "./generateAccessToken.js";
+import admin from "../controllers/firebase.js";
 
 export const sendNotification = async (token, title, body, data = {}) => {
-  const accessToken = getAccessToken();
-
-  const url =
-    "https://fcm.googleapis.com/v1/projects/saloonapp-227b0/messages:send";
-
-  const message = {
-    message: {
+  try {
+    const message = {
       token,
-      notification: { title, body },
+      notification: {
+        title,
+        body,
+      },
       data,
-    },
-  };
+    };
 
-  const response = await axios.post(url, message, {
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-    },
-  });
-
-  return response.data;
+    const response = await admin.messaging().send(message);
+    console.log("📩 Notification sent:", response);
+    return response;
+  } catch (err) {
+    console.error("❌ Error sending notification:", err);
+  }
 };

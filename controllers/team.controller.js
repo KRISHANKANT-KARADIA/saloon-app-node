@@ -113,13 +113,13 @@ import TeamMember from '../models/teamMember.model.js';
 import Saloon from '../models/saloon.model.js';
 import Appointment from '../models/appointment.model.js';
 import ownerModel from '../models/owner.model.js';
-// import { sendNotification } from './../helpers/sendNotification.js';
 import { sendNotification } from '../helpers/sendNotification.js';
+
+
 export const addTeamMember = async (req, res, next) => {
   try {
     const ownerId = res.locals.user.id;
 
-    // Find saloon by owner
     const saloon = await Saloon.findOne({ owner: ownerId });
     if (!saloon) {
       return res.status(404).json({ message: 'Saloon not found' });
@@ -136,7 +136,6 @@ export const addTeamMember = async (req, res, next) => {
       email
     } = req.body;
 
-    // FULL IMAGE URL
     let profile = null;
     if (req.file) {
       const baseUrl = `${req.protocol}://${req.get("host")}`;
@@ -162,20 +161,21 @@ export const addTeamMember = async (req, res, next) => {
 
     await teamMember.save();
 
-    // 🔥 Get owner FCM Token
+    // Owner का FCM Token
     const owner = await ownerModel.findById(ownerId);
     const token = owner?.fcmToken;
 
-    // 🔥 Send Notification
-    await sendNotification(
-      token,
-      "New Team Member Added",
-      `${name} has joined your saloon team.`,
-      {
-        type: "TEAM_MEMBER_ADDED",
-        teamMemberId: teamMember._id.toString()
-      }
-    );
+    if (token) {
+      await sendNotification(
+        token,
+        "New Team Member Added",
+        `${name} has joined your saloon team.`,
+        {
+          type: "TEAM_MEMBER_ADDED",
+          teamMemberId: teamMember._id.toString()
+        }
+      );
+    }
 
     return res.status(201).json({
       message: 'Team member added',
@@ -187,24 +187,81 @@ export const addTeamMember = async (req, res, next) => {
     next(error);
   }
 };
+// export const addTeamMember = async (req, res, next) => {
+//   try {
+//     const ownerId = res.locals.user.id;
 
-router.put('/owner/update-fcm-token', AuthMiddlewares.checkAuth, async (req, res) => {
-  try {
-    const ownerId = res.locals.user.id;
-    const { fcmToken } = req.body;
+//     // Find saloon by owner
+//     const saloon = await Saloon.findOne({ owner: ownerId });
+//     if (!saloon) {
+//       return res.status(404).json({ message: 'Saloon not found' });
+//     }
 
-    if (!fcmToken) {
-      return res.status(400).json({ success: false, message: "FCM token is required" });
-    }
+//     const {
+//       name,
+//       role,
+//       services,
+//       startTime,
+//       endTime,
+//       workingDays,
+//       mobile,
+//       email
+//     } = req.body;
 
-    await ownerModel.findByIdAndUpdate(ownerId, { fcmToken });
-     console.error("FCM Response _____________:", res.json);
-    return res.json({ success: true, message: "FCM token updated successfully" });
-  } catch (err) {
-    console.error("Error updating FCM token:", err);
-    res.status(500).json({ success: false, message: "Server error" });
-  }
-});
+//     // FULL IMAGE URL
+//     let profile = null;
+//     if (req.file) {
+//       const baseUrl = `${req.protocol}://${req.get("host")}`;
+//       profile = `${baseUrl}/uploads/teamMembers/${req.file.filename}`;
+//     }
+
+//     const teamMember = new TeamMember({
+//       saloon: saloon._id,
+//       profile,
+//       name,
+//       role,
+//       services: Array.isArray(services)
+//         ? services
+//         : JSON.parse(services || "[]"),
+//       startTime,
+//       endTime,
+//       workingDays: Array.isArray(workingDays)
+//         ? workingDays
+//         : JSON.parse(workingDays || "[]"),
+//       mobile,
+//       email
+//     });
+
+//     await teamMember.save();
+
+//     // 🔥 Get owner FCM Token
+//     const owner = await ownerModel.findById(ownerId);
+//     const token = owner?.fcmToken;
+
+    
+//     // 🔥 Send Notification
+//     await sendNotification(
+//       token,
+//       "New Team Member Added",
+//       `${name} has joined your saloon team.`,
+//       {
+//         type: "TEAM_MEMBER_ADDED",
+//         teamMemberId: teamMember._id.toString()
+//       }
+//     );
+
+//     return res.status(201).json({
+//       message: 'Team member added',
+//       teamMember
+//     });
+
+//   } catch (error) {
+//     console.error("Add Team Member Error:", error);
+//     next(error);
+//   }
+// };
+
+
 export const getTeamMembers = async (req, res, next) => {
   try {
     const ownerId = res.locals.user.id;
