@@ -1,6 +1,7 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import { connectDB } from './config/db.js';
+import path from "path";
 import versionRoutes from './routes/version.routes.js';
 import otpRoutes from './routes/otp.routes.js';
 import { logger } from './middlewares/logger.js';
@@ -23,7 +24,9 @@ dotenv.config();
 const app = express();
 
 
+const __dirname = path.resolve();
 
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // Connect to DB
 connectDB();
