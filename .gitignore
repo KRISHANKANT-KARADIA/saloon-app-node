@@ -1,3 +1,6 @@
 serviceAccountKey.json
-controllers/serviceAccountKey.json
+routes/serviceAccountKey.json
 *.json
+
+
+saloonapp-227b0-firebase-adminsdk-*.json
