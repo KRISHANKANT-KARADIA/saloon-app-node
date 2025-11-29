@@ -1,6 +1,10 @@
 import mongoose from "mongoose";
 import Saloon from '../models/saloon.model.js';
+<<<<<<< HEAD
 import Location from '../models/location.model.js'; 
+=======
+import Location from '../models/location.model.js';
+>>>>>>> 27573fe1304c5274a50b02fa6d39d7db0f9513f5
 import Owner from '../models/owner.model.js'
 import ownerModel from '../models/owner.model.js';
 import OfflineBooking from "../models/OfflineBooking.js";
@@ -13,9 +17,12 @@ import { v4 as uuidv4 } from 'uuid';
 import SaloonContentModel from '../models/SaloonContent.model.js';
 
 import OfflineAppointment from '../models/OfflineAppointment.js';
+<<<<<<< HEAD
 
 const IMAGE_BASE_URL = "https://saloon-app-node-50470848550.asia-south1.run.app/uploads/saloon";
 
+=======
+>>>>>>> 27573fe1304c5274a50b02fa6d39d7db0f9513f5
 // export const registerSaloon = async (req, res, next) => {
 //   try {
 //     const { name, logo, ownerName, mobile } = req.body;
@@ -59,8 +66,13 @@ export const getSaloonUsingId = async (req, res, next) => {
     // 2. Find location for this saloon
     // 👉 If Location schema has saloon field, use { saloon: saloon._id }
     // 👉 If Location schema has owner field, use { owner: saloon.owner }
+<<<<<<< HEAD
     const location = await Location.findOne({ saloon: saloon._id }) || 
                      await Location.findOne({ owner: saloon.owner });
+=======
+    const location = await Location.findOne({ saloon: saloon._id }) ||
+      await Location.findOne({ owner: saloon.owner });
+>>>>>>> 27573fe1304c5274a50b02fa6d39d7db0f9513f5
 
     // 3. Operating hours are already inside saloon.operatingHours
     const operatingHours = saloon.operatingHours || null;
@@ -78,6 +90,7 @@ export const getSaloonUsingId = async (req, res, next) => {
     return res.status(500).json({ success: false, message: "Server error" });
   }
 };
+<<<<<<< HEAD
 export const getSaloonByOwnerId = async (req, res) => {
   try {
     const { lat, long } = req.query;
@@ -295,6 +308,8 @@ export const getSaloonByOwnerId = async (req, res) => {
 //     });
 //   }
 // };
+=======
+>>>>>>> 27573fe1304c5274a50b02fa6d39d7db0f9513f5
 
 
 
@@ -323,6 +338,7 @@ export const getSaloonByOwnerId = async (req, res) => {
 // };
 
 
+<<<<<<< HEAD
 // export const getSaloonByOwnerId = async (req, res) => {
 //   try {
 //     const { ownerId } = req.params;
@@ -335,6 +351,129 @@ export const getSaloonByOwnerId = async (req, res) => {
 //       });
 //     }
 
+=======
+
+// export const registerSaloons = async (req, res, next) => {
+//   try {
+//     const { name, ownerName, mobile } = req.body;
+//     const ownerId = res.locals.user.id;
+
+//     // 🔥 Create full image URL
+//     let logo = null;
+//     if (req.file) {
+//       logo = `${req.protocol}://${req.get("host")}/uploads/saloon/${req.file.filename}`;
+//     }
+
+//     if (!name || !ownerName || !mobile) {
+//       return res.status(400).json({
+//         success: false,
+//         message: 'All fields (name, ownerName, mobile) are required.'
+//       });
+//     }
+
+//     let saloon = await Saloon.findOne({ owner: ownerId });
+
+//     if (saloon) {
+//       saloon.name = name;
+//       if (logo) saloon.logo = logo;
+//       saloon.ownerName = ownerName;
+//       saloon.mobile = mobile;
+//       saloon.status = 'active';
+//       await saloon.save();
+//     } else {
+//       saloon = new Saloon({
+//         name,
+//         logo,
+//         ownerName,
+//         mobile,
+//         owner: ownerId,
+//         status: 'active'
+//       });
+//       await saloon.save();
+//     }
+
+//     await ownerModel.findByIdAndUpdate(ownerId, { owner_state_status: 4 });
+
+//     return res.status(201).json({
+//       success: true,
+//       message: 'Saloon registered successfully.',
+//       saloon,
+//       owner_state_status: 4
+//     });
+
+//   } catch (err) {
+//     console.error('Error registering saloon:', err);
+//     return res.status(500).json({
+//       success: false,
+//       message: 'Server error while registering saloon.',
+//       error: err.message
+//     });
+//   }
+// };
+
+export const registerSaloons = async (req, res, next) => {
+  try {
+    const { name, ownerName, mobile } = req.body;
+    const ownerId = res.locals.user.id;
+
+    const logo = req.file ? req.file.filename : null;
+
+    if (!name || !ownerName || !mobile) {
+      return res.status(400).json({
+        success: false,
+        message: 'All fields (name, ownerName, mobile) are required.'
+      });
+    }
+
+    let saloon = await Saloon.findOne({ owner: ownerId });
+
+    if (saloon) {
+      saloon.name = name;
+      saloon.ownerName = ownerName;
+      saloon.mobile = mobile;
+
+      if (logo) saloon.logo = logo;
+
+      saloon.status = 'active';
+      await saloon.save();
+    } else {
+      saloon = new Saloon({
+        name,
+        ownerName,
+        mobile,
+        logo,
+        owner: ownerId,
+        status: 'active',
+      });
+      await saloon.save();
+    }
+
+    await ownerModel.findByIdAndUpdate(ownerId, { owner_state_status: 4 });
+
+    return res.status(201).json({
+      success: true,
+      message: 'Saloon registered successfully.',
+      saloon,
+      owner_state_status: 4
+    });
+
+  } catch (err) {
+    console.error('Error registering saloon:', err);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error while registering saloon.',
+      error: err.message
+    });
+  }
+};
+
+
+
+// export const getSaloonByOwnerId = async (req, res) => {
+//   try {
+//     const { lat, long } = req.query;
+
+>>>>>>> 27573fe1304c5274a50b02fa6d39d7db0f9513f5
 //     if (!lat || !long) {
 //       return res.status(400).json({
 //         success: false,
@@ -344,14 +483,61 @@ export const getSaloonByOwnerId = async (req, res) => {
 
 //     const latitude = parseFloat(lat);
 //     const longitude = parseFloat(long);
+<<<<<<< HEAD
 //     const radiusInMeters = 5 * 1000; // 5km
 
 //     // 1️⃣ Saloon find using ownerId
 //     const saloon = await Saloon.findOne({ owner: ownerId });
+=======
+//     const radiusInMeters = 40 * 1000; // 40 KM radius
+
+//     const userPoint = {
+//       type: "Point",
+//       coordinates: [longitude, latitude],
+//     };
+
+//     // STEP 1: Find nearest location (without saloon filter)
+//     const nearestLocation = await Location.aggregate([
+//       {
+//         $geoNear: {
+//           near: userPoint,
+//           distanceField: "distance",
+//           spherical: true,
+//           maxDistance: radiusInMeters,
+//         },
+//       },
+//       { $limit: 1 },
+//     ]);
+
+//     if (!nearestLocation.length) {
+//       return res.status(404).json({
+//         success: false,
+//         message: "No saloon found near your location",
+//       });
+//     }
+
+//     const location = nearestLocation[0];
+
+//     // STEP 2: Fetch saloon details
+//     // if saloon reference exists → fetch
+//     let saloon = null;
+
+//     if (location.saloon) {
+//       saloon = await Saloon.findById(location.saloon)
+//         .select("name logo rating city owner description operatingHours");
+//     }
+
+//     // fallback → find saloon using owner if needed
+//     if (!saloon && location.owner) {
+//       saloon = await Saloon.findOne({ owner: location.owner })
+//         .select("name logo rating city owner description operatingHours");
+//     }
+>>>>>>> 27573fe1304c5274a50b02fa6d39d7db0f9513f5
 
 //     if (!saloon) {
 //       return res.status(404).json({
 //         success: false,
+<<<<<<< HEAD
 //         message: "No saloon found for this owner",
 //       });
 //     }
@@ -395,6 +581,31 @@ export const getSaloonByOwnerId = async (req, res) => {
 
 //   } catch (err) {
 //     console.error("Error fetching saloon using ownerId:", err.message);
+=======
+//         message: "Saloon data missing for this location",
+//       });
+//     }
+
+//     return res.status(200).json({
+//       success: true,
+//       message: "Nearest saloon fetched successfully",
+//       userCoordinates: { latitude, longitude },
+//       saloonCoordinates: location.geoLocation.coordinates,
+//       distanceInKm: (location.distance / 1000).toFixed(2),
+
+//       // full saloon data
+//       saloon,
+
+//       // full location data
+//       location,
+
+//       // saloon operating hours
+//       operatingHours: saloon.operatingHours || null
+//     });
+
+//   } catch (err) {
+//     console.error("Error fetching saloon:", err.message);
+>>>>>>> 27573fe1304c5274a50b02fa6d39d7db0f9513f5
 //     return res.status(500).json({
 //       success: false,
 //       message: "Server error",
@@ -403,11 +614,134 @@ export const getSaloonByOwnerId = async (req, res) => {
 // };
 
 
+<<<<<<< HEAD
+=======
+
+// export const addSaloonContent = async (req, res, next) => {
+//   try {
+//     const { title, description } = req.body;
+//     const ownerId = res.locals.user.id;
+
+//     const saloon = await Saloon.findOne({ owner: ownerId });
+//     if (!saloon) {
+//       return res.status(404).json({ message: "Saloon not found for this owner." });
+//     }
+
+//     // If file uploaded, store path
+//     let images = [];
+//     if (req.file) {
+//       images.push(`/uploads/saloonContent/${req.file.filename}`);
+//     }
+
+//     const content = new SaloonContentModel({
+//       saloon: saloon._id,
+//       title,
+//       description,
+//       images,
+//     });
+
+//     await content.save();
+//     res.status(201).json({ message: "Saloon content added successfully", content });
+//   } catch (error) {
+//     next(error);
+//   }
+// };
+
+
+export const getSaloonByOwnerId = async (req, res) => {
+  try {
+    const { lat, long } = req.query;
+
+    if (!lat || !long) {
+      return res.status(400).json({
+        success: false,
+        message: "Latitude and Longitude are required",
+      });
+    }
+
+    const latitude = parseFloat(lat);
+    const longitude = parseFloat(long);
+    const radiusInMeters = 40 * 1000; // 40 KM radius
+
+    const userPoint = {
+      type: "Point",
+      coordinates: [longitude, latitude],
+    };
+
+    // STEP 1: Find nearest salon location
+    const nearestLocation = await Location.aggregate([
+      {
+        $geoNear: {
+          near: userPoint,
+          distanceField: "distance",
+          spherical: true,
+          maxDistance: radiusInMeters,
+        },
+      },
+      { $limit: 1 },
+    ]);
+
+    if (!nearestLocation.length) {
+      return res.status(404).json({
+        success: false,
+        message: "No saloon found near your location",
+      });
+    }
+
+    const location = nearestLocation[0];
+
+    // STEP 2: Fetch saloon details
+    let saloon = null;
+
+    if (location.saloon) {
+      saloon = await Saloon.findById(location.saloon)
+        .select("name logo rating city owner description operatingHours");
+    }
+
+    if (!saloon && location.owner) {
+      saloon = await Saloon.findOne({ owner: location.owner })
+        .select("name logo rating city owner description operatingHours");
+    }
+
+    if (!saloon) {
+      return res.status(404).json({
+        success: false,
+        message: "Saloon data missing for this location",
+      });
+    }
+
+    // ✅ FIX LOGO URL ALWAYS
+    if (saloon.logo && !saloon.logo.startsWith("http")) {
+      saloon.logo = `${req.protocol}://${req.get("host")}/uploads/saloon/${saloon.logo}`;
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Nearest saloon fetched successfully",
+      userCoordinates: { latitude, longitude },
+      saloonCoordinates: location.geoLocation.coordinates,
+      distanceInKm: (location.distance / 1000).toFixed(2),
+      saloon,
+      location,
+      operatingHours: saloon.operatingHours || null,
+    });
+
+  } catch (err) {
+    console.error("Error fetching saloon:", err.message);
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+};
+
+>>>>>>> 27573fe1304c5274a50b02fa6d39d7db0f9513f5
 export const addSaloonContent = async (req, res, next) => {
   try {
     const { title, description } = req.body;
     const ownerId = res.locals.user.id;
 
+<<<<<<< HEAD
     const saloon = await Saloon.findOne({ owner: ownerId });
     if (!saloon) {
       return res.status(404).json({ message: "Saloon not found for this owner." });
@@ -417,6 +751,40 @@ export const addSaloonContent = async (req, res, next) => {
     let images = [];
     if (req.file) {
       images.push(`/uploads/saloonContent/${req.file.filename}`);
+=======
+    // Find owner's saloon
+    const saloon = await Saloon.findOne({ owner: ownerId });
+    if (!saloon) {
+      return res.status(404).json({
+        success: false,
+        message: "Saloon not found for this owner."
+      });
+    }
+
+    // Input validation
+    if (!title || !description) {
+      return res.status(400).json({
+        success: false,
+        message: "Title and description are required."
+      });
+    }
+
+    // Base URL (to return full image URLs)
+    const baseUrl = `${req.protocol}://${req.get("host")}`;
+
+    let images = [];
+
+    // Single image upload (req.file)
+    if (req.file) {
+      images.push(`${baseUrl}/uploads/saloonContent/${req.file.filename}`);
+    }
+
+    // Multiple image upload support (req.files)
+    if (req.files && req.files.length > 0) {
+      images = req.files.map(file =>
+        `${baseUrl}/uploads/saloonContent/${file.filename}`
+      );
+>>>>>>> 27573fe1304c5274a50b02fa6d39d7db0f9513f5
     }
 
     const content = new SaloonContentModel({
@@ -427,15 +795,32 @@ export const addSaloonContent = async (req, res, next) => {
     });
 
     await content.save();
+<<<<<<< HEAD
     res.status(201).json({ message: "Saloon content added successfully", content });
   } catch (error) {
+=======
+
+    return res.status(201).json({
+      success: true,
+      message: "Saloon content added successfully",
+      data: content
+    });
+
+  } catch (error) {
+    console.error("Error while adding saloon content:", error);
+>>>>>>> 27573fe1304c5274a50b02fa6d39d7db0f9513f5
     next(error);
   }
 };
 
+<<<<<<< HEAD
 
 export const getPublicSaloonContent = async (req, res, next) => {
    try {
+=======
+export const getPublicSaloonContent = async (req, res, next) => {
+  try {
+>>>>>>> 27573fe1304c5274a50b02fa6d39d7db0f9513f5
     const { saloonId } = req.params;
     const saloon = await Saloon.findById(saloonId);
     if (!saloon) {
@@ -549,6 +934,7 @@ export const getAppointmentsBySaloon = async (req, res, next) => {
   }
 };
 
+<<<<<<< HEAD
 export const getServiceWiseCounts = async (req, res, next) => {
   try {
     const ownerId = res.locals.user.id;
@@ -563,6 +949,74 @@ export const getServiceWiseCounts = async (req, res, next) => {
     }
 
     // Define start and end of current month
+=======
+// export const getServiceWiseCounts = async (req, res, next) => {
+//   try {
+//     const ownerId = res.locals.user.id;
+//     if (!ownerId) {
+//       return next(new AppError("Unauthorized", 401));
+//     }
+
+//     // Find saloon of this owner
+//     const saloon = await Saloon.findOne({ owner: ownerId });
+//     if (!saloon) {
+//       return next(new AppError("Saloon not found", 404));
+//     }
+
+//     // Define start and end of current month
+//     const startOfMonth = new Date();
+//     startOfMonth.setDate(1);
+//     startOfMonth.setHours(0, 0, 0, 0);
+
+//     const endOfMonth = new Date();
+//     endOfMonth.setMonth(endOfMonth.getMonth() + 1, 0);
+//     endOfMonth.setHours(23, 59, 59, 999);
+
+//     // Fetch appointments of this month
+//     const appointments = await Appointment.find({
+//       saloonId: saloon._id,
+//       date: { $gte: startOfMonth, $lte: endOfMonth },
+//     }).populate("serviceIds", "name");
+
+//     // Initialize counts
+//     const counts = {
+//       Hair: 0,
+//       Nail: 0,
+//       Skin: 0,
+//       Other: 0,
+//     };
+
+//     appointments.forEach((appt) => {
+//       appt.serviceIds.forEach((service) => {
+//         const name = service.name.toLowerCase();
+//         if (name.includes("hair")) counts.Hair += 1;
+//         else if (name.includes("nail")) counts.Nail += 1;
+//         else if (name.includes("skin")) counts.Skin += 1;
+//         else counts.Other += 1;
+//       });
+//     });
+
+//     return res.status(200).json({
+//       success: true,
+//       totalAppointments: appointments.length,
+//       counts,
+//     });
+//   } catch (err) {
+//     next(err);
+//   }
+// };
+
+export const getServiceWiseCounts = async (req, res, next) => {
+  try {
+    const ownerId = res.locals.user.id;
+    if (!ownerId) return next(new AppError("Unauthorized", 401));
+
+    // Find saloon of this owner
+    const saloon = await Saloon.findOne({ owner: ownerId });
+    if (!saloon) return next(new AppError("Saloon not found", 404));
+
+    // Month range
+>>>>>>> 27573fe1304c5274a50b02fa6d39d7db0f9513f5
     const startOfMonth = new Date();
     startOfMonth.setDate(1);
     startOfMonth.setHours(0, 0, 0, 0);
@@ -571,6 +1025,7 @@ export const getServiceWiseCounts = async (req, res, next) => {
     endOfMonth.setMonth(endOfMonth.getMonth() + 1, 0);
     endOfMonth.setHours(23, 59, 59, 999);
 
+<<<<<<< HEAD
     // Fetch appointments of this month
     const appointments = await Appointment.find({
       saloonId: saloon._id,
@@ -592,13 +1047,51 @@ export const getServiceWiseCounts = async (req, res, next) => {
         else if (name.includes("nail")) counts.Nail += 1;
         else if (name.includes("skin")) counts.Skin += 1;
         else counts.Other += 1;
+=======
+    // Fetch all appointments for this saloon
+    const appointments = await Appointment.find({ saloonId: saloon._id }).populate("serviceIds", "name price");
+
+    // Filter appointments of this month (works even if date is string)
+    const monthAppointments = appointments.filter(a => {
+      const apptDate = new Date(a.date);
+      return apptDate >= startOfMonth && apptDate <= endOfMonth;
+    });
+
+    // Count services
+    const counts = { Hair: 0, Nail: 0, Skin: 0, Other: 0 };
+    const revenue = { Hair: 0, Nail: 0, Skin: 0, Other: 0 };
+
+    monthAppointments.forEach(appt => {
+      appt.serviceIds.forEach(service => {
+        const name = service.name.toLowerCase();
+        const price = Number(service.price || 0);
+        if (name.includes("hair")) {
+          counts.Hair += 1;
+          revenue.Hair += price;
+        } else if (name.includes("nail")) {
+          counts.Nail += 1;
+          revenue.Nail += price;
+        } else if (name.includes("skin")) {
+          counts.Skin += 1;
+          revenue.Skin += price;
+        } else {
+          counts.Other += 1;
+          revenue.Other += price;
+        }
+>>>>>>> 27573fe1304c5274a50b02fa6d39d7db0f9513f5
       });
     });
 
     return res.status(200).json({
       success: true,
+<<<<<<< HEAD
       totalAppointments: appointments.length,
       counts,
+=======
+      totalAppointments: monthAppointments.length,
+      counts,
+      revenue,
+>>>>>>> 27573fe1304c5274a50b02fa6d39d7db0f9513f5
     });
   } catch (err) {
     next(err);
@@ -607,6 +1100,7 @@ export const getServiceWiseCounts = async (req, res, next) => {
 
 
 
+<<<<<<< HEAD
 export const getAppointmentById = async (req, res, next) => {
   try {
     const ownerId = res.locals.user?.id; // ✅ token se aaya
@@ -626,12 +1120,141 @@ export const getAppointmentById = async (req, res, next) => {
     }
 
     // Find single appointment by ID & saloon
+=======
+// export const getAppointmentById = async (req, res, next) => {
+//   try {
+//     const ownerId = res.locals.user?.id; // ✅ token se aaya
+//     if (!ownerId) {
+//       return next(new AppError("Unauthorized", STATUS_CODES.UNAUTHORIZED));
+//     }
+
+//     // Find saloon of this owner
+//     const saloon = await Saloon.findOne({ owner: ownerId });
+//     if (!saloon) {
+//       return next(new AppError("Saloon not found", STATUS_CODES.NOT_FOUND));
+//     }
+
+//     const appointmentId = req.params.id;
+//     if (!appointmentId) {
+//       return next(new AppError("Appointment ID required", STATUS_CODES.BAD_REQUEST));
+//     }
+
+//     // Find single appointment by ID & saloon
+//     const appointment = await Appointment.findOne({
+//       _id: appointmentId,
+//       saloonId: saloon._id,
+//     })
+//       .populate("customer.id", "name mobile")
+//       .populate("serviceIds", "name price")
+//       .populate("professionalId", "name");
+
+//     if (!appointment) {
+//       return next(
+//         new AppError("Appointment not found or not authorized", STATUS_CODES.NOT_FOUND)
+//       );
+//     }
+
+//     return res.status(200).json({
+//       success: true,
+//       message: `Appointment ${appointmentId} fetched successfully`,
+//       data: appointment,
+//     });
+//   } catch (err) {
+//     console.error(err);
+//     next(err);
+//   }
+// };
+
+// export const getAppointmentById = async (req, res, next) => {
+//   try {
+//     const ownerId = res.locals.user?.id;
+//     if (!ownerId) {
+//       return next(new AppError("Unauthorized", STATUS_CODES.UNAUTHORIZED));
+//     }
+
+//     // Find saloon of this owner
+//     const saloon = await Saloon.findOne({ owner: ownerId });
+//     if (!saloon) {
+//       return next(new AppError("Saloon not found", STATUS_CODES.NOT_FOUND));
+//     }
+
+//     const appointmentId = req.params.id;
+//     if (!appointmentId) {
+//       return next(new AppError("Appointment ID required", STATUS_CODES.BAD_REQUEST));
+//     }
+
+//     // Find single appointment by ID & saloon
+//     const appointment = await Appointment.findOne({
+//       _id: appointmentId,
+//       saloonId: saloon._id,
+//     })
+//       .populate("customer.id", "name mobile")
+//       .populate("serviceIds", "name price")
+//       .populate("professionalId", "name"); // populate professional name
+
+//     if (!appointment) {
+//       return next(
+//         new AppError("Appointment not found or not authorized", STATUS_CODES.NOT_FOUND)
+//       );
+//     }
+
+//     // Build professional info
+//     const professional = appointment.professionalId
+//       ? { id: appointment.professionalId._id, name: appointment.professionalId.name }
+//       : { id: null, name: "Not assigned" };
+
+//     // Return response
+//     return res.status(200).json({
+//       success: true,
+//       message: `Appointment ${appointmentId} fetched successfully`,
+//       data: {
+//         ...appointment.toObject(),
+//         professional, // override professional info
+//       },
+//     });
+//   } catch (err) {
+//     console.error(err);
+//     next(err);
+//   }
+// };
+
+
+export const getAppointmentById = async (req, res, next) => {
+  try {
+    const ownerId = res.locals.user?.id;
+    if (!ownerId) {
+      return next(new AppError("Unauthorized", 401));
+    }
+
+    // 1️⃣ Get saloon
+    const saloon = await Saloon.findOne({ owner: ownerId });
+    if (!saloon) return next(new AppError("Saloon not found", 404));
+
+    const appointmentId = req.params.id;
+    if (!appointmentId) return next(new AppError("Appointment ID required", 400));
+
+    // 2️⃣ Fetch all appointments for this saloon (to check professional info)
+    const allAppointments = await Appointment.find({ saloonId: saloon._id })
+      .populate("professionalId", "name")
+      .lean(); // use lean for plain JS objects
+
+    // Build a map: appointmentId => professional info
+    const professionalMap = {};
+    allAppointments.forEach(appt => {
+      professionalMap[appt._id.toString()] = appt.professionalId
+        ? { id: appt.professionalId._id, name: appt.professionalId.name }
+        : { id: null, name: "Not assigned" };
+    });
+
+    // 3️⃣ Fetch the requested appointment
+>>>>>>> 27573fe1304c5274a50b02fa6d39d7db0f9513f5
     const appointment = await Appointment.findOne({
       _id: appointmentId,
       saloonId: saloon._id,
     })
       .populate("customer.id", "name mobile")
       .populate("serviceIds", "name price")
+<<<<<<< HEAD
       .populate("professionalId", "name");
 
     if (!appointment) {
@@ -645,12 +1268,144 @@ export const getAppointmentById = async (req, res, next) => {
       message: `Appointment ${appointmentId} fetched successfully`,
       data: appointment,
     });
+=======
+      .lean();
+
+    if (!appointment) {
+      return next(new AppError("Appointment not found or not authorized", 404));
+    }
+
+    // 4️⃣ Attach professional info from map
+    const professional = professionalMap[appointment._id.toString()] || { id: null, name: "Not assigned" };
+
+    // 5️⃣ Return response
+    return res.status(200).json({
+      success: true,
+      message: `Appointment ${appointmentId} fetched successfully`,
+      data: {
+        ...appointment,
+        professional
+      }
+    });
+
+>>>>>>> 27573fe1304c5274a50b02fa6d39d7db0f9513f5
   } catch (err) {
     console.error(err);
     next(err);
   }
 };
 
+<<<<<<< HEAD
+=======
+export const getTodayAppointments = async (req, res, next) => {
+  try {
+    const ownerId = res.locals.user.id;
+
+    // 1️⃣ Get the saloon of the logged-in owner
+    const saloon = await Saloon.findOne({ owner: ownerId });
+    if (!saloon) return next(new AppError("Saloon not found", 404));
+
+    // 🕒 Today start → 00:00:00
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
+    // 🕒 Tomorrow start → 00:00:00
+    const tomorrowStart = new Date(todayStart);
+    tomorrowStart.setDate(todayStart.getDate() + 1);
+
+    // 2️⃣ Fetch all appointments
+    const appointments = await Appointment.find({ saloonId: saloon._id })
+      .populate("customer.id", "name mobile")
+      .populate("serviceIds", "name price")
+      .populate("professionalId", "name")
+      .sort({ date: 1, time: 1 });
+
+    // 3️⃣ Today Appointments
+    const todayAppointments = appointments.filter((a) => {
+      const d = new Date(a.date);
+      return d >= todayStart && d < tomorrowStart;
+    });
+
+    // 4️⃣ Upcoming (future only)
+    const upcomingAppointments = appointments.filter((a) => {
+      const d = new Date(a.date);
+      return d >= tomorrowStart;
+    });
+
+    // 5️⃣ Summary
+    const totalAppointments = appointments.length;
+    const pendingAppointments = appointments.filter(a => a.status === "pending").length;
+
+    res.status(200).json({
+      success: true,
+      message: `Appointment summary for saloon ${saloon._id}`,
+      data: {
+        totalAppointments,
+        pendingAppointments,
+        todayAppointments,
+        upcomingAppointments,
+      },
+    });
+
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+export const getTopPerformers = async (req, res) => {
+  try {
+    const { saloonId } = req.params;
+
+    const top = await Appointment.aggregate([
+      {
+        $match: {
+          saloonId: saloonId.toString(),
+          status: { $nin: ["cancelled"] } // cancelled orders include nahi honge
+        }
+      },
+      {
+        $group: {
+          _id: "$professionalId",
+          totalAppointments: { $sum: 1 },
+          totalRevenue: { $sum: { $toInt: "$price" } }
+        }
+      },
+      {
+        $lookup: {
+          from: "professionals",
+          localField: "_id",
+          foreignField: "_id",
+          as: "professional"
+        }
+      },
+      { $unwind: { path: "$professional", preserveNullAndEmptyArrays: true } },
+      {
+        $project: {
+          _id: 0,
+          professionalId: "$_id",
+          name: { $ifNull: ["$professional.name", "Not Assigned"] },
+          totalAppointments: 1,
+          totalRevenue: 1
+        }
+      },
+      { $sort: { totalAppointments: -1 } } // highest first
+    ]);
+
+    res.json({
+      success: true,
+      topPerformers: top
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
+
+
+>>>>>>> 27573fe1304c5274a50b02fa6d39d7db0f9513f5
 export const updateAppointmentStatus = async (req, res, next) => {
   try {
     const ownerId = res.locals.user?.id; // ✅ token se aaya
@@ -676,6 +1431,7 @@ export const updateAppointmentStatus = async (req, res, next) => {
     }
 
     // Allowed statuses
+<<<<<<< HEAD
 const allowedStatuses = [
   "pending",
   "accepted",
@@ -685,6 +1441,17 @@ const allowedStatuses = [
   "Reschedule",
   "schedule",
 ];
+=======
+    const allowedStatuses = [
+      "pending",
+      "accepted",
+      "confirmed",
+      "completed",
+      "cancelled",
+      "Reschedule",
+      "schedule",
+    ];
+>>>>>>> 27573fe1304c5274a50b02fa6d39d7db0f9513f5
     if (!allowedStatuses.includes(status)) {
       return next(
         new AppError(`Invalid status. Allowed: ${allowedStatuses.join(", ")}`, STATUS_CODES.BAD_REQUEST)
@@ -731,7 +1498,11 @@ export const getSaloonDashboardStats = async (req, res, next) => {
     const today = new Date();
     const options = { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' };
     const todayStr = today.toDateString(); // e.g., "Mon Sep 15 2025"
+<<<<<<< HEAD
     
+=======
+
+>>>>>>> 27573fe1304c5274a50b02fa6d39d7db0f9513f5
     // Or if you want the exact format from your examples: "Mon, Sep 15, 2025"
     const todayStr2 = today.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }).replace(',', '');
 
@@ -1575,7 +2346,11 @@ export const registerSaloon = async (req, res, next) => {
 //     return res.status(201).json({ 
 //       message: 'Saloon registered successfully.', 
 //       saloon,
+<<<<<<< HEAD
       
+=======
+
+>>>>>>> 27573fe1304c5274a50b02fa6d39d7db0f9513f5
 //       owner_state_status: 4
 //     });
 
@@ -1890,12 +2665,121 @@ export const uploadSaloonLogo = async (req, res, next) => {
 
 
 
+<<<<<<< HEAD
+=======
+// export const uploadSaloonImages = async (req, res, next) => {
+//   try {
+//     const ownerId = res.locals.user.id;
+
+//     const saloon = await Saloon.findOne({ owner: ownerId });
+//     if (!saloon) {
+//       return res.status(404).json({ message: 'Saloon not found' });
+//     }
+
+//     if (!req.files || req.files.length === 0) {
+//       return res.status(400).json({ message: 'No images uploaded' });
+//     }
+
+//     // Convert old string images to proper objects and filter invalid entries
+//     saloon.images = (saloon.images || [])
+//       .map(img => {
+//         if (!img) return null; // remove null / undefined
+//         if (typeof img === 'string') {
+//           return { id: uuidv4(), path: img };
+//         }
+//         if (img.id && img.path) return img; // valid object
+//         return null; // remove invalid objects
+//       })
+//       .filter(Boolean); // remove nulls
+
+//     const baseUrl = `${req.protocol}://${req.get('host')}`;
+//     const imageObjects = req.files.map(file => ({
+//       id: uuidv4(),
+//       path: `${baseUrl}/uploads/saloons/${file.filename}`
+//     }));
+
+//     saloon.images.push(...imageObjects);
+
+//     await saloon.save();
+
+//     res.status(200).json({
+//       message: 'Images uploaded successfully',
+//       images: saloon.images
+//     });
+//   } catch (err) {
+//     console.error('Error uploading saloon images:', err);
+//     next(err);
+//   }
+// };
+
+// export const uploadSaloonImages = async (req, res, next) => {
+//   try {
+//     const ownerId = res.locals.user.id;
+
+//     const saloon = await Saloon.findOne({ owner: ownerId });
+//     if (!saloon) {
+//       return res.status(404).json({ message: 'Saloon not found' });
+//     }
+
+//     if (!req.files || req.files.length === 0) {
+//       return res.status(400).json({ message: 'No images uploaded' });
+//     }
+
+//     // Normalize old image entries
+//     saloon.images = (saloon.images || [])
+//       .map(img => {
+//         if (!img) return null;
+
+//         // Old string format → convert to object
+//         if (typeof img === "string") {
+//           return {
+//             id: uuidv4(),
+//             path: img.startsWith("http")
+//               ? img
+//               : `${req.protocol}://${req.get("host")}${img}`
+//           };
+//         }
+
+//         // Already valid object
+//         if (img.id && img.path) return img;
+
+//         return null;
+//       })
+//       .filter(Boolean);
+
+//     // Correct folder must be saloon (not saloons)
+//     const baseUrl = `${req.protocol}://${req.get("host")}`;
+
+//     const uploadedImages = req.files.map(file => {
+//       return {
+//         id: uuidv4(),
+//         path: `${baseUrl}/uploads/saloon/${file.filename}`
+//       };
+//     });
+
+//     saloon.images.push(...uploadedImages);
+
+//     await saloon.save();
+
+//     res.status(200).json({
+//       message: "Images uploaded successfully",
+//       images: saloon.images
+//     });
+
+//   } catch (err) {
+//     console.error("Error uploading saloon images:", err);
+//     next(err);
+//   }
+// };
+
+>>>>>>> 27573fe1304c5274a50b02fa6d39d7db0f9513f5
 export const uploadSaloonImages = async (req, res, next) => {
   try {
     const ownerId = res.locals.user.id;
 
     const saloon = await Saloon.findOne({ owner: ownerId });
     if (!saloon) {
+<<<<<<< HEAD
       return res.status(404).json({ message: 'Saloon not found' });
     }
 
@@ -1931,13 +2815,60 @@ export const uploadSaloonImages = async (req, res, next) => {
     });
   } catch (err) {
     console.error('Error uploading saloon images:', err);
+=======
+      return res.status(404).json({ message: "Saloon not found" });
+    }
+
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ message: "No images uploaded" });
+    }
+
+    saloon.images = (saloon.images || [])
+      .map(img => {
+        if (!img) return null;
+
+        if (typeof img === "string") {
+          return {
+            id: uuidv4(),
+            path: img.startsWith("http")
+              ? img
+              : `https://${req.get("host")}${img}`
+          };
+        }
+
+        if (img.id && img.path) return img;
+        return null;
+      })
+      .filter(Boolean);
+
+    const baseUrl = `https://${req.get("host")}`;
+
+    const uploadedImages = req.files.map(file => ({
+      id: uuidv4(),
+      path: `${baseUrl}/uploads/saloon/${file.filename}`,   // ✅ Correct
+    }));
+
+    saloon.images.push(...uploadedImages);
+    await saloon.save();
+
+    res.status(200).json({
+      message: "Images uploaded successfully",
+      images: saloon.images
+    });
+
+  } catch (err) {
+    console.error("Error uploading saloon images:", err);
+>>>>>>> 27573fe1304c5274a50b02fa6d39d7db0f9513f5
     next(err);
   }
 };
 
 
+<<<<<<< HEAD
 
 
+=======
+>>>>>>> 27573fe1304c5274a50b02fa6d39d7db0f9513f5
 export const deleteSaloonImage = async (req, res, next) => {
   try {
     const ownerId = res.locals.user.id;

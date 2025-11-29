@@ -14,14 +14,22 @@ LocationownerController.getNearbySaloons = async (req, res, next) => {
 
     const latitude = parseFloat(lat);
     const longitude = parseFloat(long);
+<<<<<<< HEAD
     const radiusInMeters = 5 * 1000; 
+=======
+    const radiusInMeters = 5 * 1000;
+>>>>>>> 27573fe1304c5274a50b02fa6d39d7db0f9513f5
 
     const nearbyLocations = await Location.find({
       geoLocation: {
         $near: {
           $geometry: {
             type: 'Point',
+<<<<<<< HEAD
             coordinates: [longitude, latitude] 
+=======
+            coordinates: [longitude, latitude]
+>>>>>>> 27573fe1304c5274a50b02fa6d39d7db0f9513f5
           },
           $maxDistance: radiusInMeters
         }
@@ -44,6 +52,7 @@ LocationownerController.getNearbySaloons = async (req, res, next) => {
 
 
 LocationownerController.getAllSaloons = async (req, res, next) => {
+<<<<<<< HEAD
     try {
         const allLocations = await Location.find().populate('saloon');
 
@@ -55,4 +64,17 @@ LocationownerController.getAllSaloons = async (req, res, next) => {
     } catch (err) {
         next(err);
     }
+=======
+  try {
+    const allLocations = await Location.find().populate('saloon');
+
+    return res.status(STATUS_CODES.OK).json({
+      success: true,
+      count: allLocations.length,
+      data: allLocations
+    });
+  } catch (err) {
+    next(err);
+  }
+>>>>>>> 27573fe1304c5274a50b02fa6d39d7db0f9513f5
 };

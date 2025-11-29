@@ -29,7 +29,11 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 
+<<<<<<< HEAD
 router.get("/offers/active",CustomerAuthMiddleware.checkAuth, getAllActiveOffers);
+=======
+router.get("/offers/active", CustomerAuthMiddleware.checkAuth, getAllActiveOffers);
+>>>>>>> 27573fe1304c5274a50b02fa6d39d7db0f9513f5
 
 router.post('/customer/add/partial/profile', CustomerAuthMiddleware.checkAuth, partialCustomerProfile);
 
@@ -42,7 +46,11 @@ router.get('/customer/getdetails', CustomerAuthMiddleware.checkAuth, getUserDeta
 router.post(
   "/customer/add/profile",
   CustomerAuthMiddleware.checkAuth,
+<<<<<<< HEAD
   upload.single("profileImage"),  
+=======
+  upload.single("profileImage"),
+>>>>>>> 27573fe1304c5274a50b02fa6d39d7db0f9513f5
   CustomerController.addOrUpdateProfile
 );
 
@@ -64,6 +72,17 @@ router.post(
   AppointmentController.addAppointment
 );
 
+<<<<<<< HEAD
+=======
+
+
+router.post(
+  '/customer/appointments',
+  CustomerAuthMiddleware.checkAuth,
+  AppointmentController.addAppointments
+);
+
+>>>>>>> 27573fe1304c5274a50b02fa6d39d7db0f9513f5
 router.post(
   '/customer/appointment/payment',
   CustomerAuthMiddleware.checkAuth,
@@ -72,24 +91,42 @@ router.post(
 
 router.get('/appointment/pending', CustomerAuthMiddleware.checkAuth, AppointmentNewController.getPendingAppointments);
 
+<<<<<<< HEAD
 router.get('/appointments/:appointmentId',CustomerAuthMiddleware.checkAuth, AppointmentNewController.getAppointmentById);
 
 
 router.get(
   '/customer/appointments', 
   CustomerAuthMiddleware.checkAuth, 
+=======
+router.get('/appointments/:appointmentId', CustomerAuthMiddleware.checkAuth, AppointmentNewController.getAppointmentById);
+
+
+router.get(
+  '/customer/appointments',
+  CustomerAuthMiddleware.checkAuth,
+>>>>>>> 27573fe1304c5274a50b02fa6d39d7db0f9513f5
   AppointmentNewController.getAllAppointments
 );
 
 router.put(
+<<<<<<< HEAD
   '/customer/appointments/update/:id', 
   CustomerAuthMiddleware.checkAuth, 
+=======
+  '/customer/appointments/update/:id',
+  CustomerAuthMiddleware.checkAuth,
+>>>>>>> 27573fe1304c5274a50b02fa6d39d7db0f9513f5
   AppointmentNewController.updateAppointment
 );
 
 router.put(
   '/customer/appointments/cancel/:id',
+<<<<<<< HEAD
   CustomerAuthMiddleware.checkAuth, 
+=======
+  CustomerAuthMiddleware.checkAuth,
+>>>>>>> 27573fe1304c5274a50b02fa6d39d7db0f9513f5
   AppointmentNewController.cancelAppointments
 );
 
