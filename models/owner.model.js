@@ -25,6 +25,7 @@ const ownerSchema = new mongoose.Schema({
   saloonName: { type: String, trim: true },
   ownerName: { type: String, trim: true },
   logo: { type: String },
+    fcmToken: String,
 
   otp: String,
   otpExpiresAt: Date,
