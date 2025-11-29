@@ -114,7 +114,8 @@ connectDB();
 
 // STATIC FILE SERVING (VERY IMPORTANT - MUST BE BEFORE ROUTES)
 const __dirname = path.resolve();
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/uploads', express.static('uploads'));
 
 // Middlewares
 app.use(express.json());
