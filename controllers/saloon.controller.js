@@ -150,12 +150,21 @@ export const getSaloonByOwnerId = async (req, res) => {
       distanceInKm: (location.distance / 1000).toFixed(2),
 
       // full saloon data
-      saloon: {
-    ...saloon._doc,
-    logo: saloon.logo
-      ? `${IMAGE_BASE_URL}/${saloon.logo}`
-      : null
-  },
+  //     saloon: {
+  //   ...saloon._doc,
+  //   logo: saloon.logo
+  //     ? `${IMAGE_BASE_URL}/${saloon.logo}`
+  //     : null
+  // },
+  saloon: {
+  ...saloon._doc,
+  logo: saloon.logo
+    ? saloon.logo.startsWith("http")
+      ? saloon.logo
+      : `${IMAGE_BASE_URL}/${saloon.logo}`
+    : null
+},
+
 
       // full location data
       location,
