@@ -1,6 +1,15 @@
 serviceAccountKey.json
 routes/serviceAccountKey.json
+
 *.json
+!package.json
+!tsconfig.json
+saloon-firebase-key.json
+backend/serviceAccountKey.json
+routes/serviceAccountKey.json
+
+
+
 
 backend/serviceAccountKey.json
 saloonapp-227b0-firebase-adminsdk-fbsvc-34ac2f23eb.json
