@@ -1,9 +1,7 @@
 import Service from '../models/service.model.js';
-<<<<<<< HEAD
+
 import Saloon from '../models/saloon.model.js'; 
-=======
-import Saloon from '../models/saloon.model.js';
->>>>>>> 27573fe1304c5274a50b02fa6d39d7db0f9513f5
+
 import { AppError } from '../helpers/error.js';
 import { STATUS_CODES } from '../helpers/constants.js';
 
@@ -45,8 +43,7 @@ import { STATUS_CODES } from '../helpers/constants.js';
 //   }
 // };
 
-<<<<<<< HEAD
-=======
+
 // export const createService = async (req, res, next) => {
 //   try {
 //     const ownerId = res.locals.user.id;
@@ -84,16 +81,11 @@ import { STATUS_CODES } from '../helpers/constants.js';
 //   }
 // };
 
->>>>>>> 27573fe1304c5274a50b02fa6d39d7db0f9513f5
 export const createService = async (req, res, next) => {
   try {
     const ownerId = res.locals.user.id;
 
-<<<<<<< HEAD
-    // Find saloon of owner
-=======
-    // Find saloon by owner
->>>>>>> 27573fe1304c5274a50b02fa6d39d7db0f9513f5
+
     const saloon = await Saloon.findOne({ owner: ownerId });
     if (!saloon) {
       return next(new AppError("Saloon not found", STATUS_CODES.NOT_FOUND));
@@ -101,10 +93,10 @@ export const createService = async (req, res, next) => {
 
     const { name, category, description, duration, price, status } = req.body;
 
-<<<<<<< HEAD
+
     // Multer file: req.file
     const logo = req.file ? `/uploads/services/${req.file.filename}` : null;
-=======
+
     if (!name || !category || !duration || !price) {
       return res.status(400).json({
         success: false,
@@ -116,10 +108,10 @@ export const createService = async (req, res, next) => {
     const baseUrl = `${req.protocol}://${req.get("host")}`;
 
     // Full image URL (if uploaded)
-    const logo = req.file
-      ? `${baseUrl}/uploads/services/${req.file.filename}`
-      : null;
->>>>>>> 27573fe1304c5274a50b02fa6d39d7db0f9513f5
+    // const logo = req.file
+    //   ? `${baseUrl}/uploads/services/${req.file.filename}`
+    //   : null;
+
 
     const newService = new Service({
       saloon: saloon._id,
@@ -135,29 +127,22 @@ export const createService = async (req, res, next) => {
     await newService.save();
 
     res.status(201).json({
-<<<<<<< HEAD
-=======
+
       success: true,
->>>>>>> 27573fe1304c5274a50b02fa6d39d7db0f9513f5
       message: "Service registered successfully",
       data: newService,
     });
   } catch (err) {
-<<<<<<< HEAD
-=======
+
     console.error("Error creating service:", err);
->>>>>>> 27573fe1304c5274a50b02fa6d39d7db0f9513f5
+
     next(err);
   }
 };
 
 
 
-<<<<<<< HEAD
 
-
-=======
->>>>>>> 27573fe1304c5274a50b02fa6d39d7db0f9513f5
 // export const updateService = async (req, res, next) => {
 //   try {
 //     const { serviceId } = req.params;
@@ -407,11 +392,10 @@ export const searchSalons = async (req, res, next) => {
 
     // 🔹 Find services matching the query
     const matchedServices = await Service.find({
-<<<<<<< HEAD
+
       name: { $regex: regex }, 
-=======
+
       name: { $regex: regex },
->>>>>>> 27573fe1304c5274a50b02fa6d39d7db0f9513f5
       status: 'active'
     });
 

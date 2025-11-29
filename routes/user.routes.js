@@ -2,15 +2,9 @@ import express from 'express';
 import mongoose from 'mongoose';
 import { AuthMiddlewares } from '../middlewares/auth.middleware.js';
 import Location from '../models/location.model.js';
-<<<<<<< HEAD
 import Saloon from '../models/saloon.model.js'; 
 import { getAllUsers, createUser ,getMySaloonProfile, updateSaloonInfo, getRegisteredMobileNumber} from '../controllers/user.controller.js';
 import {  addSaloonContent,getPublicSaloonContent, deleteSaloonImage, getAllImages, getFullSaloonDetails, getFullSaloonDetailsUsingId, getOperatingHours, getPublicOperatingHours, getPublicOwnerLocation, getSaloonDetails, getSaloonUsingId, getSocialLinks, registerSaloon, updateOperatingHours, updateSaloonData, updateSaloonMobileNumber, updateSocialLinks, uploadSaloonImages, uploadSaloonLogo, getAppointmentsBySaloon, getSaloonDashboardStats, getLast7DaysDashboardStats, getUpcomingAppointments,getTodayRevenue,getTotalAppointments,getDashboardData,getPendingAppointments,getRevenueGrowth,getPastAppointments, addOfflineAppointment, getOfflineAppointments, deleteOfflineAppointment, updateOfflineAppointmentStatus, getOfflineAppointmentById, getAppointmentById, updateAppointmentStatus, filterAppointments, getOwnerSaloonContent, getServiceWiseCounts, getSaloonByOwnerId } from '../controllers/saloon.controller.js';
-=======
-import Saloon from '../models/saloon.model.js';
-import { getAllUsers, createUser, getMySaloonProfile, updateSaloonInfo, getRegisteredMobileNumber } from '../controllers/user.controller.js';
-import { addSaloonContent, getPublicSaloonContent, deleteSaloonImage, getAllImages, getFullSaloonDetails, getFullSaloonDetailsUsingId, getOperatingHours, getPublicOperatingHours, getPublicOwnerLocation, getSaloonDetails, getSaloonUsingId, getSocialLinks, registerSaloon, registerSaloons, updateOperatingHours, updateSaloonData, updateSaloonMobileNumber, updateSocialLinks, uploadSaloonImages, uploadSaloonLogo, getAppointmentsBySaloon, getSaloonDashboardStats, getLast7DaysDashboardStats, getUpcomingAppointments, getTodayRevenue, getTotalAppointments, getDashboardData, getPendingAppointments, getRevenueGrowth, getPastAppointments, addOfflineAppointment, getOfflineAppointments, deleteOfflineAppointment, updateOfflineAppointmentStatus, getOfflineAppointmentById, getAppointmentById, updateAppointmentStatus, filterAppointments, getOwnerSaloonContent, getServiceWiseCounts, getSaloonByOwnerId, getTodayAppointments } from '../controllers/saloon.controller.js';
->>>>>>> 27573fe1304c5274a50b02fa6d39d7db0f9513f5
 import { addSaloonLocation, getSaloonLocation, putSaloonNewLocation } from '../controllers/location.controller.js';
 import { updateSaloonDetails } from '../controllers/updateSaloonDetails.js';
 import { deleteSaloonLocation, updateSaloonLocation } from '../controllers/updateSaloonLocation.js';
@@ -34,11 +28,7 @@ import { getLocationBySaloonId } from '../controllers/ownerCountry.controller.js
 
 import { saloonNotification } from "../middlewares/saloonNotification.js";
 import { addCoupon, getAllCoupons, getCoupon, verifyCoupon } from '../controllers/couponController.js';
-<<<<<<< HEAD
 import { addOffer, deleteOffer, getAllActiveOffers, getOfferById, getOffers, getOffersWithData, getTrendingSaloons, replyToReview, updateOffer, updateTrendingSaloons ,forMultipleSaloonReview, forMultipleSaloonReviews, addReply, getSaloonReview} from '../controllers/offer.controller.js';
-=======
-import { addOffer, deleteOffer, getAllActiveOffers, getOfferById, getOffers, getOffersWithData, getTrendingSaloons, replyToReview, updateOffer, updateTrendingSaloons, forMultipleSaloonReview, forMultipleSaloonReviews, addReply, getSaloonReview } from '../controllers/offer.controller.js';
->>>>>>> 27573fe1304c5274a50b02fa6d39d7db0f9513f5
 
 
 
@@ -51,11 +41,7 @@ const router = express.Router();
 
 const uploadDir = path.join(process.cwd(), 'uploads/saloon');
 if (!fs.existsSync(uploadDir)) {
-<<<<<<< HEAD
     fs.mkdirSync(uploadDir, { recursive: true });
-=======
-  fs.mkdirSync(uploadDir, { recursive: true });
->>>>>>> 27573fe1304c5274a50b02fa6d39d7db0f9513f5
 }
 
 // ✅ Multer setup
@@ -81,11 +67,7 @@ const uploadservice = multer({ storageser });
 
 
 
-<<<<<<< HEAD
 const uploadSaloonImageData = path.join(process.cwd(), "uploads/saloons");
-=======
-const uploadSaloonImageData = path.join(process.cwd(), "uploads/saloon");
->>>>>>> 27573fe1304c5274a50b02fa6d39d7db0f9513f5
 if (!fs.existsSync(uploadSaloonImageData)) {
   fs.mkdirSync(uploadSaloonImageData, { recursive: true });
 }
@@ -151,33 +133,21 @@ export const uploadsaloonservice = multer({ storage: storageImageSaloon });
 router.post(
   '/coupon/add',
   AuthMiddlewares.checkAuth,
-<<<<<<< HEAD
  addCoupon
-=======
-  addCoupon
->>>>>>> 27573fe1304c5274a50b02fa6d39d7db0f9513f5
 );
 
 // ➤ Get coupon by code
 router.get(
   '/coupon/:code',
   AuthMiddlewares.checkAuth,
-<<<<<<< HEAD
  getCoupon
-=======
-  getCoupon
->>>>>>> 27573fe1304c5274a50b02fa6d39d7db0f9513f5
 );
 
 // ➤ Verify coupon at checkout
 router.post(
   '/coupon/verify',
   // अगर public verify चाहिए तो हटा सकते हो
-<<<<<<< HEAD
 verifyCoupon
-=======
-  verifyCoupon
->>>>>>> 27573fe1304c5274a50b02fa6d39d7db0f9513f5
 );
 
 router.get(
@@ -230,27 +200,7 @@ router.put('/saloon/owner/update-mobile', AuthMiddlewares.checkAuth, async (req,
   }
 });
 
-<<<<<<< HEAD
 
-=======
-router.put('/owner/update-fcm-token', AuthMiddlewares.checkAuth, async (req, res) => {
-  try {
-    const ownerId = res.locals.user.id;
-    const { fcmToken } = req.body;
-
-    if (!fcmToken) {
-      return res.status(400).json({ success: false, message: "FCM token is required" });
-    }
-
-    await ownerModel.findByIdAndUpdate(ownerId, { fcmToken });
-     console.error("FCM Response _____________:", res.json);
-    return res.json({ success: true, message: "FCM token updated successfully" });
-  } catch (err) {
-    console.error("Error updating FCM token:", err);
-    res.status(500).json({ success: false, message: "Server error" });
-  }
-});
->>>>>>> 27573fe1304c5274a50b02fa6d39d7db0f9513f5
 
 router.get('/saloon/fetch/details', AuthMiddlewares.checkAuth, async (req, res, next) => {
   try {
@@ -266,7 +216,6 @@ router.get('/saloon/fetch/details', AuthMiddlewares.checkAuth, async (req, res, 
 
     const lastCreated = locations.length > 0 ? locations[0].createdAt : null;
 
-<<<<<<< HEAD
 const ownersId = res.locals.user.id;
 const user = await ownerModel.findById(ownersId);
 if (!user) throw new Error('User not found');
@@ -279,20 +228,6 @@ user,
   owner_state_status: user.owner_state_status,
   lastCreated
 });
-=======
-    const ownersId = res.locals.user.id;
-    const user = await ownerModel.findById(ownersId);
-    if (!user) throw new Error('User not found');
-
-    res.json({
-      success: true,
-      user,
-      saloon,
-      locations,
-      owner_state_status: user.owner_state_status,
-      lastCreated
-    });
->>>>>>> 27573fe1304c5274a50b02fa6d39d7db0f9513f5
   } catch (error) {
     next(error);
   }
@@ -303,60 +238,10 @@ user,
 // update 
 
 // Update Saloon details
-<<<<<<< HEAD
 router.put(
   '/saloon/update/:id',
   AuthMiddlewares.checkAuth,
   upload.single('logo'), // multer for logo
-=======
-// router.put(
-//   '/saloon/update/:id',
-//   AuthMiddlewares.checkAuth,
-//   upload.single('logo'), // multer for logo
-//   async (req, res, next) => {
-//     try {
-//       const { id } = req.params;
-//       const ownerId = res.locals.user.id;
-//       const { name, ownerName, mobile } = req.body;
-
-//       // Check saloon exists & belongs to owner
-//       const saloon = await Saloon.findOne({ _id: id, owner: ownerId });
-//       if (!saloon) {
-//         return res.status(404).json({
-//           success: false,
-//           message: 'Saloon not found or unauthorized'
-//         });
-//       }
-
-//       // Update text fields
-//       if (name) saloon.name = name;
-//       if (ownerName) saloon.ownerName = ownerName;
-//       if (mobile) saloon.mobile = mobile;
-
-//       // Update logo if file uploaded
-//       if (req.file) {
-//         saloon.logo = `/uploads/saloon/${req.file.filename}`;
-//       }
-
-//       await saloon.save();
-
-//       res.json({
-//         success: true,
-//         message: 'Saloon updated successfully',
-//         saloon
-//       });
-//     } catch (error) {
-//       next(error);
-//     }
-//   }
-// );
-
-
-router.put(
-  '/saloon/update/:id',
-  AuthMiddlewares.checkAuth,
-  upload.single('logo'),
->>>>>>> 27573fe1304c5274a50b02fa6d39d7db0f9513f5
   async (req, res, next) => {
     try {
       const { id } = req.params;
@@ -379,11 +264,7 @@ router.put(
 
       // Update logo if file uploaded
       if (req.file) {
-<<<<<<< HEAD
         saloon.logo = `/uploads/saloon/${req.file.filename}`;
-=======
-        saloon.logo = `${req.protocol}://${req.get("host")}/uploads/saloon/${req.file.filename}`;
->>>>>>> 27573fe1304c5274a50b02fa6d39d7db0f9513f5
       }
 
       await saloon.save();
@@ -393,10 +274,6 @@ router.put(
         message: 'Saloon updated successfully',
         saloon
       });
-<<<<<<< HEAD
-=======
-
->>>>>>> 27573fe1304c5274a50b02fa6d39d7db0f9513f5
     } catch (error) {
       next(error);
     }
@@ -404,13 +281,6 @@ router.put(
 );
 
 
-<<<<<<< HEAD
-=======
-
-
-
-
->>>>>>> 27573fe1304c5274a50b02fa6d39d7db0f9513f5
 // Saloon Details Without Auth
 
 // Public API to fetch saloon details and locations
@@ -505,20 +375,12 @@ router.get('/owner/location', AuthMiddlewares.checkAuth, getLocationBySaloonId);
 router.get(
   '/saloon/:saloonId/appointments',
   // AdminAuthMiddleware.checkAuth, // optional: only admin/saloon owner
-<<<<<<< HEAD
 getAppointmentsBySaloon
-=======
-  getAppointmentsBySaloon
->>>>>>> 27573fe1304c5274a50b02fa6d39d7db0f9513f5
 );
 
 router.get(
   "/saloon/dashboard",
-<<<<<<< HEAD
    AuthMiddlewares.checkAuth,
-=======
-  AuthMiddlewares.checkAuth,
->>>>>>> 27573fe1304c5274a50b02fa6d39d7db0f9513f5
   getSaloonDashboardStats
 );
 
@@ -574,11 +436,7 @@ router.get(
 // 
 
 
-<<<<<<< HEAD
 router.get('/saloon/dashboard/7days',  AuthMiddlewares.checkAuth, getLast7DaysDashboardStats);
-=======
-router.get('/saloon/dashboard/7days', AuthMiddlewares.checkAuth, getLast7DaysDashboardStats);
->>>>>>> 27573fe1304c5274a50b02fa6d39d7db0f9513f5
 
 router.get("/saloon/dashboard11", AuthMiddlewares.checkAuth, async (req, res, next) => {
   try {
@@ -706,7 +564,6 @@ router.get("/saloon/dashboard1", AuthMiddlewares.checkAuth, async (req, res, nex
 });
 
 
-<<<<<<< HEAD
 router.get("/saloon/week/dashboard1", AuthMiddlewares.checkAuth, async (req, res, next) => {
   try {
     const ownerId = res.locals.user.id;
@@ -804,8 +661,6 @@ router.get("/saloon/week/dashboard1", AuthMiddlewares.checkAuth, async (req, res
 });
 
 
-=======
->>>>>>> 27573fe1304c5274a50b02fa6d39d7db0f9513f5
 // router.get("/saloon/week/dashboard1", AuthMiddlewares.checkAuth, async (req, res, next) => {
 //   try {
 //     const ownerId = res.locals.user.id;
@@ -822,11 +677,7 @@ router.get("/saloon/week/dashboard1", AuthMiddlewares.checkAuth, async (req, res
 //       .sort({ date: 1, time: 1 });
 
 //     const today = new Date();
-<<<<<<< HEAD
 //     const todayStr = today.toDateString(); 
-=======
-//     const todayStr = today.toDateString();
->>>>>>> 27573fe1304c5274a50b02fa6d39d7db0f9513f5
 
 //     const todaysAppointments = appointments.filter(a => new Date(a.date).toDateString() === todayStr);
 
@@ -891,404 +742,6 @@ router.get("/saloon/week/dashboard1", AuthMiddlewares.checkAuth, async (req, res
 // });
 
 
-<<<<<<< HEAD
-=======
-// router.get("/saloon/week/dashboard1", AuthMiddlewares.checkAuth, async (req, res, next) => {
-//   try {
-//     const ownerId = res.locals.user.id;
-
-//     // 1️⃣ Get saloon of the logged-in owner
-//     const saloon = await Saloon.findOne({ owner: ownerId });
-//     if (!saloon) return next(new AppError("Saloon not found", 404));
-
-//     // 2️⃣ Fetch all appointments for this saloon
-//     const appointments = await Appointment.find({ saloonId: saloon._id })
-//       .populate("customer.id", "name mobile")
-//       .populate("serviceIds", "name price")
-//       .populate("professionalId", "name")
-//       .sort({ date: 1, time: 1 });
-
-//     appointments.forEach(a => {
-//       console.log(a.professionalId); // Check what is actually coming
-//     });
-
-//     // ---------- Date ranges ----------
-//     const today = new Date();
-//     const todayStart = new Date(today);
-//     todayStart.setHours(0, 0, 0, 0);
-//     const todayEnd = new Date(today);
-//     todayEnd.setHours(23, 59, 59, 999);
-
-//     const yesterdayStart = new Date(todayStart);
-//     yesterdayStart.setDate(yesterdayStart.getDate() - 1);
-//     const yesterdayEnd = new Date(todayEnd);
-//     yesterdayEnd.setDate(yesterdayEnd.getDate() - 1);
-
-//     // ---------- Filter appointments ----------
-//     const todaysAppointments = appointments.filter(a => {
-//       const apptDate = new Date(a.date);
-//       return apptDate >= todayStart && apptDate <= todayEnd;
-//     });
-
-//     const yesterdayAppointments = appointments.filter(a => {
-//       const apptDate = new Date(a.date);
-//       return apptDate >= yesterdayStart && apptDate <= yesterdayEnd;
-//     });
-
-//     // ---------- Stats ----------
-//     const totalAppointments = todaysAppointments.length;
-//     const pendingCount = todaysAppointments.filter(a => a.status === "pending").length;
-//     const confirmedCount = todaysAppointments.filter(a => a.status === "confirmed").length;
-
-//     const todayRevenue = todaysAppointments
-//       .filter(a => a.status === "confirmed")
-//       .reduce((sum, a) => sum + Number(a.price || 0), 0);
-
-//     const growthRatio = yesterdayAppointments.length > 0
-//       ? ((totalAppointments - yesterdayAppointments.length) / yesterdayAppointments.length) * 100
-//       : 0;
-
-//     // ---------- Weekly Revenue ----------
-//     const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-//     const revenueByWeek = [0, 0, 0, 0]; // Week 1, 2, 3, 4
-
-//     appointments.forEach(a => {
-//       if (a.status === "confirmed" || a.status === "accepted" || a.status === "completed") {
-//         const date = new Date(a.date);
-//         if (date.getMonth() === today.getMonth() && date.getFullYear() === today.getFullYear()) {
-//           const day = date.getDate();
-//           if (day >= 1 && day <= 7) revenueByWeek[0] += Number(a.price || 0);
-//           else if (day >= 8 && day <= 14) revenueByWeek[1] += Number(a.price || 0);
-//           else if (day >= 15 && day <= 21) revenueByWeek[2] += Number(a.price || 0);
-//           else revenueByWeek[3] += Number(a.price || 0);
-//         }
-//       }
-//     });
-
-//     // ---------- Build Response ----------
-//     res.status(200).json({
-//       success: true,
-//       stats: {
-//         totalAppointments,
-//         pendingCount,
-//         confirmedCount,
-//         todayRevenue,
-//         growthRatio: growthRatio.toFixed(2),
-//       },
-//       revenueByWeek: [
-//         { week: "Week 1", revenue: revenueByWeek[0] },
-//         { week: "Week 2", revenue: revenueByWeek[1] },
-//         { week: "Week 3", revenue: revenueByWeek[2] },
-//         { week: "Week 4", revenue: revenueByWeek[3] },
-//       ],
-//       recentAppointments: todaysAppointments.slice(-5).reverse(), // last 5
-//     });
-
-//   } catch (err) {
-//     next(err);
-//   }
-// });
-
-// router.get("/saloon/week/dashboard1", AuthMiddlewares.checkAuth, async (req, res, next) => {
-//   try {
-//     const ownerId = res.locals.user.id;
-
-//     // 1️⃣ Get saloon of the logged-in owner
-//     const saloon = await Saloon.findOne({ owner: ownerId });
-//     if (!saloon) return next(new AppError("Saloon not found", 404));
-
-//     // 2️⃣ Fetch all appointments for this saloon
-//     const appointments = await Appointment.find({ saloonId: saloon._id })
-//       .populate("customer.id", "name mobile")
-//       .populate("serviceIds", "name price")
-//       .populate("professionalId", "name") // populate professional
-//       .sort({ date: 1, time: 1 });
-
-//     const today = new Date();
-//     const todayStart = new Date(today.setHours(0, 0, 0, 0));
-//     const todayEnd = new Date(today.setHours(23, 59, 59, 999));
-
-//     const yesterdayStart = new Date(todayStart);
-//     yesterdayStart.setDate(yesterdayStart.getDate() - 1);
-//     const yesterdayEnd = new Date(todayEnd);
-//     yesterdayEnd.setDate(yesterdayEnd.getDate() - 1);
-
-//     // Filter today/yesterday appointments
-//     const todaysAppointments = appointments.filter(a => {
-//       const apptDate = new Date(a.date);
-//       return apptDate >= todayStart && apptDate <= todayEnd;
-//     });
-
-//     const yesterdayAppointments = appointments.filter(a => {
-//       const apptDate = new Date(a.date);
-//       return apptDate >= yesterdayStart && apptDate <= yesterdayEnd;
-//     });
-
-//     // Stats
-//     const totalAppointments = todaysAppointments.length;
-//     const pendingCount = todaysAppointments.filter(a => a.status === "pending").length;
-//     const confirmedCount = todaysAppointments.filter(a => a.status === "confirmed").length;
-
-//     const todayRevenue = todaysAppointments
-//       .filter(a => a.status === "confirmed")
-//       .reduce((sum, a) => sum + Number(a.price || 0), 0);
-
-//     const growthRatio = yesterdayAppointments.length > 0
-//       ? ((totalAppointments - yesterdayAppointments.length) / yesterdayAppointments.length) * 100
-//       : 0;
-
-//     // Weekly Revenue
-//     const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-//     const revenueByWeek = [0, 0, 0, 0]; // Week 1,2,3,4
-//     appointments.forEach(a => {
-//       if (a.status === "confirmed") {
-//         const date = new Date(a.date);
-//         if (date.getMonth() === today.getMonth() && date.getFullYear() === today.getFullYear()) {
-//           const day = date.getDate();
-//           if (day >= 1 && day <= 7) revenueByWeek[0] += Number(a.price || 0);
-//           else if (day >= 8 && day <= 14) revenueByWeek[1] += Number(a.price || 0);
-//           else if (day >= 15 && day <= 21) revenueByWeek[2] += Number(a.price || 0);
-//           else revenueByWeek[3] += Number(a.price || 0);
-//         }
-//       }
-//     });
-
-//     // Top Services (dynamic)
-//     const serviceMap = {};
-//     appointments.forEach(a => {
-//       if (a.serviceIds && a.serviceIds.length > 0) {
-//         a.serviceIds.forEach(s => {
-//           if (!serviceMap[s.name]) {
-//             serviceMap[s.name] = { count: 0, amount: 0 };
-//           }
-//           serviceMap[s.name].count += 1;
-//           serviceMap[s.name].amount += Number(s.price || 0);
-//         });
-//       }
-//     });
-
-//     const topServices = Object.keys(serviceMap)
-//       .map(key => ({
-//         service: key,
-//         bookings: serviceMap[key].count,
-//         amount: serviceMap[key].amount
-//       }))
-//       .sort((a, b) => b.bookings - a.bookings) // descending by bookings
-//       .slice(0, 5); // top 5 services
-
-//     // Format recent appointments with professional info
-//     const recentAppointmentsFormatted = todaysAppointments
-//       .slice(-5)
-//       .reverse()
-//       .map(a => ({
-//         _id: a._id,
-//         customer: a.customer,
-//         saloonId: a.saloonId,
-//         serviceIds: a.serviceIds,
-//         professional: a.professionalId
-//           ? { id: a.professionalId._id, name: a.professionalId.name }
-//           : { id: null, name: "Not assigned" },
-//         date: a.date,
-//         time: a.time,
-//         duration: a.duration,
-//         price: a.price,
-//         status: a.status,
-//         discount: a.discount,
-//         discountCode: a.discountCode,
-//         discountAmount: a.discountAmount,
-//         cardstatus: a.cardstatus,
-//         notes: a.notes,
-//         bookingRef: a.bookingRef,
-//       }));
-
-//     res.status(200).json({
-//       success: true,
-//       stats: {
-//         totalAppointments,
-//         pendingCount,
-//         confirmedCount,
-//         todayRevenue,
-//         growthRatio: growthRatio.toFixed(2),
-//       },
-//       revenueByWeek: [
-//         { week: "Week 1", revenue: revenueByWeek[0] },
-//         { week: "Week 2", revenue: revenueByWeek[1] },
-//         { week: "Week 3", revenue: revenueByWeek[2] },
-//         { week: "Week 4", revenue: revenueByWeek[3] },
-//       ],
-//       recentAppointments: recentAppointmentsFormatted,
-//       topServices
-//     });
-
-//   } catch (err) {
-//     next(err);
-//   }
-// })
-router.get(
-  "/saloon/current/appointment",
-  AuthMiddlewares.checkAuth,
-  getTodayAppointments
-);
-
-router.get("/saloon/week/dashboard1", AuthMiddlewares.checkAuth, async (req, res, next) => {
-  try {
-    const ownerId = res.locals.user.id;
-
-    // 1️⃣ Find saloon
-    const saloon = await Saloon.findOne({ owner: ownerId });
-    if (!saloon) return next(new AppError("Saloon not found", 404));
-
-    // 2️⃣ Fetch all appointments
-    const appointments = await Appointment.find({ saloonId: saloon._id })
-      .populate("customer.id", "name mobile")
-      .populate("serviceIds", "name price")
-      .populate("professionalId", "name")
-      .sort({ createdAt: -1 });
-
-    // DATE CALCULATION FIX
-    const now = new Date();
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-    const todayEnd = new Date();
-    todayEnd.setHours(23, 59, 59, 999);
-
-    const yesterdayStart = new Date(todayStart);
-    yesterdayStart.setDate(yesterdayStart.getDate() - 1);
-
-    const yesterdayEnd = new Date(todayEnd);
-    yesterdayEnd.setDate(yesterdayEnd.getDate() - 1);
-
-    // Filter today's appointments
-    const todaysAppointments = appointments.filter(a => {
-      const d = new Date(a.date);
-      return d >= todayStart && d <= todayEnd;
-    });
-
-    // Yesterday appointments
-    const yesterdayAppointments = appointments.filter(a => {
-      const d = new Date(a.date);
-      return d >= yesterdayStart && d <= yesterdayEnd;
-    });
-
-    // Stats
-    const totalAppointments = todaysAppointments.length;
-    const pendingCount = todaysAppointments.filter(a => a.status === "pending").length;
-    const confirmedCount = todaysAppointments.filter(a => a.status === "confirmed").length;
-
-    // STATUS allowed for revenue
-    const revenueStatuses = [
-      "pending",
-      "accepted",
-      "confirmed",
-      "completed",
-      "Reschedule",
-      "schedule"
-    ];
-
-    const todayRevenue = todaysAppointments
-      .filter(a => revenueStatuses.includes(a.status))
-      .reduce((sum, a) => sum + Number(a.price || 0), 0);
-
-    // Growth ratio
-    const growthRatio =
-      yesterdayAppointments.length > 0
-        ? ((totalAppointments - yesterdayAppointments.length) / yesterdayAppointments.length) * 100
-        : 0;
-
-    //  WEEKLY REVENUE FIX
-    const revenueByWeek = [0, 0, 0, 0];
-
-    appointments.forEach(a => {
-      if (!revenueStatuses.includes(a.status)) return;
-
-      const d = new Date(a.date);
-      if (d.getMonth() !== now.getMonth()) return;
-
-      const day = d.getDate();
-      const price = Number(a.price || 0);
-
-      if (day <= 7) revenueByWeek[0] += price;
-      else if (day <= 14) revenueByWeek[1] += price;
-      else if (day <= 21) revenueByWeek[2] += price;
-      else revenueByWeek[3] += price;
-    });
-
-    // Top services
-    const serviceMap = {};
-    appointments.forEach(a => {
-      if (!a.serviceIds) return;
-
-      a.serviceIds.forEach(s => {
-        if (!serviceMap[s.name]) {
-          serviceMap[s.name] = { count: 0, amount: 0 };
-        }
-
-        serviceMap[s.name].count += 1;
-        serviceMap[s.name].amount += Number(s.price || 0);
-      });
-    });
-
-    const topServices = Object.keys(serviceMap)
-      .map(key => ({
-        service: key,
-        bookings: serviceMap[key].count,
-        amount: serviceMap[key].amount
-      }))
-      .sort((a, b) => b.bookings - a.bookings)
-      .slice(0, 5);
-
-    // Recent appointments
-    const recentAppointmentsFormatted = todaysAppointments
-      .slice(-5)
-      .reverse()
-      .map(a => ({
-        _id: a._id,
-        customer: a.customer,
-        saloonId: a.saloonId,
-        serviceIds: a.serviceIds,
-        professional: a.professionalId
-          ? { id: a.professionalId._id, name: a.professionalId.name }
-          : { id: null, name: "Not assigned" },
-        date: a.date,
-        time: a.time,
-        duration: a.duration,
-        price: a.price,
-        status: a.status,
-        discount: a.discount,
-        discountCode: a.discountCode,
-        discountAmount: a.discountAmount,
-        cardstatus: a.cardstatus,
-        notes: a.notes,
-        bookingRef: a.bookingRef,
-      }));
-
-    res.status(200).json({
-      success: true,
-      stats: {
-        totalAppointments,
-        pendingCount,
-        confirmedCount,
-        todayRevenue,
-        growthRatio: growthRatio.toFixed(2),
-      },
-      revenueByWeek: [
-        { week: "Week 1", revenue: revenueByWeek[0] },
-        { week: "Week 2", revenue: revenueByWeek[1] },
-        { week: "Week 3", revenue: revenueByWeek[2] },
-        { week: "Week 4", revenue: revenueByWeek[3] },
-      ],
-      recentAppointments: recentAppointmentsFormatted,
-      topServices
-    });
-
-  } catch (err) {
-    next(err);
-  }
-});
-
-
-
->>>>>>> 27573fe1304c5274a50b02fa6d39d7db0f9513f5
 router.get("/saloon/dashboard2", AuthMiddlewares.checkAuth, async (req, res, next) => {
   try {
     const ownerId = res.locals.user.id;
@@ -1383,11 +836,7 @@ router.put(
 
 
 router.post('/saloon/offline/appointments', AuthMiddlewares.checkAuth, addOfflineAppointment);
-<<<<<<< HEAD
 router.get('/saloon/offline/appointmentsssss',   AuthMiddlewares.checkAuth, getOfflineAppointments);
-=======
-router.get('/saloon/offline/appointmentsssss', AuthMiddlewares.checkAuth, getOfflineAppointments);
->>>>>>> 27573fe1304c5274a50b02fa6d39d7db0f9513f5
 
 router.delete(
   '/saloon/offline/appointments/:id',
@@ -1450,11 +899,7 @@ router.get('/saloon/fetch/location', AuthMiddlewares.checkAuth, async (req, res,
 
 
 router.post('/onwer/register', AuthMiddlewares.checkAuth,
-<<<<<<< HEAD
     upload.single("profileImage"),  registerSaloon);
-=======
-  upload.single("profileImage"), registerSaloon);
->>>>>>> 27573fe1304c5274a50b02fa6d39d7db0f9513f5
 
 
 
@@ -1470,11 +915,7 @@ router.get('/saloon/full-details', AuthMiddlewares.checkAuth, getFullSaloonDetai
 router.get('/saloon/full/details/:saloonId', getFullSaloonDetailsUsingId);
 router.get('/saloon/details/:saloonId', getSaloonUsingId);
 router.get('/saloon/public/details/:saloonId', getPublicOwnerLocation);
-<<<<<<< HEAD
 router.get('/saloon/by-owner', getSaloonByOwnerId);
-=======
-
->>>>>>> 27573fe1304c5274a50b02fa6d39d7db0f9513f5
 
 
 router.get('/nearby/salons', getNearbySalonsController);
@@ -1482,11 +923,7 @@ router.get('/nearby/salons', getNearbySalonsController);
 router.put('/saloon/details/update', AuthMiddlewares.checkAuth, updateSaloonDetails);
 router.put('/saloon/location/update', AuthMiddlewares.checkAuth, updateSaloonLocation);
 router.delete('/saloon/location/delete', AuthMiddlewares.checkAuth, deleteSaloonLocation);
-<<<<<<< HEAD
 router.delete('/saloon/location/deletes',  deleteSaloonLocation);
-=======
-router.delete('/saloon/location/deletes', deleteSaloonLocation);
->>>>>>> 27573fe1304c5274a50b02fa6d39d7db0f9513f5
 router.get('/saloon/mobile/num', AuthMiddlewares.checkAuth, getRegisteredMobileNumber);
 router.get('/saloon/register/mobile', AuthMiddlewares.checkAuth, getSaloonRegisteredMobileNumber);
 router.put('/saloon/update-mobile', AuthMiddlewares.checkAuth, updateSaloonMobileNumber);
@@ -1501,11 +938,7 @@ router.get('/saloon/fetch/social-links', AuthMiddlewares.checkAuth, getSocialLin
 router.post(
   "/saloon/content",
   AuthMiddlewares.checkAuth,
-<<<<<<< HEAD
   upload.single("profile"), 
-=======
-  upload.single("profile"),
->>>>>>> 27573fe1304c5274a50b02fa6d39d7db0f9513f5
   addSaloonContent
 );
 router.get('/saloon/content/:saloonId', getPublicSaloonContent);
@@ -1673,11 +1106,7 @@ router.get('/saloons/search', SaloonsController.searchSaloons);
 router.get('/saloon/nearby', LocationownerController.getNearbySaloons);
 router.get('/all-saloons', LocationownerController.getAllSaloons);
 
-<<<<<<< HEAD
 
-=======
-router.get('/saloon/by-owner', getSaloonByOwnerId);
->>>>>>> 27573fe1304c5274a50b02fa6d39d7db0f9513f5
 
 
 router.post(
@@ -1688,12 +1117,7 @@ router.post(
 
 
 
-<<<<<<< HEAD
 
-=======
-router.post('/onwer/register/new', AuthMiddlewares.checkAuth,
-  upload.single("profileImage"), registerSaloons);
->>>>>>> 27573fe1304c5274a50b02fa6d39d7db0f9513f5
 
 router.post('/saloon/create', AuthMiddlewares.checkAuth, createUser);
 
@@ -1765,25 +1189,15 @@ router.get("/offer/all/active", AuthMiddlewares.checkAuth, getOffersWithData);
 
 
 // Get single offer by ID
-<<<<<<< HEAD
 router.get("/offer/:id", AuthMiddlewares.checkAuth,getOfferById);
-=======
-router.get("/offer/:id", AuthMiddlewares.checkAuth, getOfferById);
->>>>>>> 27573fe1304c5274a50b02fa6d39d7db0f9513f5
 
 // Update an offer
 router.put("/update/offer/:id", AuthMiddlewares.checkAuth, updateOffer);
 
 // Delete an offer
-<<<<<<< HEAD
 router.delete("/offer/:id", AuthMiddlewares.checkAuth,deleteOffer);
 
 router.put("/admin/trending/update", AuthMiddlewares.checkAuth,updateTrendingSaloons);
-=======
-router.delete("/offer/:id", AuthMiddlewares.checkAuth, deleteOffer);
-
-router.put("/admin/trending/update", AuthMiddlewares.checkAuth, updateTrendingSaloons);
->>>>>>> 27573fe1304c5274a50b02fa6d39d7db0f9513f5
 
 // Public or authenticated route to get trending saloons
 router.get("/saloons/trending", getTrendingSaloons);
@@ -1791,7 +1205,6 @@ router.get("/saloons/trending", getTrendingSaloons);
 // Get reviews of a saloon
 // router.get("/saloons/:saloonId/reviews", getSaloonReviews);
 
-<<<<<<< HEAD
  router.get("/saloons/:saloonId/reviews", forMultipleSaloonReview);
 router.get("/saloons/:saloonId/reviews/list", forMultipleSaloonReviews);
 router.post("/add-reply",  AuthMiddlewares.checkAuth ,addReply);
@@ -1801,17 +1214,6 @@ router.post("/add-reply",  AuthMiddlewares.checkAuth ,addReply);
 
 
  
-=======
-router.get("/saloons/:saloonId/reviews", forMultipleSaloonReview);
-router.get("/saloons/:saloonId/reviews/list", forMultipleSaloonReviews);
-router.post("/add-reply", AuthMiddlewares.checkAuth, addReply);
-
-router.get("/saloons/reply/:saloonId/reviews", getSaloonReview);
-
-
-
-
->>>>>>> 27573fe1304c5274a50b02fa6d39d7db0f9513f5
 
 
 // Saloon owner replies to review

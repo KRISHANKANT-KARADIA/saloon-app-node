@@ -4,12 +4,7 @@
   "description": "Admin",
   "main": "index.js",
   "scripts": {
-<<<<<<< HEAD
     "test": "echo \"Error: no test specified\" && exit 1"
-=======
-    "dev": "nodemon app.js",
-    "start": "node app.js"
->>>>>>> 27573fe1304c5274a50b02fa6d39d7db0f9513f5
   },
   "author": "",
   "license": "ISC",
@@ -25,10 +20,6 @@
     "cookie": "^1.0.2",
     "cookie-parser": "^1.4.7",
     "cookie-signature": "^1.2.2",
-<<<<<<< HEAD
-=======
-    "cors": "^2.8.5",
->>>>>>> 27573fe1304c5274a50b02fa6d39d7db0f9513f5
     "debug": "^4.4.1",
     "dotenv": "^17.2.3",
     "encodeurl": "^2.0.0",
@@ -37,11 +28,7 @@
     "express": "^5.1.0",
     "fill-range": "^7.1.1",
     "finalhandler": "^2.1.0",
-<<<<<<< HEAD
     "firebase-admin": "^13.5.0",
-=======
-    "firebase-admin": "^13.6.0",
->>>>>>> 27573fe1304c5274a50b02fa6d39d7db0f9513f5
     "forwarded": "^0.2.0",
     "glob-parent": "^6.0.2",
     "http-errors": "^2.0.0",

@@ -432,11 +432,8 @@ router.post('/saloon/owner/send-otp', validateMobile, async (req, res) => {
 
 
 
-<<<<<<< HEAD
-=======
 
 
->>>>>>> 27573fe1304c5274a50b02fa6d39d7db0f9513f5
 // For Firebase auth
 
 

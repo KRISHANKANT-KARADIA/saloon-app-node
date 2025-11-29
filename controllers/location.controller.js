@@ -2,11 +2,7 @@ import Location from '../models/location.model.js';
 import ownerModel from '../models/owner.model.js';
 
 export const addSaloonLocation = async (req, res, next) => {
-<<<<<<< HEAD
  
-=======
-
->>>>>>> 27573fe1304c5274a50b02fa6d39d7db0f9513f5
   try {
     const ownerId = res.locals.user.id;
     const { address1, address2, city, state, pincode, mapLink, lat, long } = req.body;
@@ -30,11 +26,7 @@ export const addSaloonLocation = async (req, res, next) => {
       // Create new location
       location = await Location.create({
         owner: ownerId,
-<<<<<<< HEAD
          saloon: saloonId,   
-=======
-
->>>>>>> 27573fe1304c5274a50b02fa6d39d7db0f9513f5
         address1,
         address2,
         city,
@@ -60,11 +52,7 @@ export const addSaloonLocation = async (req, res, next) => {
 
 // ✅ New controller to fetch location by logged-in owner
 export const getSaloonLocation = async (req, res, next) => {
-<<<<<<< HEAD
  try {
-=======
-  try {
->>>>>>> 27573fe1304c5274a50b02fa6d39d7db0f9513f5
     const ownerId = res.locals.user.id;
 
     // Verify owner exists
