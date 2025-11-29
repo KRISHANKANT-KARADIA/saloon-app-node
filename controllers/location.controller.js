@@ -25,8 +25,7 @@ export const addSaloonLocation = async (req, res, next) => {
     } else {
       // Create new location
       location = await Location.create({
-        owner: ownerId,
-         saloon: "null",   
+        owner: ownerId, 
         address1,
         address2,
         city,
