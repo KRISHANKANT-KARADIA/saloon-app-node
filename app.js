@@ -87,6 +87,75 @@
 
 
 
+// import express from 'express';
+// import dotenv from 'dotenv';
+// import { connectDB } from './config/db.js';
+// import path from "path";
+// import versionRoutes from './routes/version.routes.js';
+// import otpRoutes from './routes/otp.routes.js';
+// import { logger } from './middlewares/logger.js';
+// import bodyParser from 'body-parser';
+// import locationRoutes from './routes/location.routes.js';
+// import userRoutes from './routes/user.routes.js';
+// import customerAuthRoutes from './routes/customer.auth.routes.js';
+// import customerLocationRoutes from './routes/customerLocation.routes.js';
+// import authRoutes from './routes/auth.routes.js';
+// import countryRoutes from './routes/country.routes.js';
+// import customerRoutes from './routes/customer.routes.js';
+// import customerVersionRoutes from './routes/customerVersion.routes.js';
+// import ownerCountryRoutes from './routes/ownerCountry.routes.js';
+
+// dotenv.config();
+
+// const app = express();
+
+// // Connect DB
+// connectDB();
+
+// // STATIC FILE SERVING (VERY IMPORTANT - MUST BE BEFORE ROUTES)
+// const __dirname = path.resolve();
+// // app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// app.use('/uploads', express.static('uploads'));
+
+// // Middlewares
+// app.use(express.json());
+// app.use(logger);
+// app.use(bodyParser.json());
+
+// // Routes
+// app.use('/api', versionRoutes);
+// app.use('/api', otpRoutes);
+// app.use('/api', userRoutes);
+// app.use('/api/owner/countries', ownerCountryRoutes);
+// app.use('/api', locationRoutes);
+// app.use('/api', userRoutes);
+
+// // Customer
+// app.use('/api', customerVersionRoutes);
+// app.use('/api/customer/auth', customerAuthRoutes);
+// app.use('/api', customerLocationRoutes);
+// app.use('/api/auth', authRoutes);
+// app.use('/api/countries', countryRoutes);
+// app.use('/api', customerRoutes);
+
+// // Global error handler
+// app.use((err, req, res, next) => {
+//   res.status(err.statusCode || 500).json({ error: err.message || 'Internal Server Error' });
+// });
+
+// // LAST ROUTE ← fallback (DO NOT MOVE ABOVE STATIC ROUTE)
+// app.use('/', (req, res) => {
+//   res.send(`Hello world - ${process.env.ENVIROMENT}`);
+// });
+
+// // Start server
+// const PORT = process.env.PORT || 3000;
+// app.listen(PORT, () => {
+//   console.log(`🚀 Server running on port ${PORT}`);
+// });
+
+
+
 import express from 'express';
 import dotenv from 'dotenv';
 import { connectDB } from './config/db.js';
@@ -109,20 +178,23 @@ dotenv.config();
 
 const app = express();
 
-// Connect DB
+// CONNECT DB
 connectDB();
 
-// STATIC FILE SERVING (VERY IMPORTANT - MUST BE BEFORE ROUTES)
+// STATIC FILES ----------------------------------------------------
 const __dirname = path.resolve();
-// app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-app.use('/uploads', express.static('uploads'));
 
-// Middlewares
+// IMPORTANT: For Cloud Run, absolute path required
+app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
+  fallthrough: true,
+}));
+
+// MIDDLEWARES ----------------------------------------------------
 app.use(express.json());
 app.use(logger);
 app.use(bodyParser.json());
 
-// Routes
+// ROUTES ---------------------------------------------------------
 app.use('/api', versionRoutes);
 app.use('/api', otpRoutes);
 app.use('/api', userRoutes);
@@ -130,7 +202,7 @@ app.use('/api/owner/countries', ownerCountryRoutes);
 app.use('/api', locationRoutes);
 app.use('/api', userRoutes);
 
-// Customer
+// CUSTOMER ROUTES
 app.use('/api', customerVersionRoutes);
 app.use('/api/customer/auth', customerAuthRoutes);
 app.use('/api', customerLocationRoutes);
@@ -138,18 +210,21 @@ app.use('/api/auth', authRoutes);
 app.use('/api/countries', countryRoutes);
 app.use('/api', customerRoutes);
 
-// Global error handler
+// GLOBAL ERROR HANDLER ------------------------------------------
 app.use((err, req, res, next) => {
-  res.status(err.statusCode || 500).json({ error: err.message || 'Internal Server Error' });
+  console.log("GLOBAL ERROR:", err);
+  res.status(err.statusCode || 500).json({
+    error: err.message || 'Internal Server Error'
+  });
 });
 
-// LAST ROUTE ← fallback (DO NOT MOVE ABOVE STATIC ROUTE)
+// FALLBACK ROUTE -------------------------------------------------
 app.use('/', (req, res) => {
   res.send(`Hello world - ${process.env.ENVIROMENT}`);
 });
 
-// Start server
-const PORT = process.env.PORT || 3000;
+// START SERVER ---------------------------------------------------
+const PORT = process.env.PORT || 3000;   // Cloud Run uses 8080
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
