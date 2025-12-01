@@ -203,6 +203,27 @@ export const updateService = async (req, res, next) => {
 };
 
 
+// export const getSaloonServices = async (req, res, next) => {
+//   try {
+//     const ownerId = res.locals.user.id;
+
+//     // Find the saloon owned by this user
+//     const saloon = await Saloon.findOne({ owner: ownerId });
+//     if (!saloon) {
+//       return next(new AppError('Saloon not found', STATUS_CODES.NOT_FOUND));
+//     }
+
+//     // Find services for this saloon
+//     const services = await Service.find({ saloon: saloon._id });
+
+//     res.status(200).json({
+//       message: 'Services retrieved successfully',
+//       data: services
+//     });
+//   } catch (err) {
+//     next(err);
+//   }
+// };
 export const getSaloonServices = async (req, res, next) => {
   try {
     const ownerId = res.locals.user.id;
@@ -216,10 +237,21 @@ export const getSaloonServices = async (req, res, next) => {
     // Find services for this saloon
     const services = await Service.find({ saloon: saloon._id });
 
-    res.status(200).json({
+    // 🔥 Base URL dynamically pick karein
+    const BASE_URL = `${req.protocol}://${req.get('host')}`;
+
+    // 🔥 Full URL me convert karein
+    const formattedServices = services.map(service => ({
+      ...service._doc,
+      logo: `${BASE_URL}${service.logo}`,  
+      // Example: http://localhost:5000/uploads/services/1764589422068.jpg
+    }));
+
+    return res.status(200).json({
       message: 'Services retrieved successfully',
-      data: services
+      data: formattedServices
     });
+
   } catch (err) {
     next(err);
   }
