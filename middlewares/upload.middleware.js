@@ -4,7 +4,7 @@ import fs from 'fs';
 
 const serviceUploadDir = 'uploads/services';
 
-// Create uploads folder if not exists
+// Create folder if not exists
 if (!fs.existsSync(serviceUploadDir)) {
   fs.mkdirSync(serviceUploadDir, { recursive: true });
 }
