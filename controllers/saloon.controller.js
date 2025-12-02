@@ -1027,19 +1027,12 @@ export const getDashboardDataC = async (req, res, next) => {
     const saloon = await Saloon.findOne({ owner: ownerId });
     if (!saloon) return next(new AppError("Saloon not found", 404));
 
-    // 📅 TODAY DATE RANGE
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-
-    const todayEnd = new Date();
-    todayEnd.setHours(23, 59, 59, 999);
-
     // GET ALL APPOINTMENTS
     const appointments = await Appointment.find({ saloonId: saloon._id })
       .populate({
         path: "customer.id",
         select: "name mobile",
-        strictPopulate: false     // ⭐ FIX: avoids "Customer not found"
+        strictPopulate: false
       })
       .populate({
         path: "serviceIds",
@@ -1053,32 +1046,48 @@ export const getDashboardDataC = async (req, res, next) => {
       })
       .sort({ createdAt: -1 });
 
-    // -----------------------------------------
-    // 🟢 TOTAL APPOINTMENTS (All time)
-    // -----------------------------------------
-    const totalAppointments = appointments.length;
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth(); // 0-indexed
+
+    // Function to get start and end of a week in the current month
+    const getWeekRange = (weekNumber) => {
+      const start = new Date(year, month, (weekNumber - 1) * 7 + 1);
+      const end = new Date(year, month, weekNumber * 7);
+      end.setHours(23, 59, 59, 999);
+      return { start, end };
+    };
+
+    // Calculate revenue per week
+    const weeklyRevenue = {};
+    for (let i = 1; i <= 4; i++) {
+      const { start, end } = getWeekRange(i);
+      const weekAppointments = appointments.filter(a => {
+        const created = new Date(a.createdAt);
+        return created >= start && created <= end && a.status === "completed";
+      });
+
+      let revenue = 0;
+      weekAppointments.forEach(a => {
+        a.serviceIds?.forEach(s => revenue += s.price || 0);
+      });
+
+      weeklyRevenue[`week${i}`] = revenue;
+    }
 
     // -----------------------------------------
-    // 🟡 TOTAL PENDING (All time)
+    // TODAY DATA (optional)
     // -----------------------------------------
-    const pendingCount = appointments.filter(a => a.status === "pending").length;
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const todayEnd = new Date();
+    todayEnd.setHours(23, 59, 59, 999);
 
-    // -----------------------------------------
-    // 🔵 TODAY APPOINTMENTS (Only today)
-    // -----------------------------------------
     const todayAppointments = appointments.filter(a => {
       const created = new Date(a.createdAt);
       return created >= todayStart && created <= todayEnd;
     });
 
-    // -----------------------------------------
-    // 🔴 TODAY PENDING APPOINTMENTS
-    // -----------------------------------------
-    const todayPending = todayAppointments.filter(a => a.status === "pending");
-
-    // -----------------------------------------
-    // 🟣 REVENUE CALCULATION FOR TODAY
-    // -----------------------------------------
     let todayRevenue = 0;
     todayAppointments.forEach(a => {
       if (a.status === "completed") {
@@ -1087,31 +1096,28 @@ export const getDashboardDataC = async (req, res, next) => {
     });
 
     // -----------------------------------------
-    // 🟠 RECENT APPOINTMENTS (5)
-    // -----------------------------------------
-    const recentAppointments = appointments.slice(0, 5);
-
-    // -----------------------------------------
     // RESPONSE
     // -----------------------------------------
     res.status(200).json({
       success: true,
       stats: {
-        totalAppointments,
-        pendingCount,
+        totalAppointments: appointments.length,
+        pendingCount: appointments.filter(a => a.status === "pending").length,
         todayAppointments: todayAppointments.length,
-        todayPending: todayPending.length,
-        todayRevenue
+        todayPending: todayAppointments.filter(a => a.status === "pending").length,
+        todayRevenue,
+        weeklyRevenue // week1, week2, week3, week4
       },
-      recentAppointments,
+      recentAppointments: appointments.slice(0, 5),
       todayAppointmentsList: todayAppointments,
-      todayPendingList: todayPending
+      todayPendingList: todayAppointments.filter(a => a.status === "pending")
     });
 
   } catch (err) {
     next(err);
   }
 };
+
 
 export const sayHello = (req, res) => {
   res.status(200).json({
