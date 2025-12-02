@@ -2128,8 +2128,6 @@ export const updateSocialLinks = async (req, res, next) => {
 //     next(err);
 //   }
 // };
-
-
 export const updateSaloonData = async (req, res, next) => {
   try {
     const ownerId = res.locals.user.id;
@@ -2142,26 +2140,14 @@ export const updateSaloonData = async (req, res, next) => {
       });
     }
 
-    // Duplicate check for mobile
-    if (newMobile) {
-      const existMobile = await Owner.findOne({ mobile: newMobile });
-      if (existMobile && existMobile._id.toString() !== ownerId) {
-        return res.status(409).json({ message: "Mobile already in use." });
-      }
-    }
-
-    // Duplicate check for email
-    if (email) {
-      const existEmail = await Owner.findOne({ email: email });
-      if (existEmail && existEmail._id.toString() !== ownerId) {
-        return res.status(409).json({ message: "Email already in use." });
-      }
-    }
-
     const owner = await Owner.findById(ownerId);
+    if (!owner) {
+      return res.status(404).json({ message: "Owner not found" });
+    }
 
+    // Update fields if provided (no duplicate validation)
     if (newMobile) owner.mobile = newMobile;
-    if (email) owner.email = email;  // <-- IMPORTANT FIX
+    if (email) owner.email = email;
 
     await owner.save();
 
@@ -2176,6 +2162,54 @@ export const updateSaloonData = async (req, res, next) => {
     next(err);
   }
 };
+
+
+// export const updateSaloonData = async (req, res, next) => {
+//   try {
+//     const ownerId = res.locals.user.id;
+//     const { newMobile, email } = req.body;
+
+//     // At least one required
+//     if (!newMobile && !email) {
+//       return res.status(400).json({
+//         message: "Provide at least mobile or email."
+//       });
+//     }
+
+//     // Duplicate check for mobile
+//     if (newMobile) {
+//       const existMobile = await Owner.findOne({ mobile: newMobile });
+//       if (existMobile && existMobile._id.toString() !== ownerId) {
+//         return res.status(409).json({ message: "Mobile already in use." });
+//       }
+//     }
+
+//     // Duplicate check for email
+//     if (email) {
+//       const existEmail = await Owner.findOne({ email: email });
+//       if (existEmail && existEmail._id.toString() !== ownerId) {
+//         return res.status(409).json({ message: "Email already in use." });
+//       }
+//     }
+
+//     const owner = await Owner.findById(ownerId);
+
+//     if (newMobile) owner.mobile = newMobile;
+//     if (email) owner.email = email;  // <-- IMPORTANT FIX
+
+//     await owner.save();
+
+//     return res.status(200).json({
+//       message: "Updated successfully",
+//       mobile: owner.mobile,
+//       email: owner.email
+//     });
+
+//   } catch (err) {
+//     console.log(err);
+//     next(err);
+//   }
+// };
 
 
 
