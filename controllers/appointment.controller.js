@@ -4,7 +4,7 @@ import { AppError } from '../helpers/error.js';
 import { STATUS_CODES } from '../helpers/constants.js';
 import offerModel from '../models/offer.model.js';
 import ownerModel from '../models/owner.model.js';
-import { io } from '../services/server.js';
+
 
 export const AppointmentController = {};
 
@@ -352,10 +352,10 @@ AppointmentController.addAppointment = async (req, res, next) => {
     // ----------------------------------------------
     // 🔥 SOCKET EVENT
     // ----------------------------------------------
-    io.to(saloonId).emit("newAppointment", {
-      message: "You have a new booking!",
-      appointment,
-    });
+    // io.to(saloonId).emit("newAppointment", {
+    //   message: "You have a new booking!",
+    //   appointment,
+    // });
 
     return res.status(201).json({
       success: true,
