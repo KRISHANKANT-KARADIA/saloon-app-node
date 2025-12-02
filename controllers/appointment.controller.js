@@ -364,5 +364,130 @@ AppointmentController.addAppointment = async (req, res, next) => {
   }
 };
 
+// For Next
+// AppointmentController.addAppointment = async (req, res, next) => {
+//   try {
+//     const {
+//       saloonId,
+//       services = [],
+//       professionalId,
+//       date,
+//       time,
+//       totalPrice,
+//       discount = false,
+//       discountCode,
+//       discountCodeId,
+//       discountAmount,
+//     } = req.body;
+
+//     const customer = res.locals.user;
+
+//     // Validate required fields
+//     if (!saloonId || services.length === 0 || !professionalId || !date || !time || !totalPrice) {
+//       return next(new AppError('Missing required fields', 400));
+//     }
+
+//     // ----------------------------------------------
+//     // OFFER VALIDATION LOGIC
+//     // ----------------------------------------------
+//     if (discount && discountCodeId) {
+//       const offer = await offerModel.findById(discountCodeId);
+
+//       if (!offer || !offer.active) {
+//         return next(new AppError("Offer is no longer active!", 400));
+//       }
+
+//       const now = new Date();
+//       if (new Date(offer.valid_until) < now) {
+//         return next(new AppError("Offer has expired!", 400));
+//       }
+
+//       if (offer.max_uses <= 0) {
+//         return next(new AppError("Offer usage limit reached!", 400));
+//       }
+
+//       // count usage by customer
+//       const userUsedCount = await Appointment.countDocuments({
+//         'customer.id': customer.id,
+//         discountCodeId: discountCodeId,
+//       });
+
+//       if (userUsedCount >= offer.max_uses_per_user) {
+//         return next(new AppError("You have already used this offer maximum times!", 400));
+//       }
+
+//       // decrease global usage
+//       offer.max_uses -= 1;
+//       if (offer.max_uses <= 0) offer.active = false;
+//       await offer.save();
+//     }
+
+//     // ----------------------------------------------
+//     // CREATE APPOINTMENT
+//     // ----------------------------------------------
+    
+//     const serviceIds = services.map(s => s.serviceId);
+//     const duration = services.reduce((sum, s) => sum + Number(s.duration || 0), 0);
+
+//     const appointment = new Appointment({
+//       customer: { id: customer.id, mobile: customer.mobile },
+//       saloonId,
+//       serviceIds,
+//       professionalId,
+//       date,
+//       time,
+//       price: totalPrice,
+//       status: 'pending',
+//       notes: req.body.notes || "No special instructions",
+//       duration: duration.toString(),
+//       discount,
+//       discountCode,
+//       discountAmount,
+//       discountCodeId,
+//     });
+
+//     await appointment.save();
+
+//     // ----------------------------------------------
+//     // SEND FCM NOTIFICATION TO OWNER
+//     // ----------------------------------------------
+
+//     const saloon = await Saloon.findById(saloonId);
+//     const owner = await ownerModel.findById(saloon.owner);
+
+//     if (owner?.fcmToken) {
+//       await admin.messaging().send({
+//         token: owner.fcmToken,
+//         notification: {
+//           title: "New Appointment!",
+//           body: `${customer.mobile} booked appointment`,
+//         },
+//         data: {
+//           type: "appointment",
+//           appointmentId: appointment._id.toString(),
+//         }
+//       });
+//     }
+
+//     // ----------------------------------------------
+//     // SOCKET.IO EVENT (REAL-TIME UPDATE)
+//     // ----------------------------------------------
+
+//     io.to(saloonId).emit("newAppointment", {
+//       message: "You have a new booking!",
+//       appointment: appointment,  // FIXED
+//     });
+
+//     return res.status(201).json({
+//       success: true,
+//       message: "Appointment booked successfully",
+//       data: appointment,
+//     });
+
+//   } catch (err) {
+//     next(err);
+//   }
+// };
+
 
 
