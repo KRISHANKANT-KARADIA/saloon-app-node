@@ -159,7 +159,6 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import { connectDB } from './config/db.js';
-import { Server } from "socket.io";
 import path from "path";
 import versionRoutes from './routes/version.routes.js';
 import otpRoutes from './routes/otp.routes.js';
@@ -178,20 +177,7 @@ import ownerCountryRoutes from './routes/ownerCountry.routes.js';
 dotenv.config();
 
 const app = express();
-const server = http.createServer(app);
-export const io = new Server(server, {
-  cors: {
-    origin: "*",
-  },
-});
-io.on("connection", (socket) => {
-  console.log("User connected:", socket.id);
 
-  socket.on("joinSaloonRoom", (saloonId) => {
-    socket.join(saloonId);
-    console.log("Owner joined room:", saloonId);
-  });
-});
 // CONNECT DB
 connectDB();
 
