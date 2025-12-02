@@ -764,218 +764,218 @@ router.get("/saloon/week/dashboard1", AuthMiddlewares.checkAuth, async (req, res
 });
 
 
-// router.get("/saloon/week/dashboard1", AuthMiddlewares.checkAuth, async (req, res, next) => {
-//   try {
-//     const ownerId = res.locals.user.id;
+router.get("/saloon/week/dashboard12", AuthMiddlewares.checkAuth, async (req, res, next) => {
+  try {
+    const ownerId = res.locals.user.id;
 
-//     // 1️⃣ Fetch Saloon
-//     const saloon = await Saloon.findOne({ owner: ownerId });
-//     if (!saloon) return next(new AppError("Saloon not found", 404));
+    // 1️⃣ Fetch Saloon
+    const saloon = await Saloon.findOne({ owner: ownerId });
+    if (!saloon) return next(new AppError("Saloon not found", 404));
 
-//     // 2️⃣ Fetch Appointments
-//     const appointments = await Appointment.find({ saloonId: saloon._id })
-//       .populate("customer.id", "name mobile")
-//       .populate("serviceIds", "name price")
-//       .populate("professionalId", "name")
-//       .sort({ date: 1, time: 1 });
+    // 2️⃣ Fetch Appointments
+    const appointments = await Appointment.find({ saloonId: saloon._id })
+      .populate("customer.id", "name mobile")
+      .populate("serviceIds", "name price")
+      .populate("professionalId", "name")
+      .sort({ date: 1, time: 1 });
 
-//     // -------------------------------------------
-//     // 🔥 FIX: Convert DB date safely every time
-//     // -------------------------------------------
-//     const convertDate = (input) => {
-//       if (!input) return null;
+    // -------------------------------------------
+    // 🔥 FIX: Convert DB date safely every time
+    // -------------------------------------------
+    const convertDate = (input) => {
+      if (!input) return null;
 
-//       // If DB stores STRING → "2025-02-14"
-//       if (typeof input === "string") {
-//         const [y, m, d] = input.split("-").map(Number);
-//         return new Date(y, m - 1, d);
-//       }
+      // If DB stores STRING → "2025-02-14"
+      if (typeof input === "string") {
+        const [y, m, d] = input.split("-").map(Number);
+        return new Date(y, m - 1, d);
+      }
 
-//       // If DB stores Date → convert directly
-//       return new Date(input);
-//     };
+      // If DB stores Date → convert directly
+      return new Date(input);
+    };
 
-//     // ---------- Today ----------
-//     const today = new Date();
-//     const tY = today.getFullYear();
-//     const tM = today.getMonth();
-//     const tD = today.getDate();
+    // ---------- Today ----------
+    const today = new Date();
+    const tY = today.getFullYear();
+    const tM = today.getMonth();
+    const tD = today.getDate();
 
-//     const todaysAppointments = appointments.filter(a => {
-//       const d = convertDate(a.date);
-//       if (!d) return false;
+    const todaysAppointments = appointments.filter(a => {
+      const d = convertDate(a.date);
+      if (!d) return false;
 
-//       return (
-//         d.getFullYear() === tY &&
-//         d.getMonth() === tM &&
-//         d.getDate() === tD
-//       );
-//     });
+      return (
+        d.getFullYear() === tY &&
+        d.getMonth() === tM &&
+        d.getDate() === tD
+      );
+    });
 
-//     // ---------- Yesterday ----------
-//     const yesterday = new Date();
-//     yesterday.setDate(yesterday.getDate() - 1);
+    // ---------- Yesterday ----------
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
 
-//     const yY = yesterday.getFullYear();
-//     const yM = yesterday.getMonth();
-//     const yD = yesterday.getDate();
+    const yY = yesterday.getFullYear();
+    const yM = yesterday.getMonth();
+    const yD = yesterday.getDate();
 
-//     const yesterdayAppointments = appointments.filter(a => {
-//       const d = convertDate(a.date);
-//       if (!d) return false;
+    const yesterdayAppointments = appointments.filter(a => {
+      const d = convertDate(a.date);
+      if (!d) return false;
 
-//       return (
-//         d.getFullYear() === yY &&
-//         d.getMonth() === yM &&
-//         d.getDate() === yD
-//       );
-//     });
+      return (
+        d.getFullYear() === yY &&
+        d.getMonth() === yM &&
+        d.getDate() === yD
+      );
+    });
 
-//     // ---------- Stats ----------
-//     const totalAppointments = todaysAppointments.length;
-//     const pendingCount = todaysAppointments.filter(a => a.status === "pending").length;
-//     const confirmedCount = todaysAppointments.filter(a => a.status === "confirmed").length;
+    // ---------- Stats ----------
+    const totalAppointments = todaysAppointments.length;
+    const pendingCount = todaysAppointments.filter(a => a.status === "pending").length;
+    const confirmedCount = todaysAppointments.filter(a => a.status === "confirmed").length;
 
-//     const todayRevenue = todaysAppointments
-//       .filter(a => a.status === "confirmed")
-//       .reduce((sum, a) => sum + Number(a.price || 0), 0);
+    const todayRevenue = todaysAppointments
+      .filter(a => a.status === "confirmed")
+      .reduce((sum, a) => sum + Number(a.price || 0), 0);
 
-//     const growthRatio =
-//       yesterdayAppointments.length > 0
-//         ? ((totalAppointments - yesterdayAppointments.length) /
-//             yesterdayAppointments.length) *
-//           100
-//         : 0;
+    const growthRatio =
+      yesterdayAppointments.length > 0
+        ? ((totalAppointments - yesterdayAppointments.length) /
+            yesterdayAppointments.length) *
+          100
+        : 0;
 
-//     // ---------- Weekly Revenue ----------
-//     const revenueByWeek = [0, 0, 0, 0];
+    // ---------- Weekly Revenue ----------
+    const revenueByWeek = [0, 0, 0, 0];
 
-//     appointments.forEach(a => {
-//       if (a.status === "confirmed") {
-//         const d = convertDate(a.date);
-//         if (!d) return;
+    appointments.forEach(a => {
+      if (a.status === "confirmed") {
+        const d = convertDate(a.date);
+        if (!d) return;
 
-//         if (d.getMonth() === today.getMonth()) {
-//           const day = d.getDate();
-//           if (day <= 7) revenueByWeek[0] += Number(a.price || 0);
-//           else if (day <= 14) revenueByWeek[1] += Number(a.price || 0);
-//           else if (day <= 21) revenueByWeek[2] += Number(a.price || 0);
-//           else revenueByWeek[3] += Number(a.price || 0);
-//         }
-//       }
-//     });
+        if (d.getMonth() === today.getMonth()) {
+          const day = d.getDate();
+          if (day <= 7) revenueByWeek[0] += Number(a.price || 0);
+          else if (day <= 14) revenueByWeek[1] += Number(a.price || 0);
+          else if (day <= 21) revenueByWeek[2] += Number(a.price || 0);
+          else revenueByWeek[3] += Number(a.price || 0);
+        }
+      }
+    });
 
-//     // ---------- Recent Appointments (Last 5 of Today) ----------
-//     const recentAppointments = [...todaysAppointments]
-//       .sort((a, b) => new Date(b.date) - new Date(a.date))
-//       .slice(0, 5);
+    // ---------- Recent Appointments (Last 5 of Today) ----------
+    const recentAppointments = [...todaysAppointments]
+      .sort((a, b) => new Date(b.date) - new Date(a.date))
+      .slice(0, 5);
 
-//     // ---------- Response ----------
-//     res.status(200).json({
-//       success: true,
-//       stats: {
-//         totalAppointments,
-//         pendingCount,
-//         confirmedCount,
-//         todayRevenue,
-//         growthRatio: growthRatio.toFixed(2),
-//       },
-//       revenueByWeek: [
-//         { week: "Week 1", revenue: revenueByWeek[0] },
-//         { week: "Week 2", revenue: revenueByWeek[1] },
-//         { week: "Week 3", revenue: revenueByWeek[2] },
-//         { week: "Week 4", revenue: revenueByWeek[3] },
-//       ],
-//       todaysAppointments,
-//       recentAppointments,
-//       yesterdayAppointments,
-//     });
+    // ---------- Response ----------
+    res.status(200).json({
+      success: true,
+      stats: {
+        totalAppointments,
+        pendingCount,
+        confirmedCount,
+        todayRevenue,
+        growthRatio: growthRatio.toFixed(2),
+      },
+      revenueByWeek: [
+        { week: "Week 1", revenue: revenueByWeek[0] },
+        { week: "Week 2", revenue: revenueByWeek[1] },
+        { week: "Week 3", revenue: revenueByWeek[2] },
+        { week: "Week 4", revenue: revenueByWeek[3] },
+      ],
+      todaysAppointments,
+      recentAppointments,
+      yesterdayAppointments,
+    });
 
-//   } catch (err) {
-//     next(err);
-//   }
-// });
+  } catch (err) {
+    next(err);
+  }
+});
 
 
-// router.get("/saloon/week/dashboard1", AuthMiddlewares.checkAuth, async (req, res, next) => {
-//   try {
-//     const ownerId = res.locals.user.id;
+router.get("/saloon/week/dashboard13", AuthMiddlewares.checkAuth, async (req, res, next) => {
+  try {
+    const ownerId = res.locals.user.id;
 
-//     // 1️⃣ Get saloon of the logged-in owner
-//     const saloon = await Saloon.findOne({ owner: ownerId });
-//     if (!saloon) return next(new AppError("Saloon not found", STATUS_CODES.NOT_FOUND));
+    // 1️⃣ Get saloon of the logged-in owner
+    const saloon = await Saloon.findOne({ owner: ownerId });
+    if (!saloon) return next(new AppError("Saloon not found", STATUS_CODES.NOT_FOUND));
 
-//     // 2️⃣ Fetch all appointments for this saloon
-//     const appointments = await Appointment.find({ saloonId: saloon._id })
-//       .populate("customer.id", "name mobile")
-//       .populate("serviceIds", "name price")
-//       .populate("professionalId", "name")
-//       .sort({ date: 1, time: 1 });
+    // 2️⃣ Fetch all appointments for this saloon
+    const appointments = await Appointment.find({ saloonId: saloon._id })
+      .populate("customer.id", "name mobile")
+      .populate("serviceIds", "name price")
+      .populate("professionalId", "name")
+      .sort({ date: 1, time: 1 });
 
-//     const today = new Date();
-//     const todayStr = today.toDateString(); 
+    const today = new Date();
+    const todayStr = today.toDateString(); 
 
-//     const todaysAppointments = appointments.filter(a => new Date(a.date).toDateString() === todayStr);
+    const todaysAppointments = appointments.filter(a => new Date(a.date).toDateString() === todayStr);
 
-//     const totalAppointments = todaysAppointments.length;
-//     const pendingCount = todaysAppointments.filter(a => a.status === "pending").length;
-//     const confirmedCount = todaysAppointments.filter(a => a.status === "confirmed").length;
-//     const todayRevenue = todaysAppointments
-//       .filter(a => a.status === "confirmed")
-//       .reduce((sum, a) => sum + Number(a.price || 0), 0);
+    const totalAppointments = todaysAppointments.length;
+    const pendingCount = todaysAppointments.filter(a => a.status === "pending").length;
+    const confirmedCount = todaysAppointments.filter(a => a.status === "confirmed").length;
+    const todayRevenue = todaysAppointments
+      .filter(a => a.status === "confirmed")
+      .reduce((sum, a) => sum + Number(a.price || 0), 0);
 
-//     // Growth ratio (compared to yesterday)
-//     const yesterday = new Date();
-//     yesterday.setDate(yesterday.getDate() - 1);
-//     const yesterdayStr = yesterday.toDateString();
+    // Growth ratio (compared to yesterday)
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = yesterday.toDateString();
 
-//     const yesterdayAppointments = appointments.filter(a => new Date(a.date).toDateString() === yesterdayStr);
-//     const growthRatio = yesterdayAppointments.length > 0
-//       ? ((totalAppointments - yesterdayAppointments.length) / yesterdayAppointments.length) * 100
-//       : 0;
+    const yesterdayAppointments = appointments.filter(a => new Date(a.date).toDateString() === yesterdayStr);
+    const growthRatio = yesterdayAppointments.length > 0
+      ? ((totalAppointments - yesterdayAppointments.length) / yesterdayAppointments.length) * 100
+      : 0;
 
-//     // =========================
-//     // Weekly Revenue Calculation
-//     // =========================
-//     const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-//     const revenueByWeek = [0, 0, 0, 0]; // Week 1, 2, 3, 4
+    // =========================
+    // Weekly Revenue Calculation
+    // =========================
+    const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+    const revenueByWeek = [0, 0, 0, 0]; // Week 1, 2, 3, 4
 
-//     appointments.forEach(a => {
-//       if (a.status === "confirmed") {
-//         const date = new Date(a.date);
-//         if (date.getMonth() === today.getMonth()) {
-//           const day = date.getDate();
-//           if (day >= 1 && day <= 7) revenueByWeek[0] += Number(a.price || 0);
-//           else if (day >= 8 && day <= 14) revenueByWeek[1] += Number(a.price || 0);
-//           else if (day >= 15 && day <= 21) revenueByWeek[2] += Number(a.price || 0);
-//           else revenueByWeek[3] += Number(a.price || 0);
-//         }
-//       }
-//     });
+    appointments.forEach(a => {
+      if (a.status === "confirmed") {
+        const date = new Date(a.date);
+        if (date.getMonth() === today.getMonth()) {
+          const day = date.getDate();
+          if (day >= 1 && day <= 7) revenueByWeek[0] += Number(a.price || 0);
+          else if (day >= 8 && day <= 14) revenueByWeek[1] += Number(a.price || 0);
+          else if (day >= 15 && day <= 21) revenueByWeek[2] += Number(a.price || 0);
+          else revenueByWeek[3] += Number(a.price || 0);
+        }
+      }
+    });
 
-//     // 5️⃣ Build dashboard response
-//     res.status(200).json({
-//       success: true,
-//       stats: {
-//         totalAppointments,
-//         pendingCount,
-//         confirmedCount,
-//         todayRevenue,
-//         growthRatio: growthRatio.toFixed(2),
-//       },
-//       revenueByWeek: [
-//         { week: "Week 1", revenue: revenueByWeek[0] },
-//         { week: "Week 2", revenue: revenueByWeek[1] },
-//         { week: "Week 3", revenue: revenueByWeek[2] },
-//         { week: "Week 4", revenue: revenueByWeek[3] },
-//       ],
-//       recentAppointments: todaysAppointments.slice(-5).reverse(), // last 5
-//     });
+    // 5️⃣ Build dashboard response
+    res.status(200).json({
+      success: true,
+      stats: {
+        totalAppointments,
+        pendingCount,
+        confirmedCount,
+        todayRevenue,
+        growthRatio: growthRatio.toFixed(2),
+      },
+      revenueByWeek: [
+        { week: "Week 1", revenue: revenueByWeek[0] },
+        { week: "Week 2", revenue: revenueByWeek[1] },
+        { week: "Week 3", revenue: revenueByWeek[2] },
+        { week: "Week 4", revenue: revenueByWeek[3] },
+      ],
+      recentAppointments: todaysAppointments.slice(-5).reverse(), // last 5
+    });
 
-//   } catch (err) {
-//     next(err);
-//   }
-// });
+  } catch (err) {
+    next(err);
+  }
+});
 
 // router.get("/saloon/week/dashboard1", AuthMiddlewares.checkAuth, async (req, res, next) => {
 //   try {
