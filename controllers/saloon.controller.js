@@ -2034,44 +2034,97 @@ export const updateSocialLinks = async (req, res, next) => {
 };
 
 
+// export const updateSaloonData = async (req, res, next) => {
+//   try {
+//     const ownerId = res.locals.user.id;
+//     const { newMobile, email } = req.body;
+
+//     if (!newMobile) {
+//       return res.status(400).json({ message: 'New mobile number is required.' });
+//     }
+
+//     const existingMobile = await Owner.findOne({ mobile: newMobile });
+//     if (existingMobile && existingMobile._id.toString() !== ownerId) {
+//       return res.status(409).json({ message: 'Mobile number already in use.' });
+//     }
+
+//     if (email) {
+//       const existingEmail = await Owner.findOne({ email });
+//       if (existingEmail && existingEmail._id.toString() !== ownerId) {
+//         return res.status(409).json({ message: 'Email already in use.' });
+//       }
+//     }
+
+//     const owner = await Owner.findById(ownerId);
+//     if (!owner) {
+//       return res.status(404).json({ message: 'Owner not found.' });
+//     }
+
+//     owner.mobile = newMobile;
+//     if (email) owner.email = email;
+
+//     await owner.save();
+
+//     return res.status(200).json({
+//       message: 'Mobile number and email updated successfully.',
+//       mobile: owner.mobile,
+//       email: owner.email || null
+//     });
+//   } catch (err) {
+//     console.error(err.message);
+//     next(err);
+//   }
+// };
+
+
+
 export const updateSaloonData = async (req, res, next) => {
   try {
     const ownerId = res.locals.user.id;
     const { newMobile, email } = req.body;
 
-    if (!newMobile) {
-      return res.status(400).json({ message: 'New mobile number is required.' });
+    // At least one field should be provided
+    if (!newMobile && !email) {
+      return res.status(400).json({
+        message: "Please provide at least one field (mobile or email)."
+      });
     }
 
-    const existingMobile = await Owner.findOne({ mobile: newMobile });
-    if (existingMobile && existingMobile._id.toString() !== ownerId) {
-      return res.status(409).json({ message: 'Mobile number already in use.' });
+    // Check duplicate mobile only if mobile provided
+    if (newMobile) {
+      const existingMobile = await Owner.findOne({ mobile: newMobile });
+      if (existingMobile && existingMobile._id.toString() !== ownerId) {
+        return res.status(409).json({ message: "Mobile number already in use." });
+      }
     }
 
+    // Check duplicate email only if email provided
     if (email) {
       const existingEmail = await Owner.findOne({ email });
       if (existingEmail && existingEmail._id.toString() !== ownerId) {
-        return res.status(409).json({ message: 'Email already in use.' });
+        return res.status(409).json({ message: "Email already in use." });
       }
     }
 
     const owner = await Owner.findById(ownerId);
     if (!owner) {
-      return res.status(404).json({ message: 'Owner not found.' });
+      return res.status(404).json({ message: "Owner not found." });
     }
 
-    owner.mobile = newMobile;
+    // Update only provided fields
+    if (newMobile) owner.mobile = newMobile;
     if (email) owner.email = email;
 
     await owner.save();
 
     return res.status(200).json({
-      message: 'Mobile number and email updated successfully.',
+      message: "Profile updated successfully.",
       mobile: owner.mobile,
       email: owner.email || null
     });
+
   } catch (err) {
-    console.error(err.message);
+    console.error(err);
     next(err);
   }
 };
