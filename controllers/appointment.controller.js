@@ -368,46 +368,60 @@ AppointmentController.addAppointment = async (req, res, next) => {
 };
 
 
+
+
 export const getTodayAppointments = async (req, res, next) => {
   try {
     const ownerId = res.locals.user.id;
 
-    // Find saloon by owner
+    // 1) Salon find
     const saloon = await Saloon.findOne({ owner: ownerId });
     if (!saloon) return next(new AppError("Saloon not found", 404));
 
-    // Today start & end
+    // 2) Today time range
     const start = new Date();
     start.setHours(0, 0, 0, 0);
 
     const end = new Date();
     end.setHours(23, 59, 59, 999);
 
-    // Find today's appointments (created today)
+    // 3) Aaj create huye appointments fetch
     const todayAppointments = await Appointment.find({
       saloonId: saloon._id,
-      createdAt: { $gte: start, $lte: end }   // 👈 FILTER BY TODAY
+      createdAt: { $gte: start, $lte: end },
     })
-      .populate("customer.id", "name mobile")
-      .populate("serviceIds", "name price")
+      .populate({
+        path: "customer.id",
+        select: "name mobile",
+        strictPopulate: false,
+      })
+      .populate({
+        path: "serviceIds",
+        select: "name price",
+        strictPopulate: false,
+      })
+      .populate({
+        path: "professionalId",
+        select: "name",
+        strictPopulate: false,
+      })
       .sort({ createdAt: -1 });
 
-    // Stats
-    const totalToday = todayAppointments.length;
-
-    const pendingToday = todayAppointments.filter(
+    // 4) Stats
+    const totalAppointments = todayAppointments.length;
+    const pendingAppointments = todayAppointments.filter(
       (a) => a.status === "pending"
     ).length;
 
-    res.status(200).json({
+    // 5) Response
+    return res.status(200).json({
       success: true,
       stats: {
-        todayTotalAppointments: totalToday,
-        todayPendingAppointments: pendingToday,
+        totalAppointments,
+        pendingAppointments,
       },
-      todayAppointments
+      appointments: todayAppointments,
     });
-
   } catch (err) {
     next(err);
   }
