@@ -29,6 +29,7 @@ import { getLocationBySaloonId } from '../controllers/ownerCountry.controller.js
 import { saloonNotification } from "../middlewares/saloonNotification.js";
 import { addCoupon, getAllCoupons, getCoupon, verifyCoupon } from '../controllers/couponController.js';
 import { addOffer, deleteOffer, getAllActiveOffers, getOfferById, getOffers, getOffersWithData, getTrendingSaloons, replyToReview, updateOffer, updateTrendingSaloons ,forMultipleSaloonReview, forMultipleSaloonReviews, addReply, getSaloonReview} from '../controllers/offer.controller.js';
+import { getTodayAppointments } from '../controllers/appointment.controller.js';
 
 
 
@@ -659,6 +660,13 @@ router.get("/saloon/dashboard1", AuthMiddlewares.checkAuth, async (req, res, nex
 //     next(err);
 //   }
 // });
+
+router.get(
+  "/saloon/week/dashboard99",
+  AuthMiddlewares.checkAuth,
+  getTodayAppointments
+);
+
 
 router.get("/saloon/week/dashboard1", AuthMiddlewares.checkAuth, async (req, res, next) => {
   try {
