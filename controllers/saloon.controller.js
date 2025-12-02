@@ -937,6 +937,88 @@ export const getDashboardDataStats = async (req, res, next) => {
 };
 
 
+// export const getDashboardDataC = async (req, res, next) => {
+//   try {
+//     const ownerId = res.locals.user.id;
+
+//     // GET SALOON
+//     const saloon = await Saloon.findOne({ owner: ownerId });
+//     if (!saloon) return next(new AppError("Saloon not found", 404));
+
+//     // 📅 TODAY DATE RANGE
+//     const todayStart = new Date();
+//     todayStart.setHours(0, 0, 0, 0);
+
+//     const todayEnd = new Date();
+//     todayEnd.setHours(23, 59, 59, 999);
+
+//     // GET ALL APPOINTMENTS
+//     const appointments = await Appointment.find({ saloonId: saloon._id })
+//       .populate("customer.id", "name mobile")
+//       .populate("serviceIds", "name price")
+//       .populate("professionalId", "name")
+//       .sort({ createdAt: -1 });
+
+//     // -----------------------------------------
+//     // 🟢 TOTAL APPOINTMENTS (All time)
+//     // -----------------------------------------
+//     const totalAppointments = appointments.length;
+
+//     // -----------------------------------------
+//     // 🟡 TOTAL PENDING (All time)
+//     // -----------------------------------------
+//     const pendingCount = appointments.filter(a => a.status === "pending").length;
+
+//     // -----------------------------------------
+//     // 🔵 TODAY APPOINTMENTS (Only today)
+//     // -----------------------------------------
+//     const todayAppointments = appointments.filter(a => {
+//       const created = new Date(a.createdAt);
+//       return created >= todayStart && created <= todayEnd;
+//     });
+
+//     // -----------------------------------------
+//     // 🔴 TODAY PENDING APPOINTMENTS
+//     // -----------------------------------------
+//     const todayPending = todayAppointments.filter(a => a.status === "pending");
+
+//     // -----------------------------------------
+//     // 🟣 REVENUE CALCULATION FOR TODAY
+//     // -----------------------------------------
+//     let todayRevenue = 0;
+//     todayAppointments.forEach(a => {
+//       if (a.status === "completed") {
+//         a.serviceIds.forEach(s => todayRevenue += s.price);
+//       }
+//     });
+
+//     // -----------------------------------------
+//     // 🟠 RECENT APPOINTMENTS (5)
+//     // -----------------------------------------
+//     const recentAppointments = appointments.slice(0, 5);
+
+//     // -----------------------------------------
+//     // RESPONSE
+//     // -----------------------------------------
+//     res.status(200).json({
+//       success: true,
+//       stats: {
+//         totalAppointments,     // all appointments
+//         pendingCount,          // all time pending
+//         todayAppointments: todayAppointments.length,
+//         todayPending: todayPending.length,
+//         todayRevenue
+//       },
+//       recentAppointments,
+//       todayAppointmentsList: todayAppointments,  // full list
+//       todayPendingList: todayPending            // full list
+//     });
+
+//   } catch (err) {
+//     next(err);
+//   }
+// };
+
 export const getDashboardDataC = async (req, res, next) => {
   try {
     const ownerId = res.locals.user.id;
@@ -954,9 +1036,21 @@ export const getDashboardDataC = async (req, res, next) => {
 
     // GET ALL APPOINTMENTS
     const appointments = await Appointment.find({ saloonId: saloon._id })
-      .populate("customer.id", "name mobile")
-      .populate("serviceIds", "name price")
-      .populate("professionalId", "name")
+      .populate({
+        path: "customer.id",
+        select: "name mobile",
+        strictPopulate: false     // ⭐ FIX: avoids "Customer not found"
+      })
+      .populate({
+        path: "serviceIds",
+        select: "name price",
+        strictPopulate: false
+      })
+      .populate({
+        path: "professionalId",
+        select: "name",
+        strictPopulate: false
+      })
       .sort({ createdAt: -1 });
 
     // -----------------------------------------
@@ -988,7 +1082,7 @@ export const getDashboardDataC = async (req, res, next) => {
     let todayRevenue = 0;
     todayAppointments.forEach(a => {
       if (a.status === "completed") {
-        a.serviceIds.forEach(s => todayRevenue += s.price);
+        a.serviceIds?.forEach(s => todayRevenue += s.price || 0);
       }
     });
 
@@ -1003,21 +1097,22 @@ export const getDashboardDataC = async (req, res, next) => {
     res.status(200).json({
       success: true,
       stats: {
-        totalAppointments,     // all appointments
-        pendingCount,          // all time pending
+        totalAppointments,
+        pendingCount,
         todayAppointments: todayAppointments.length,
         todayPending: todayPending.length,
         todayRevenue
       },
       recentAppointments,
-      todayAppointmentsList: todayAppointments,  // full list
-      todayPendingList: todayPending            // full list
+      todayAppointmentsList: todayAppointments,
+      todayPendingList: todayPending
     });
 
   } catch (err) {
     next(err);
   }
 };
+
 
 
 export const getDashboardData = async (req, res, next) => {
