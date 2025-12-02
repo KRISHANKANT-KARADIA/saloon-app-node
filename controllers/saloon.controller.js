@@ -1113,6 +1113,12 @@ export const getDashboardDataC = async (req, res, next) => {
   }
 };
 
+export const sayHello = (req, res) => {
+  res.status(200).json({
+    message: "Hello"
+  });
+};
+
 
 
 export const getDashboardData = async (req, res, next) => {

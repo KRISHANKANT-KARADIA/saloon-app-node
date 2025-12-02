@@ -418,6 +418,8 @@ router.get(
 );
 
 
+router.get("/hello", sayHello);
+
 
 
 
