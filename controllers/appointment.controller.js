@@ -367,6 +367,61 @@ AppointmentController.addAppointment = async (req, res, next) => {
   }
 };
 
+export const getTodayReport = async (req, res, next) => {
+  try {
+    const ownerId = res.locals.user.id;
+
+    // 1️⃣ Get the logged-in owner's saloon
+    const saloon = await Saloon.findOne({ owner: ownerId });
+    if (!saloon) return next(new AppError("Saloon not found", 404));
+
+    // 2️⃣ Today's date (00:00 to 23:59)
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
+    const todayEnd = new Date();
+    todayEnd.setHours(23, 59, 59, 999);
+
+    // 3️⃣ Fetch today's appointments only
+    const todayAppointments = await Appointment.find({
+      saloonId: saloon._id,
+      createdAt: { $gte: todayStart, $lte: todayEnd }, // TODAY ONLY
+    })
+      .populate("customer.id", "name mobile")
+      .populate("serviceIds", "name price")
+      .populate("professionalId", "name")
+      .sort({ createdAt: -1 });
+
+    // 4️⃣ Stats
+    const totalTodayAppointments = todayAppointments.length;
+    const pendingToday = todayAppointments.filter(a => a.status === "pending").length;
+    const confirmedToday = todayAppointments.filter(a => a.status === "accepted").length;
+    const completedToday = todayAppointments.filter(a => a.status === "completed").length;
+
+    // Revenue from completed bookings
+    let todayRevenue = 0;
+    todayAppointments.forEach(a => {
+      if (a.status === "completed") {
+        a.serviceIds.forEach(s => (todayRevenue += s.price || 0));
+      }
+    });
+
+    // 5️⃣ Response
+    res.status(200).json({
+      success: true,
+      stats: {
+        totalTodayAppointments,
+        pendingToday,
+        confirmedToday,
+        completedToday,
+        todayRevenue,
+      },
+      todayAppointments,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
 
 
 

@@ -29,7 +29,7 @@ import { getLocationBySaloonId } from '../controllers/ownerCountry.controller.js
 import { saloonNotification } from "../middlewares/saloonNotification.js";
 import { addCoupon, getAllCoupons, getCoupon, verifyCoupon } from '../controllers/couponController.js';
 import { addOffer, deleteOffer, getAllActiveOffers, getOfferById, getOffers, getOffersWithData, getTrendingSaloons, replyToReview, updateOffer, updateTrendingSaloons ,forMultipleSaloonReview, forMultipleSaloonReviews, addReply, getSaloonReview} from '../controllers/offer.controller.js';
-import { getTodayAppointments } from '../controllers/appointment.controller.js';
+import { getTodayAppointments, getTodayReport } from '../controllers/appointment.controller.js';
 
 
 
@@ -410,6 +410,14 @@ router.get(
   AuthMiddlewares.checkAuth,
   getDashboardData
 );
+
+router.get(
+  "/saloon/today-report",
+  AuthMiddlewares.checkAuth,
+ getTodayReport
+);
+
+
 
 
 
