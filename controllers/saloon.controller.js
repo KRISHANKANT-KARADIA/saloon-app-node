@@ -1090,13 +1090,14 @@ export const getDashboardDataC = async (req, res, next) => {
 
     let todayRevenue = 0;
     todayAppointments.forEach(a => {
-      if (a.status === "completed") {
+      if (a.status === "completed" ||a.status === "accepted"  || a.status === "schedule") {
         a.serviceIds?.forEach(s => todayRevenue += s.price || 0);
       }
     });
 
     // -----------------------------------------
     // RESPONSE
+    ['pending','accepted','confirmed','completed','cancelled','Reschedule','schedule'],
     // -----------------------------------------
     res.status(200).json({
       success: true,
