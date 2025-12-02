@@ -660,6 +660,110 @@ router.get("/saloon/dashboard1", AuthMiddlewares.checkAuth, async (req, res, nex
 //   }
 // });
 
+// router.get("/saloon/week/dashboard1", AuthMiddlewares.checkAuth, async (req, res, next) => {
+//   try {
+//     const ownerId = res.locals.user.id;
+
+//     // 1️⃣ Fetch Saloon
+//     const saloon = await Saloon.findOne({ owner: ownerId });
+//     if (!saloon) return next(new AppError("Saloon not found", 404));
+
+//     // 2️⃣ Fetch Appointments
+//     const appointments = await Appointment.find({ saloonId: saloon._id })
+//       .populate("customer.id", "name mobile")
+//       .populate("serviceIds", "name price")
+//       .populate("professionalId", "name")
+//       .sort({ date: 1, time: 1 });
+
+//     // ---------- Today Calculation ----------
+//     const today = new Date();
+
+//     // Match only YEAR, MONTH, DAY (timezone safe)
+//     const todaysAppointments = appointments.filter(a => {
+//       const apptDate = new Date(a.date);
+//       return (
+//         apptDate.getDate() === today.getDate() &&
+//         apptDate.getMonth() === today.getMonth() &&
+//         apptDate.getFullYear() === today.getFullYear()
+//       );
+//     });
+
+//     // ---------- Yesterday ----------
+//     const yesterday = new Date(today);
+//     yesterday.setDate(today.getDate() - 1);
+
+//     const yesterdayAppointments = appointments.filter(a => {
+//       const apptDate = new Date(a.date);
+//       return (
+//         apptDate.getDate() === yesterday.getDate() &&
+//         apptDate.getMonth() === yesterday.getMonth() &&
+//         apptDate.getFullYear() === yesterday.getFullYear()
+//       );
+//     });
+
+//     // ---------- Stats ----------
+//     const totalAppointments = todaysAppointments.length;
+//     const pendingCount = todaysAppointments.filter(a => a.status === "pending").length;
+//     const confirmedCount = todaysAppointments.filter(a => a.status === "confirmed").length;
+
+//     const todayRevenue = todaysAppointments
+//       .filter(a => a.status === "confirmed")
+//       .reduce((sum, a) => sum + Number(a.price || 0), 0);
+
+//     const growthRatio =
+//       yesterdayAppointments.length > 0
+//         ? ((totalAppointments - yesterdayAppointments.length) /
+//             yesterdayAppointments.length) *
+//           100
+//         : 0;
+
+//     // ---------- Weekly Revenue ----------
+//     const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+//     const revenueByWeek = [0, 0, 0, 0];
+
+//     appointments.forEach(a => {
+//       if (a.status === "confirmed") {
+//         const d = new Date(a.date);
+//         if (d.getMonth() === today.getMonth()) {
+//           const day = d.getDate();
+//           if (day <= 7) revenueByWeek[0] += Number(a.price || 0);
+//           else if (day <= 14) revenueByWeek[1] += Number(a.price || 0);
+//           else if (day <= 21) revenueByWeek[2] += Number(a.price || 0);
+//           else revenueByWeek[3] += Number(a.price || 0);
+//         }
+//       }
+//     });
+
+//     // ---------- Recent Appointments (Today, Last 5 Sorted) ----------
+//     const recentAppointments = [...todaysAppointments]
+//       .sort((a, b) => new Date(b.date) - new Date(a.date))
+//       .slice(0, 5);
+
+//     // ---------- Response ----------
+//     res.status(200).json({
+//       success: true,
+//       stats: {
+//         totalAppointments,
+//         pendingCount,
+//         confirmedCount,
+//         todayRevenue,
+//         growthRatio: growthRatio.toFixed(2),
+//       },
+//       revenueByWeek: [
+//         { week: "Week 1", revenue: revenueByWeek[0] },
+//         { week: "Week 2", revenue: revenueByWeek[1] },
+//         { week: "Week 3", revenue: revenueByWeek[2] },
+//         { week: "Week 4", revenue: revenueByWeek[3] },
+//       ],
+//       recentAppointments,
+//     });
+
+//   } catch (err) {
+//     next(err);
+//   }
+// });
+
+
 router.get("/saloon/week/dashboard1", AuthMiddlewares.checkAuth, async (req, res, next) => {
   try {
     const ownerId = res.locals.user.id;
@@ -675,29 +779,55 @@ router.get("/saloon/week/dashboard1", AuthMiddlewares.checkAuth, async (req, res
       .populate("professionalId", "name")
       .sort({ date: 1, time: 1 });
 
-    // ---------- Today Calculation ----------
-    const today = new Date();
+    // -------------------------------------------
+    // 🔥 FIX: Convert DB date safely every time
+    // -------------------------------------------
+    const convertDate = (input) => {
+      if (!input) return null;
 
-    // Match only YEAR, MONTH, DAY (timezone safe)
+      // If DB stores STRING → "2025-02-14"
+      if (typeof input === "string") {
+        const [y, m, d] = input.split("-").map(Number);
+        return new Date(y, m - 1, d);
+      }
+
+      // If DB stores Date → convert directly
+      return new Date(input);
+    };
+
+    // ---------- Today ----------
+    const today = new Date();
+    const tY = today.getFullYear();
+    const tM = today.getMonth();
+    const tD = today.getDate();
+
     const todaysAppointments = appointments.filter(a => {
-      const apptDate = new Date(a.date);
+      const d = convertDate(a.date);
+      if (!d) return false;
+
       return (
-        apptDate.getDate() === today.getDate() &&
-        apptDate.getMonth() === today.getMonth() &&
-        apptDate.getFullYear() === today.getFullYear()
+        d.getFullYear() === tY &&
+        d.getMonth() === tM &&
+        d.getDate() === tD
       );
     });
 
     // ---------- Yesterday ----------
-    const yesterday = new Date(today);
-    yesterday.setDate(today.getDate() - 1);
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    const yY = yesterday.getFullYear();
+    const yM = yesterday.getMonth();
+    const yD = yesterday.getDate();
 
     const yesterdayAppointments = appointments.filter(a => {
-      const apptDate = new Date(a.date);
+      const d = convertDate(a.date);
+      if (!d) return false;
+
       return (
-        apptDate.getDate() === yesterday.getDate() &&
-        apptDate.getMonth() === yesterday.getMonth() &&
-        apptDate.getFullYear() === yesterday.getFullYear()
+        d.getFullYear() === yY &&
+        d.getMonth() === yM &&
+        d.getDate() === yD
       );
     });
 
@@ -718,12 +848,13 @@ router.get("/saloon/week/dashboard1", AuthMiddlewares.checkAuth, async (req, res
         : 0;
 
     // ---------- Weekly Revenue ----------
-    const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
     const revenueByWeek = [0, 0, 0, 0];
 
     appointments.forEach(a => {
       if (a.status === "confirmed") {
-        const d = new Date(a.date);
+        const d = convertDate(a.date);
+        if (!d) return;
+
         if (d.getMonth() === today.getMonth()) {
           const day = d.getDate();
           if (day <= 7) revenueByWeek[0] += Number(a.price || 0);
@@ -734,7 +865,7 @@ router.get("/saloon/week/dashboard1", AuthMiddlewares.checkAuth, async (req, res
       }
     });
 
-    // ---------- Recent Appointments (Today, Last 5 Sorted) ----------
+    // ---------- Recent Appointments (Last 5 of Today) ----------
     const recentAppointments = [...todaysAppointments]
       .sort((a, b) => new Date(b.date) - new Date(a.date))
       .slice(0, 5);
@@ -755,13 +886,16 @@ router.get("/saloon/week/dashboard1", AuthMiddlewares.checkAuth, async (req, res
         { week: "Week 3", revenue: revenueByWeek[2] },
         { week: "Week 4", revenue: revenueByWeek[3] },
       ],
+      todaysAppointments,
       recentAppointments,
+      yesterdayAppointments,
     });
 
   } catch (err) {
     next(err);
   }
 });
+
 
 // router.get("/saloon/week/dashboard1", AuthMiddlewares.checkAuth, async (req, res, next) => {
 //   try {
