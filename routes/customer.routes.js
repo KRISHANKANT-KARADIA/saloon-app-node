@@ -72,8 +72,12 @@ router.post(
 
 router.get('/appointment/pending', CustomerAuthMiddleware.checkAuth, AppointmentNewController.getPendingAppointments);
 
+router.get('/appointment/confirmed', CustomerAuthMiddleware.checkAuth, AppointmentNewController.getConfirmAppointments);
+
 router.get('/appointments/:appointmentId',CustomerAuthMiddleware.checkAuth, AppointmentNewController.getAppointmentById);
 
+
+router.get('/appointmentsec/:appointmentId',CustomerAuthMiddleware.checkAuth, AppointmentNewController.getAppointmentByIdSec);
 
 router.get(
   '/customer/appointments', 
@@ -101,6 +105,10 @@ router.patch(
 );
 
 router.post('/favourite-saloons', CustomerAuthMiddleware.checkAuth, CustomerController.addFavouriteSaloon);
+
+router.post('/favourite-saloons/delete', CustomerAuthMiddleware.checkAuth, CustomerController.removeFavouriteSaloon);
+
+
 
 // Get favourite saloons (GET)
 router.get('/favourite-saloons', CustomerAuthMiddleware.checkAuth, CustomerController.getFavouriteSaloons);

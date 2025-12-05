@@ -165,6 +165,8 @@
 import Appointment from '../models/appointment.model.js';
 import { AppError } from '../helpers/error.js';
 import { STATUS_CODES } from '../helpers/constants.js';
+import locationModel from '../models/location.model.js';
+import appointModel from '../models/appoint.model.js';
 
 export const AppointmentNewController = {};
 
@@ -259,6 +261,33 @@ AppointmentNewController.getPendingAppointments = async (req, res, next) => {
   }
 };
 
+
+// Confirm
+
+
+AppointmentNewController.getConfirmAppointments = async (req, res, next) => {
+  try {
+    const customer = res.locals.user;
+
+    const appointments = await Appointment.find({
+      'customer.id': customer.id,
+      status: 'completed'
+    })
+    .populate('saloonId', 'name logo')
+    .populate('serviceIds', 'name price')
+    .populate('professionalId', 'name')
+    .sort({ date: 1, time: 1 });
+
+    return res.status(STATUS_CODES.OK).json({
+      success: true,
+      count: appointments.length,
+      data: appointments
+    });
+
+  } catch (err) {
+    next(err);
+  }
+};
 
 
 
@@ -412,6 +441,48 @@ AppointmentNewController.getAppointmentById = async (req, res, next) => {
         success: false,
         message: "Appointment not found"
       });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: appointment
+    });
+
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+AppointmentNewController.getAppointmentByIdSec = async (req, res, next) => {
+  try {
+    const { appointmentId } = req.params;
+
+    if (!appointmentId) {
+      return res.status(400).json({
+        success: false,
+        message: "Appointment ID is required"
+      });
+    }
+
+    const appointment = await appointModel.findById(appointmentId)
+      .populate('saloonId', 'name logo') // Saloon info
+      .populate('serviceIds', 'name price') // Services
+      .populate('professionalId', 'name') // Professional
+      .lean(); // convert to plain JS object for adding extra fields
+
+    if (!appointment) {
+      return res.status(404).json({
+        success: false,
+        message: "Appointment not found"
+      });
+    }
+
+    // Fetch the location associated with the saloon
+    if (appointment.saloonId) {
+      const location = await locationModel.findOne({ saloon: appointment.saloonId._id })
+        .select('address1 address2 area city state pincode mapLink');
+      appointment.saloonLocation = location || null;
     }
 
     return res.status(200).json({

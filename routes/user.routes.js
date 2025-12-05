@@ -4,7 +4,7 @@ import { AuthMiddlewares } from '../middlewares/auth.middleware.js';
 import Location from '../models/location.model.js';
 import Saloon from '../models/saloon.model.js'; 
 import { getAllUsers, createUser ,getMySaloonProfile, updateSaloonInfo, getRegisteredMobileNumber} from '../controllers/user.controller.js';
-import {  addSaloonContent,getPublicSaloonContent, deleteSaloonImage, getAllImages, getFullSaloonDetails, getFullSaloonDetailsUsingId, getOperatingHours, getPublicOperatingHours, getPublicOwnerLocation, getSaloonDetails, getSaloonUsingId, getSocialLinks, registerSaloon, updateOperatingHours, updateSaloonData, updateSaloonMobileNumber, updateSocialLinks, uploadSaloonImages, uploadSaloonLogo, getAppointmentsBySaloon, getSaloonDashboardStats, getLast7DaysDashboardStats, getUpcomingAppointments,getTodayRevenue,getTotalAppointments,getDashboardData,getPendingAppointments,getRevenueGrowth,getPastAppointments, addOfflineAppointment, getOfflineAppointments, deleteOfflineAppointment, updateOfflineAppointmentStatus, getOfflineAppointmentById, getAppointmentById, updateAppointmentStatus, filterAppointments, getOwnerSaloonContent, getServiceWiseCounts, getSaloonByOwnerId, getDashboardDataC, sayHello } from '../controllers/saloon.controller.js';
+import {  addSaloonContent,getPublicSaloonContent, deleteSaloonImage, getAllImages, getFullSaloonDetails, getFullSaloonDetailsUsingId, getOperatingHours, getPublicOperatingHours, getPublicOwnerLocation, getSaloonDetails, getSaloonUsingId, getSocialLinks, registerSaloon, updateOperatingHours, updateSaloonData, updateSaloonMobileNumber, updateSocialLinks, uploadSaloonImages, uploadSaloonLogo, getAppointmentsBySaloon, getSaloonDashboardStats, getLast7DaysDashboardStats, getUpcomingAppointments,getTodayRevenue,getTotalAppointments,getDashboardData,getPendingAppointments,getRevenueGrowth,getPastAppointments, addOfflineAppointment, getOfflineAppointments, deleteOfflineAppointment, updateOfflineAppointmentStatus, getOfflineAppointmentById, getAppointmentById, updateAppointmentStatus, filterAppointments, getOwnerSaloonContent, getServiceWiseCounts, getSaloonByOwnerId, getDashboardDataC, sayHello, getServiceWiseAppointmentsNe, getCumulativeDashboard, completeAppointmentByBookingRef, getCurrentsAppointments, getAllAppointments, getAppointmentByBookingRef, getPastAppointmentsProfessionalIdOnly, getPastAppointmentsFull, getUpcomingAppointmentsFull, getTodaysAppointmentsFull, getAllAppointmentsFull, generateReport, fullReport} from '../controllers/saloon.controller.js';
 import { addSaloonLocation, getSaloonLocation, putSaloonNewLocation } from '../controllers/location.controller.js';
 import { updateSaloonDetails } from '../controllers/updateSaloonDetails.js';
 import { deleteSaloonLocation, updateSaloonLocation } from '../controllers/updateSaloonLocation.js';
@@ -327,29 +327,115 @@ router.get('/saloon/fetch/public', async (req, res, next) => {
   }
 });
 
-router.get('/saloon/fetch/top/five/public', async (req, res, next) => {
-  try {
-    // ✅ Fetch only top 5 latest saloons (id, name, logo)
-    const saloons = await Saloon.find({}, { _id: 1, name: 1, logo: 1 })
-      .sort({ createdAt: -1 })
-      .limit(5);
+// router.get('/saloon/fetch/top/five/public', async (req, res, next) => {
+//   try {
+//     // ✅ Fetch only top 5 latest saloons (id, name, logo)
+//     const saloons = await Saloon.find({}, { _id: 1, name: 1, logo: 1 })
+//       .sort({ createdAt: -1 })
+//       .limit(5);
 
-    // ✅ Optional: agar locations bhi chahiye to unme bhi limit laga sakte ho
-    const locations = await Location.find({}, { _id: 1, owner: 1, address1: 1, city: 1, lat: 1, long: 1 })
+//     // ✅ Optional: agar locations bhi chahiye to unme bhi limit laga sakte ho
+//     const locations = await Location.find({}, { _id: 1, owner: 1, address1: 1, city: 1, lat: 1, long: 1 })
+//       .sort({ createdAt: -1 })
+//       .limit(5);
+
+//     res.json({
+//       success: true,
+//       message: "Top 5 saloons fetched successfully",
+//       count: saloons.length,
+//       saloons,
+//       locations
+//     });
+//   } catch (error) {
+//     next(error);
+//   }
+// });
+
+
+// router.get('/saloon/fetch/top/twenty/public', async (req, res, next) => {
+//   try {
+//     // Fetch top 20 latest saloons
+//     const saloons = await Saloon.find({}, { _id: 1, name: 1, logo: 1 })
+//       .sort({ createdAt: -1 })
+//       .limit(20);
+
+//     // Map saloons to include full logo URL and default if missing
+//     const saloonsWithLogo = saloons.map(saloon => ({
+//       _id: saloon._id,
+//       name: saloon.name,
+    //   logo: saloon.logo
+    //     ? `http://10.113.14.210:3000/uploads/saloon/${saloon.logo}`
+    //     : `http://10.113.14.210:3000/default-logo.jpg`
+    // }));
+
+//     // Fetch top 20 locations
+//     const locations = await Location.find({}, { _id: 1, owner: 1, address1: 1, city: 1, lat: 1, long: 1 })
+//       .sort({ createdAt: -1 })
+//       .limit(20);
+
+//     res.json({
+//       success: true,
+//       message: 'Top 20 saloons fetched successfully',
+//       count: saloonsWithLogo.length,
+//       saloons: saloonsWithLogo,
+//       locations
+//     });
+//   } catch (error) {
+//     console.error('Error fetching saloons:', error);
+//     next(error);
+//   }
+// });
+
+
+router.get('/saloon/fetch/top/twenty/public', async (req, res, next) => {
+  try {
+    // Fetch top 20 latest saloons with full details
+    const saloons = await Saloon.find({})
       .sort({ createdAt: -1 })
-      .limit(5);
+      .limit(20)
+      .select("name logo rating city owner description operatingHours"); // select full fields
+
+    // Map saloons to include full logo URL
+
+
+
+
+    const saloonsWithLogo = saloons.map(saloon => ({
+      _id: saloon._id,
+      name: saloon.name,
+      logo: saloon.logo
+        ? saloon.logo.startsWith('http')
+          ? saloon.logo
+          : `https://saloon-app-node-50470848550.asia-south1.run.app/uploads/saloon/${saloon.logo}`
+        : `https://saloon-app-node-50470848550.asia-south1.run.app/default-logo.jpg`,
+      rating: saloon.rating || null,
+      city: saloon.city || null,
+      owner: saloon.owner || null,
+      description: saloon.description || null,
+      operatingHours: saloon.operatingHours || null,
+    }));
+
+    // Optional: Fetch top 20 locations
+    const locations = await Location.find({})
+      .sort({ createdAt: -1 })
+      .limit(20)
+      .select("_id owner address1 city lat long saloon");
 
     res.json({
       success: true,
-      message: "Top 5 saloons fetched successfully",
-      count: saloons.length,
-      saloons,
+      message: 'Top 20 saloons fetched successfully',
+      count: saloonsWithLogo.length,
+      saloons: saloonsWithLogo,
       locations
     });
+
   } catch (error) {
+    console.error('Error fetching saloons:', error);
     next(error);
   }
 });
+
+
 
 
 router.post('/owner/location', AuthMiddlewares.checkAuth, addSaloonLocation);
@@ -391,6 +477,32 @@ router.get(
   AuthMiddlewares.checkAuth,
   getUpcomingAppointments
 );
+
+router.get(
+  "/saloon/getPastAppointmentsFull",
+  AuthMiddlewares.checkAuth,
+  getPastAppointmentsFull
+);
+router.get(
+  "/saloon/getAllAppointmentsFull",
+  AuthMiddlewares.checkAuth,
+  getAllAppointmentsFull
+);
+
+
+
+router.get(
+  "/saloon/current/appointment",
+  AuthMiddlewares.checkAuth,
+  getCurrentsAppointments
+);
+
+router.get(
+  "/saloon/all/appointment",
+  AuthMiddlewares.checkAuth,
+  getAllAppointments 
+);
+
 router.get(
   "/saloon/getTodayRevenue",
   AuthMiddlewares.checkAuth,
@@ -411,10 +523,56 @@ router.get(
   getDashboardData
 );
 
+
+router.get(
+  "/saloon/getCumulativeDashboard",
+  AuthMiddlewares.checkAuth,
+  getCumulativeDashboard
+);
+
+
+router.get(
+  "/saloon/getCurrentAppointmentsWithProfessional",
+  AuthMiddlewares.checkAuth,
+  getPastAppointmentsProfessionalIdOnly
+
+);
+
+
+router.get(
+  "/saloon/getUpcomingAppointmentsFull",
+  AuthMiddlewares.checkAuth,
+  getUpcomingAppointmentsFull
+  
+);
+
+
+router.get(
+  "/saloon/getTodaysAppointmentsFull",
+  AuthMiddlewares.checkAuth,
+  getTodaysAppointmentsFull
+  
+  
+);
+
+
+
+
+
+
+
+
 router.get(
   "/saloon/today-report",
   AuthMiddlewares.checkAuth,
  getDashboardDataC
+);
+
+router.get(
+  "/saloon/appointmentwise/top/service",
+  AuthMiddlewares.checkAuth,
+ getServiceWiseAppointmentsNe
+
 );
 
 
@@ -1179,11 +1337,22 @@ router.get(
   getAppointmentById
 );
 
+router.get(
+  "/saloon/appointment/ref/:bookingRef",
+  AuthMiddlewares.checkAuth,
+  getAppointmentByBookingRef
+);
+
 router.put(
   "/saloon/appointments/:id/status",
   AuthMiddlewares.checkAuth,
   updateAppointmentStatus
 );
+
+router.put("/saloon/appointments/completebyref", 
+   AuthMiddlewares.checkAuth,
+    completeAppointmentByBookingRef);
+
 
 
 router.post('/saloon/offline/appointments', AuthMiddlewares.checkAuth, addOfflineAppointment);
@@ -1213,6 +1382,11 @@ router.get(
 
 // router.get('/saloon/appointments/filter', AuthMiddlewares.checkAuth, filterAppointments);
 router.post('/saloon/appointments/filter', AuthMiddlewares.checkAuth, filterAppointments);
+
+
+router.get('/saloon/:saloonId/report', 
+  AuthMiddlewares.checkAuth,
+  generateReport);
 
 
 
@@ -1411,6 +1585,8 @@ router.get(
 
 
 
+
+  router.get("/report/files",fullReport);
 
 
 

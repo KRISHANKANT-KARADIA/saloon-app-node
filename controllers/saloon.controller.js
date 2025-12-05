@@ -13,8 +13,20 @@ import { v4 as uuidv4 } from 'uuid';
 import SaloonContentModel from '../models/SaloonContent.model.js';
 
 import OfflineAppointment from '../models/OfflineAppointment.js';
-
+import { Parser } from 'json2csv';
+import teamMemberModel from "../models/teamMember.model.js";
+// const IMAGE_BASE_URL = "https://saloon-app-node-50470848550.asia-south1.run.app/uploads/saloon";
+import { createObjectCsvWriter } from "csv-writer";
+import PDFDocument from "pdfkit";
 const IMAGE_BASE_URL = "https://saloon-app-node-50470848550.asia-south1.run.app/uploads/saloon";
+// Path to store PDF/CSV reports
+
+const reportsPath = path.join(process.cwd(), "public/reports");
+
+// Ensure directory exists
+if (!fs.existsSync(reportsPath)) {
+  fs.mkdirSync(reportsPath, { recursive: true });
+}
 
 // export const registerSaloon = async (req, res, next) => {
 //   try {
@@ -616,14 +628,59 @@ export const getServiceWiseCounts = async (req, res, next) => {
 
 
 
+// export const getAppointmentById = async (req, res, next) => {
+//   try {
+//     const ownerId = res.locals.user?.id; // ✅ token se aaya
+//     if (!ownerId) {
+//       return next(new AppError("Unauthorized", STATUS_CODES.UNAUTHORIZED));
+//     }
+
+//     // Find saloon of this owner
+//     const saloon = await Saloon.findOne({ owner: ownerId });
+//     if (!saloon) {
+//       return next(new AppError("Saloon not found", STATUS_CODES.NOT_FOUND));
+//     }
+
+//     const appointmentId = req.params.id;
+//     if (!appointmentId) {
+//       return next(new AppError("Appointment ID required", STATUS_CODES.BAD_REQUEST));
+//     }
+
+//     // Find single appointment by ID & saloon
+//     const appointment = await Appointment.findOne({
+//       _id: appointmentId,
+//       saloonId: saloon._id,
+//     })
+//       .populate("customer.id", "name mobile")
+//       .populate("serviceIds", "name price")
+//       .populate("professionalId", "name");
+
+//     if (!appointment) {
+//       return next(
+//         new AppError("Appointment not found or not authorized", STATUS_CODES.NOT_FOUND)
+//       );
+//     }
+
+//     return res.status(200).json({
+//       success: true,
+//       message: `Appointment ${appointmentId} fetched successfully`,
+//       data: appointment,
+//     });
+//   } catch (err) {
+//     console.error(err);
+//     next(err);
+//   }
+// };
+
+
 export const getAppointmentById = async (req, res, next) => {
   try {
-    const ownerId = res.locals.user?.id; // ✅ token se aaya
+    const ownerId = res.locals.user?.id;
     if (!ownerId) {
       return next(new AppError("Unauthorized", STATUS_CODES.UNAUTHORIZED));
     }
 
-    // Find saloon of this owner
+    // ⭐ Find saloon of this owner
     const saloon = await Saloon.findOne({ owner: ownerId });
     if (!saloon) {
       return next(new AppError("Saloon not found", STATUS_CODES.NOT_FOUND));
@@ -634,20 +691,34 @@ export const getAppointmentById = async (req, res, next) => {
       return next(new AppError("Appointment ID required", STATUS_CODES.BAD_REQUEST));
     }
 
-    // Find single appointment by ID & saloon
+    // ⭐ Appointment Find + Full Populate Fix
     const appointment = await Appointment.findOne({
       _id: appointmentId,
-      saloonId: saloon._id,
+      saloonId: saloon._id,   // ensure the appointment belongs to this saloon
     })
-      .populate("customer.id", "name mobile")
-      .populate("serviceIds", "name price")
-      .populate("professionalId", "name");
+      .populate({
+        path: "customer.id",
+        select: "name mobile",
+      })
+      .populate({
+        path: "serviceIds",
+        select: "name price",
+      })
+      .populate({
+        path: "professionalId",
+        model: "Professional",  // ⭐ force correct model
+        select: "name mobile role",
+      });
 
+    // ⭐ If appointment not found
     if (!appointment) {
       return next(
         new AppError("Appointment not found or not authorized", STATUS_CODES.NOT_FOUND)
       );
     }
+
+    // ⭐ Debugging (optional but very useful)
+    console.log("Professional ID in DB:", appointment.professionalId);
 
     return res.status(200).json({
       success: true,
@@ -659,6 +730,55 @@ export const getAppointmentById = async (req, res, next) => {
     next(err);
   }
 };
+
+export const getAppointmentByBookingRef = async (req, res, next) => {
+  try {
+    const ownerId = res.locals.user?.id;
+    if (!ownerId) {
+      return next(new AppError("Unauthorized", 401));
+    }
+
+    // Find saloon for this owner
+    const saloon = await Saloon.findOne({ owner: ownerId });
+    if (!saloon) {
+      return next(new AppError("Saloon not found", 404));
+    }
+
+    const bookingRef = req.params.bookingRef;
+    if (!bookingRef) {
+      return next(new AppError("Booking Reference is required", 400));
+    }
+
+    // Search appointment by bookingRef
+    const appointment = await Appointment.findOne({
+      bookingRef: bookingRef,
+      saloonId: saloon._id,
+    })
+      .populate("customer.id", "name mobile")
+      .populate("serviceIds", "name price")
+      .populate("professionalId", "name");
+
+    if (!appointment) {
+      return next(new AppError("Appointment not found", 404));
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: `Appointment fetched successfully`,
+      data: {
+        ...appointment._doc,
+        professionalName: appointment.professionalId 
+          ? appointment.professionalId.name
+          : "Not Assigned"
+      },
+    });
+
+  } catch (err) {
+    console.error(err);
+    next(err);
+  }
+};
+
 
 export const updateAppointmentStatus = async (req, res, next) => {
   try {
@@ -721,6 +841,49 @@ const allowedStatuses = [
       message: `Appointment ${appointmentId} status updated to ${status}`,
       data: updatedAppointment,
     });
+  } catch (err) {
+    console.error(err);
+    next(err);
+  }
+};
+
+
+export const completeAppointmentByBookingRef = async (req, res, next) => {
+  try {
+    const ownerId = res.locals.user?.id;
+    if (!ownerId) {
+      return next(new AppError("Unauthorized", STATUS_CODES.UNAUTHORIZED));
+    }
+
+    const { bookingRef } = req.body;
+
+    if (!bookingRef) {
+      return next(new AppError("BookingRef is required", STATUS_CODES.BAD_REQUEST));
+    }
+
+    // Find saloon for this owner
+    const saloon = await Saloon.findOne({ owner: ownerId });
+    if (!saloon) {
+      return next(new AppError("Saloon not found", STATUS_CODES.NOT_FOUND));
+    }
+
+    // Find appointment by bookingRef & saloon
+    const appointment = await Appointment.findOneAndUpdate(
+      { bookingRef: bookingRef, saloonId: saloon._id },
+      { status: "completed" },
+      { new: true }
+    );
+
+    if (!appointment) {
+      return next(new AppError("Invalid Booking Ref", STATUS_CODES.NOT_FOUND));
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Appointment marked as completed",
+      data: appointment
+    });
+
   } catch (err) {
     console.error(err);
     next(err);
@@ -1019,11 +1182,112 @@ export const getDashboardDataStats = async (req, res, next) => {
 //   }
 // };
 
+// export const getDashboardDataC = async (req, res, next) => {
+//   try {
+//     const ownerId = res.locals.user.id;
+
+//     // GET SALOON
+//     const saloon = await Saloon.findOne({ owner: ownerId });
+//     if (!saloon) return next(new AppError("Saloon not found", 404));
+
+//     // GET ALL APPOINTMENTS
+//     const appointments = await Appointment.find({ saloonId: saloon._id })
+//       .populate({
+//         path: "customer.id",
+//         select: "name mobile",
+//         strictPopulate: false
+//       })
+//       .populate({
+//         path: "serviceIds",
+//         select: "name price",
+//         strictPopulate: false
+//       })
+//       .populate({
+//         path: "professionalId",
+//         select: "name",
+//         strictPopulate: false
+//       })
+//       .sort({ createdAt: -1 });
+
+//     const now = new Date();
+//     const year = now.getFullYear();
+//     const month = now.getMonth(); // 0-indexed
+
+//     // Function to get start and end of a week in the current month
+//     const getWeekRange = (weekNumber) => {
+//       const start = new Date(year, month, (weekNumber - 1) * 7 + 1);
+//       const end = new Date(year, month, weekNumber * 7);
+//       end.setHours(23, 59, 59, 999);
+//       return { start, end };
+//     };
+
+//     // Calculate revenue per week
+//     const weeklyRevenue = {};
+//     for (let i = 1; i <= 4; i++) {
+//       const { start, end } = getWeekRange(i);
+//       const weekAppointments = appointments.filter(a => {
+//         const created = new Date(a.createdAt);
+//         return created >= start && created <= end && a.status === "completed";
+//       });
+
+//       let revenue = 0;
+//       weekAppointments.forEach(a => {
+//         a.serviceIds?.forEach(s => revenue += s.price || 0);
+//       });
+
+//       weeklyRevenue[`week${i}`] = revenue;
+//     }
+
+//     // -----------------------------------------
+//     // TODAY DATA (optional)
+//     // -----------------------------------------
+//     const todayStart = new Date();
+//     todayStart.setHours(0, 0, 0, 0);
+//     const todayEnd = new Date();
+//     todayEnd.setHours(23, 59, 59, 999);
+
+//     const todayAppointments = appointments.filter(a => {
+//       const created = new Date(a.createdAt);
+//       return created >= todayStart && created <= todayEnd;
+//     });
+
+//     let todayRevenue = 0;
+//     todayAppointments.forEach(a => {
+//       if (a.status === "completed" ||a.status === "accepted"  || a.status === "schedule") {
+//         a.serviceIds?.forEach(s => todayRevenue += s.price || 0);
+//       }
+//     });
+
+//     // -----------------------------------------
+//     // RESPONSE
+//     ['pending','accepted','confirmed','completed','cancelled','Reschedule','schedule'],
+//     // -----------------------------------------
+//     res.status(200).json({
+//       success: true,
+//       stats: {
+//         totalAppointments: appointments.length,
+//         pendingCount: appointments.filter(a => a.status === "pending").length,
+//         todayAppointments: todayAppointments.length,
+//         todayPending: todayAppointments.filter(a => a.status === "pending").length,
+//         todayRevenue,
+//         weeklyRevenue // week1, week2, week3, week4
+//       },
+//       recentAppointments: appointments.slice(0, 5),
+//       todayAppointmentsList: todayAppointments,
+//       todayPendingList: todayAppointments.filter(a => a.status === "pending")
+//     });
+
+//   } catch (err) {
+//     next(err);
+//   }
+// };
+
+
 export const getDashboardDataC = async (req, res, next) => {
   try {
     const ownerId = res.locals.user.id;
 
-    // GET SALOON
+    // FIND SALOON
     const saloon = await Saloon.findOne({ owner: ownerId });
     if (!saloon) return next(new AppError("Saloon not found", 404));
 
@@ -1048,35 +1312,63 @@ export const getDashboardDataC = async (req, res, next) => {
 
     const now = new Date();
     const year = now.getFullYear();
-    const month = now.getMonth(); // 0-indexed
+    const month = now.getMonth();
 
-    // Function to get start and end of a week in the current month
-    const getWeekRange = (weekNumber) => {
-      const start = new Date(year, month, (weekNumber - 1) * 7 + 1);
-      const end = new Date(year, month, weekNumber * 7);
-      end.setHours(23, 59, 59, 999);
-      return { start, end };
-    };
+    // -----------------------------------------
+    // WEEK RANGES OF CURRENT MONTH
+    // -----------------------------------------
+    const weekRanges = [
+      { start: new Date(year, month, 1), end: new Date(year, month, 7, 23, 59, 59, 999) },
+      { start: new Date(year, month, 8), end: new Date(year, month, 14, 23, 59, 59, 999) },
+      { start: new Date(year, month, 15), end: new Date(year, month, 21, 23, 59, 59, 999) },
+      { start: new Date(year, month, 22), end: new Date(year, month + 1, 0, 23, 59, 59, 999) } // last date of month
+    ];
 
-    // Calculate revenue per week
+    // -----------------------------------------
+    // WEEKLY REVENUE CALCULATION
+    // -----------------------------------------
     const weeklyRevenue = {};
-    for (let i = 1; i <= 4; i++) {
-      const { start, end } = getWeekRange(i);
-      const weekAppointments = appointments.filter(a => {
+
+    weekRanges.forEach((range, index) => {
+      const weekApps = appointments.filter(a => {
         const created = new Date(a.createdAt);
-        return created >= start && created <= end && a.status === "completed";
+        return (
+          created >= range.start &&
+          created <= range.end &&
+          a.status === "completed"
+        );
       });
 
       let revenue = 0;
-      weekAppointments.forEach(a => {
+      weekApps.forEach(a => {
         a.serviceIds?.forEach(s => revenue += s.price || 0);
       });
 
-      weeklyRevenue[`week${i}`] = revenue;
-    }
+      weeklyRevenue[`week${index + 1}`] = revenue;
+    });
 
     // -----------------------------------------
-    // TODAY DATA (optional)
+    // MONTHLY TOTAL REVENUE
+    // -----------------------------------------
+    const monthStart = new Date(year, month, 1);
+    const monthEnd = new Date(year, month + 1, 0, 23, 59, 59, 999);
+
+    const monthlyApps = appointments.filter(a => {
+      const created = new Date(a.createdAt);
+      return (
+        created >= monthStart &&
+        created <= monthEnd &&
+        a.status === "completed"
+      );
+    });
+
+    let monthlyRevenue = 0;
+    monthlyApps.forEach(a => {
+      a.serviceIds?.forEach(s => monthlyRevenue += s.price || 0);
+    });
+
+    // -----------------------------------------
+    // TODAY CALCULATION
     // -----------------------------------------
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
@@ -1090,24 +1382,26 @@ export const getDashboardDataC = async (req, res, next) => {
 
     let todayRevenue = 0;
     todayAppointments.forEach(a => {
-      if (a.status === "completed" ||a.status === "accepted"  || a.status === "schedule") {
+      if (a.status === "completed" || a.status === "accepted" || a.status === "schedule") {
         a.serviceIds?.forEach(s => todayRevenue += s.price || 0);
       }
     });
 
     // -----------------------------------------
     // RESPONSE
-    ['pending','accepted','confirmed','completed','cancelled','Reschedule','schedule'],
     // -----------------------------------------
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       stats: {
         totalAppointments: appointments.length,
         pendingCount: appointments.filter(a => a.status === "pending").length,
+
         todayAppointments: todayAppointments.length,
         todayPending: todayAppointments.filter(a => a.status === "pending").length,
         todayRevenue,
-        weeklyRevenue // week1, week2, week3, week4
+
+        weeklyRevenue,      // week1, week2, week3, week4
+        monthlyRevenue      // 🟢 TOTAL MONTH REVENUE
       },
       recentAppointments: appointments.slice(0, 5),
       todayAppointmentsList: todayAppointments,
@@ -1118,6 +1412,52 @@ export const getDashboardDataC = async (req, res, next) => {
     next(err);
   }
 };
+export const getServiceWiseAppointmentsNe = async (req, res, next) => {
+  try {
+    const ownerId = res.locals.user.id;
+
+    // Get Saloon
+    const saloon = await Saloon.findOne({ owner: ownerId });
+    if (!saloon) {
+      return res.status(404).json({ success: false, message: "Saloon not found" });
+    }
+
+    // Get all appointments of this saloon
+    const appointments = await Appointment.find({ saloonId: saloon._id })
+      .populate("serviceIds", "name price");
+
+    // Count map
+    const serviceMap = {};
+
+    appointments.forEach((a) => {
+      a.serviceIds.forEach((service) => {
+        if (!serviceMap[service.name]) {
+          serviceMap[service.name] = { count: 0, revenue: 0 };
+        }
+        serviceMap[service.name].count += 1;
+        serviceMap[service.name].revenue += service.price || 0;
+      });
+    });
+
+    // Convert to array
+    const serviceList = Object.keys(serviceMap).map((key) => ({
+      service: key,
+      count: serviceMap[key].count,
+      revenue: serviceMap[key].revenue,
+    }));
+
+    // Sort descending by count
+    serviceList.sort((a, b) => b.count - a.count);
+
+    res.status(200).json({
+      success: true,
+      services: serviceList,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 
 
 export const sayHello = (req, res) => {
@@ -1128,6 +1468,73 @@ export const sayHello = (req, res) => {
 
 
 
+// export const getDashboardData = async (req, res, next) => {
+//   try {
+//     const ownerId = res.locals.user.id;
+
+//     // 1️⃣ Get the saloon
+//     const saloon = await Saloon.findOne({ owner: ownerId });
+//     if (!saloon) return next(new AppError("Saloon not found", 404));
+
+//     const todayStart = new Date();
+//     todayStart.setHours(0, 0, 0, 0);
+
+//     const todayEnd = new Date();
+//     todayEnd.setHours(23, 59, 59, 999);
+
+//     // 2️⃣ Fetch appointments
+//     const appointments = await Appointment.find({ saloonId: saloon._id })
+//       .populate("customer.id", "name")
+//       .populate("serviceIds", "name price")
+//       .sort({ date: -1, time: -1 }); // latest first
+
+//     // 3️⃣ Calculate stats
+//     const totalAppointments = appointments.length;
+//     const pendingCount = appointments.filter(a => a.status === "pending").length;
+
+//     let todayRevenue = 0;
+//     appointments.forEach(a => {
+//       const appDate = new Date(a.date);
+//       if (a.status === "completed" && appDate >= todayStart && appDate <= todayEnd) {
+//         a.serviceIds.forEach(s => todayRevenue += s.price);
+//       }
+//     });
+
+//     // Growth calculation (compared to yesterday)
+//     const yesterdayStart = new Date(todayStart);
+//     yesterdayStart.setDate(yesterdayStart.getDate() - 1);
+//     const yesterdayEnd = new Date(todayEnd);
+//     yesterdayEnd.setDate(yesterdayEnd.getDate() - 1);
+
+//     let yesterdayRevenue = 0;
+//     appointments.forEach(a => {
+//       const appDate = new Date(a.date);
+//       if (a.status === "completed" && appDate >= yesterdayStart && appDate <= yesterdayEnd) {
+//         a.serviceIds.forEach(s => yesterdayRevenue += s.price);
+//       }
+//     });
+
+//     const growthRatio = yesterdayRevenue === 0 ? 100 : ((todayRevenue - yesterdayRevenue) / yesterdayRevenue) * 100;
+
+//     // 4️⃣ Get 5 recent appointments
+//     const recentAppointments = appointments.slice(0, 5);
+
+//     res.status(200).json({
+//       success: true,
+//       stats: {
+//         totalAppointments,
+//         pendingCount,
+//         todayRevenue,
+//         growthRatio: growthRatio.toFixed(2),
+//       },
+//       recentAppointments,
+//     });
+//   } catch (err) {
+//     next(err);
+//   }
+// };
+
+
 export const getDashboardData = async (req, res, next) => {
   try {
     const ownerId = res.locals.user.id;
@@ -1136,49 +1543,62 @@ export const getDashboardData = async (req, res, next) => {
     const saloon = await Saloon.findOne({ owner: ownerId });
     if (!saloon) return next(new AppError("Saloon not found", 404));
 
+    // 2️⃣ Define today and yesterday ranges
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
-
     const todayEnd = new Date();
     todayEnd.setHours(23, 59, 59, 999);
 
-    // 2️⃣ Fetch appointments
-    const appointments = await Appointment.find({ saloonId: saloon._id })
-      .populate("customer.id", "name")
-      .populate("serviceIds", "name price")
-      .sort({ date: -1, time: -1 }); // latest first
-
-    // 3️⃣ Calculate stats
-    const totalAppointments = appointments.length;
-    const pendingCount = appointments.filter(a => a.status === "pending").length;
-
-    let todayRevenue = 0;
-    appointments.forEach(a => {
-      const appDate = new Date(a.date);
-      if (a.status === "completed" && appDate >= todayStart && appDate <= todayEnd) {
-        a.serviceIds.forEach(s => todayRevenue += s.price);
-      }
-    });
-
-    // Growth calculation (compared to yesterday)
     const yesterdayStart = new Date(todayStart);
     yesterdayStart.setDate(yesterdayStart.getDate() - 1);
     const yesterdayEnd = new Date(todayEnd);
     yesterdayEnd.setDate(yesterdayEnd.getDate() - 1);
 
-    let yesterdayRevenue = 0;
+    // 3️⃣ Fetch all appointments for this saloon
+    const appointments = await Appointment.find({ saloonId: saloon._id })
+      .populate("customer.id", "name")
+      .populate("serviceIds", "name price")
+      .sort({ date: -1, time: -1 }); // latest first
+
+    // 4️⃣ Calculate stats
+    const totalAppointments = appointments.length;
+    const pendingCount = appointments.filter(a => a.status === "pending").length;
+
+    // 4a️⃣ Revenue for today
+    let todayRevenue = 0;
     appointments.forEach(a => {
       const appDate = new Date(a.date);
-      if (a.status === "completed" && appDate >= yesterdayStart && appDate <= yesterdayEnd) {
-        a.serviceIds.forEach(s => yesterdayRevenue += s.price);
+      if (appDate >= todayStart && appDate <= todayEnd && ["completed", "accepted"].includes(a.status)) {
+        if (Array.isArray(a.serviceIds) && a.serviceIds.length) {
+          a.serviceIds.forEach(s => todayRevenue += Number(s.price || 0));
+        } else {
+          todayRevenue += Number(a.price || 0);
+        }
       }
     });
 
-    const growthRatio = yesterdayRevenue === 0 ? 100 : ((todayRevenue - yesterdayRevenue) / yesterdayRevenue) * 100;
+    // 4b️⃣ Revenue for yesterday
+    let yesterdayRevenue = 0;
+    appointments.forEach(a => {
+      const appDate = new Date(a.date);
+      if (appDate >= yesterdayStart && appDate <= yesterdayEnd && ["completed", "accepted"].includes(a.status)) {
+        if (Array.isArray(a.serviceIds) && a.serviceIds.length) {
+          a.serviceIds.forEach(s => yesterdayRevenue += Number(s.price || 0));
+        } else {
+          yesterdayRevenue += Number(a.price || 0);
+        }
+      }
+    });
 
-    // 4️⃣ Get 5 recent appointments
+    // 4c️⃣ Growth ratio
+    const growthRatio = yesterdayRevenue === 0
+      ? todayRevenue === 0 ? 0 : 100
+      : ((todayRevenue - yesterdayRevenue) / yesterdayRevenue) * 100;
+
+    // 5️⃣ Get 5 recent appointments
     const recentAppointments = appointments.slice(0, 5);
 
+    // 6️⃣ Respond with stats
     res.status(200).json({
       success: true,
       stats: {
@@ -1194,6 +1614,445 @@ export const getDashboardData = async (req, res, next) => {
   }
 };
 
+
+
+
+export const getPastAppointmentsProfessionalIdOnly = async (req, res, next) => {
+  try {
+    const ownerId = res.locals.user.id;
+
+    // 1️⃣ Find saloon
+    const saloon = await Saloon.findOne({ owner: ownerId });
+    if (!saloon) return next(new AppError("Saloon not found", 404));
+
+    // 2️⃣ Define today's date for filtering past
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // 3️⃣ Fetch all appointments for this saloon
+    const appointments = await Appointment.find({ saloonId: saloon._id })
+    .populate("customer.id", "name mobile")        // 🔥 Populate customer name & mobile
+      .populate("serviceIds", "name price")          // 🔥 Populate service names & price
+      
+      .sort({ date: -1, time: -1 });
+
+    // 4️⃣ Filter past appointments
+    const pastAppointments = appointments.filter(a => {
+      const appDate = new Date(a.date);
+      return appDate.getTime() < today.getTime();
+    });
+
+    // 5️⃣ Map to only professionalId
+    const response = pastAppointments.map(a => {
+      return {
+        _id: a._id,
+        bookingRef: a.bookingRef,
+        professionalId: a.professionalId, // raw ObjectId
+        createdAt: a.createdAt,
+            discount:a.discount,
+            saloonId:a.saloonId,
+            serviceIds:a.serviceIds,
+            date:a.date,
+            time:a.time,
+            duration:a.duration,
+            price:a.price,
+            status:a.status,
+            discountCode:a.discountCode,
+            discountAmount:a.discountAmount,
+            discountCodeId:a.discountCodeId,
+            cardstatus:a.cardstatus,
+            notes:a.notes,
+            customer:a.customer
+      };
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Past appointments professionalId only",
+      data: response,
+    });
+
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+
+export const getUpcomingAppointmentsFull = async (req, res, next) => {
+  try {
+    const ownerId = res.locals.user.id;
+
+    // 1️⃣ Find saloon
+    const saloon = await Saloon.findOne({ owner: ownerId });
+    if (!saloon) return next(new AppError("Saloon not found", 404));
+
+    // 2️⃣ Define tomorrow's date for filtering
+    const tomorrow = new Date();
+    tomorrow.setHours(0, 0, 0, 0);
+    tomorrow.setDate(tomorrow.getDate() + 1); // move to next day
+
+    // 3️⃣ Fetch all appointments for this saloon
+    const appointments = await Appointment.find({ saloonId: saloon._id })
+    .populate("customer.id", "name mobile")        // 🔥 Populate customer name & mobile
+      .populate("serviceIds", "name price")   
+      .sort({ date: 1, time: 1 }); // earliest first
+
+    // 4️⃣ Filter appointments starting from tomorrow
+    const upcomingAppointments = appointments.filter(a => {
+      const appDate = new Date(a.date);
+      return appDate.getTime() >= tomorrow.getTime();
+    });
+
+    // 5️⃣ Map appointments with professionalId + all fields
+    const response = upcomingAppointments.map(a => ({
+      _id: a._id,
+      bookingRef: a.bookingRef,
+      professionalId: a.professionalId, // raw ObjectId
+      createdAt: a.createdAt,
+      discount: a.discount,
+      saloonId: a.saloonId,
+      serviceIds: a.serviceIds,
+      date: a.date,
+      time: a.time,
+      duration: a.duration,
+      price: a.price,
+      status: a.status,
+      discountCode: a.discountCode,
+      discountAmount: a.discountAmount,
+      discountCodeId: a.discountCodeId,
+      cardstatus: a.cardstatus,
+      notes: a.notes,
+      customer:a.customer
+    }));
+
+    return res.status(200).json({
+      success: true,
+      message: "Upcoming appointments starting from tomorrow",
+      data: response,
+    });
+
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+export const getTodaysAppointmentsFull = async (req, res, next) => {
+  try {
+    const ownerId = res.locals.user.id;
+
+    // 1️⃣ Find saloon
+    const saloon = await Saloon.findOne({ owner: ownerId });
+    if (!saloon) return next(new AppError("Saloon not found", 404));
+
+    // 2️⃣ Define start and end of today
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
+    const todayEnd = new Date();
+    todayEnd.setHours(23, 59, 59, 999);
+
+    // 3️⃣ Fetch appointments for today
+    const appointments = await Appointment.find({
+      saloonId: saloon._id,
+      date: { $gte: todayStart.toISOString(), $lte: todayEnd.toISOString() }
+    })
+
+    
+    .populate("customer.id", "name mobile")
+    .populate("serviceIds", "name price")
+    .populate("professionalId", "name")
+    .sort({ time: 1 });
+
+    // 4️⃣ Map full details
+    const response = appointments.map(a => ({
+      _id: a._id,
+      bookingRef: a.bookingRef,
+      professionalId: a.professionalId?._id || a.professionalId,
+      professionalName: a.professionalId?.name || "Not Assigned",
+      createdAt: a.createdAt,
+      discount: a.discount,
+      saloonId: a.saloonId,
+      serviceIds: a.serviceIds,
+      date: a.date,
+      time: a.time,
+      duration: a.duration,
+      price: a.price,
+      status: a.status,
+      discountCode: a.discountCode,
+      discountAmount: a.discountAmount,
+      discountCodeId: a.discountCodeId,
+      cardstatus: a.cardstatus,
+      notes: a.notes,
+      customer: a.customer
+    }));
+
+    return res.status(200).json({
+      success: true,
+      message: "Today's appointments",
+      data: response
+    });
+
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+export const getAllAppointmentsFull = async (req, res, next) => {
+  try {
+    const ownerId = res.locals.user.id;
+
+    // 1️⃣ Find the saloon of this owner
+    const saloon = await Saloon.findOne({ owner: ownerId });
+    if (!saloon) return next(new AppError("Saloon not found", 404));
+
+    // 2️⃣ Fetch all appointments for this saloon
+    const appointments = await Appointment.find({ saloonId: saloon._id })
+      .populate("customer.id", "name mobile")
+      .populate("serviceIds", "name price")
+      .populate("professionalId", "name")
+      .sort({ date: -1, time: -1 }); // latest first
+
+    // 3️⃣ Map full details for response
+    const response = appointments.map(a => ({
+      _id: a._id,
+      bookingRef: a.bookingRef,
+      professionalId: a.professionalId?._id || a.professionalId,
+      professionalName: a.professionalId?.name || "Not Assigned",
+      createdAt: a.createdAt,
+      discount: a.discount,
+      saloonId: a.saloonId,
+      serviceIds: a.serviceIds,
+      date: a.date,
+      time: a.time,
+      duration: a.duration,
+      price: a.price,
+      status: a.status,
+      discountCode: a.discountCode,
+      discountAmount: a.discountAmount,
+      discountCodeId: a.discountCodeId,
+      cardstatus: a.cardstatus,
+      notes: a.notes,
+      customer: a.customer,
+    }));
+
+    return res.status(200).json({
+      success: true,
+      message: "All appointments with full details",
+      data: response,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+// export const getCumulativeDashboard = async (req, res, next) => {
+//   try {
+//     const ownerId = res.locals.user.id;
+
+//     // 1️⃣ Get saloon
+//     const saloon = await Saloon.findOne({ owner: ownerId });
+//     if (!saloon) return next(new AppError("Saloon not found", 404));
+
+//     // 2️⃣ Fetch all appointments for this saloon
+//     const appointments = await Appointment.find({ saloonId: saloon._id });
+
+//     // 3️⃣ Total appointments and pending
+//     const totalAppointments = appointments.length;
+//     const totalPending = appointments.filter(a => a.status === "pending").length;
+
+//     // 4️⃣ Total revenue (all completed/accepted appointments)
+//     const totalRevenue = appointments.reduce((sum, a) => {
+//       if (["completed", "accepted"].includes(a.status)) {
+//         if (Array.isArray(a.serviceIds) && a.serviceIds.length) {
+//           return sum + a.serviceIds.reduce((s, svc) => s + Number(svc.price || 0), 0);
+//         } else {
+//           return sum + Number(a.price || 0);
+//         }
+//       }
+//       return sum;
+//     }, 0);
+
+//     // 5️⃣ Today revenue for growth calculation
+//     const todayStart = new Date();
+//     todayStart.setHours(0,0,0,0);
+//     const todayEnd = new Date();
+//     todayEnd.setHours(23,59,59,999);
+
+//     const yesterdayStart = new Date(todayStart);
+//     yesterdayStart.setDate(yesterdayStart.getDate() - 1);
+//     const yesterdayEnd = new Date(todayEnd);
+//     yesterdayEnd.setDate(yesterdayEnd.getDate() - 1);
+
+//     const revenueInRange = (start, end) => {
+//       return appointments.reduce((sum, a) => {
+//         const appDate = new Date(a.date);
+//         if (appDate >= start && appDate <= end && ["completed", "accepted"].includes(a.status)) {
+//           if (Array.isArray(a.serviceIds) && a.serviceIds.length) {
+//             return sum + a.serviceIds.reduce((s, svc) => s + Number(svc.price || 0), 0);
+//           } else {
+//             return sum + Number(a.price || 0);
+//           }
+//         }
+//         return sum;
+//       }, 0);
+//     };
+
+//     const todayRevenue = revenueInRange(todayStart, todayEnd);
+//     const yesterdayRevenue = revenueInRange(yesterdayStart, yesterdayEnd);
+
+//     const growthRatio = yesterdayRevenue === 0
+//       ? todayRevenue === 0 ? 0 : 100
+//       : ((todayRevenue - yesterdayRevenue) / yesterdayRevenue) * 100;
+
+//     // 6️⃣ Response
+//     res.status(200).json({
+//       success: true,
+//       totalAppointments,
+//       totalPending,
+//       totalRevenue,
+//       growthRatio: growthRatio.toFixed(2)
+//     });
+
+//   } catch (err) {
+//     next(err);
+//   }
+// };
+
+
+export const getCumulativeDashboard = async (req, res, next) => {
+  try {
+    const ownerId = res.locals.user.id;
+
+    // 1️⃣ Get saloon
+    const saloon = await Saloon.findOne({ owner: ownerId });
+    if (!saloon)
+      return res.status(404).json({ success: false, message: "Saloon not found" });
+
+    // 2️⃣ Get all appointments
+    const appointments = await Appointment.find({ saloonId: saloon._id });
+
+    const totalAppointments = appointments.length;
+    const totalPending = appointments.filter(a => a.status === "pending").length;
+
+    // --------------------------------
+    // ⭐ TOTAL REVENUE (Final amount customer paid)
+    // --------------------------------
+    let totalRevenue = 0;
+    appointments.forEach(a => {
+      totalRevenue += Number(a.price || 0);
+    });
+
+    // --------------------------------
+    // ⭐ GROWTH RATIO CALCULATION
+    // --------------------------------
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
+    const todayEnd = new Date();
+    todayEnd.setHours(23, 59, 59, 999);
+
+    const yesterdayStart = new Date(todayStart);
+    yesterdayStart.setDate(yesterdayStart.getDate() - 1);
+
+    const yesterdayEnd = new Date(todayEnd);
+    yesterdayEnd.setDate(yesterdayEnd.getDate() - 1);
+
+    let todayRevenue = 0;
+    let yesterdayRevenue = 0;
+
+    appointments.forEach(a => {
+      const appDate = new Date(a.date);
+      const amount = Number(a.price || 0);
+
+      // Today revenue
+      if (appDate >= todayStart && appDate <= todayEnd) {
+        todayRevenue += amount;
+      }
+
+      // Yesterday revenue
+      if (appDate >= yesterdayStart && appDate <= yesterdayEnd) {
+        yesterdayRevenue += amount;
+      }
+    });
+
+    // Formula:
+    // ((today - yesterday) / yesterday) * 100
+    let growthRatio = 0;
+
+    if (yesterdayRevenue === 0) {
+      growthRatio = todayRevenue > 0 ? 100 : 0;
+    } else {
+      growthRatio = ((todayRevenue - yesterdayRevenue) / yesterdayRevenue) * 100;
+    }
+
+    res.status(200).json({
+      success: true,
+            saloonId: saloon._id, 
+      totalAppointments,
+      totalPending,
+      totalRevenue,
+      todayRevenue,
+      yesterdayRevenue,
+      growthRatio: growthRatio.toFixed(2)
+    });
+
+  } catch (err) {
+    console.log(err);
+    next(err);
+  }
+};
+
+
+
+// export const getCumulativeDashboard = async (req, res, next) => {
+//   try {
+//     const ownerId = res.locals.user.id;
+
+//     // 1️⃣ Get saloon
+//     const saloon = await Saloon.findOne({ owner: ownerId });
+//     if (!saloon)
+//       return res.status(404).json({ success: false, message: "Saloon not found" });
+
+//     // 2️⃣ Fetch all appointments
+//     const appointments = await Appointment.find({ saloonId: saloon._id });
+
+//     // 3️⃣ Calculate totals
+//     const totalAppointments = appointments.length;
+
+//     const totalPending = appointments.filter(a => a.status === "pending").length;
+
+//     // ⭐ Use appointment.price → NOT serviceIds.price
+//     let totalRevenue = 0;
+
+//     appointments.forEach(a => {
+//       totalRevenue += Number(a.price || 0);
+//     });
+
+//     res.status(200).json({
+//       success: true,
+//       totalAppointments,
+//       totalPending,
+//       totalRevenue
+//     });
+
+//   } catch (err) {
+//     console.log(err);
+//     next(err);
+//   }
+// };
 
 export const getTotalAppointments = async (req, res, next) => {
   try {
@@ -1339,37 +2198,222 @@ export const getUpcomingAppointments = async (req, res, next) => {
   }
 };
 
-export const getPastAppointments = async (req, res, next) => {
+export const getPastAppointmentsFull = async (req, res, next) => {
   try {
     const ownerId = res.locals.user.id;
 
-    // 1️⃣ Get the saloon of the logged-in owner
+    // 1️⃣ Find saloon
     const saloon = await Saloon.findOne({ owner: ownerId });
     if (!saloon) return next(new AppError("Saloon not found", 404));
 
+    // 2️⃣ Define today's date for filtering past appointments
     const today = new Date();
-    const todayStr = today.toDateString(); // e.g., "Mon Sep 15 2025"
+    today.setHours(0, 0, 0, 0);
 
-    // 2️⃣ Fetch past appointments (before today)
-    const pastAppointments = await Appointment.find({
-      saloonId: saloon._id,
-      date: { $lt: todayStr }, // only past dates
-    })
-      .populate("customer.id", "name mobile")
-      .populate("serviceIds", "name price")
-      .populate("professionalId", "name")
-      .sort({ date: -1, time: -1 }); // most recent first
+    // 3️⃣ Fetch all appointments for this saloon with population
+    const appointments = await Appointment.find({ saloonId: saloon._id })
+      .populate("customer.id", "name mobile")   // populate customer info
+      .populate("serviceIds", "name price")     // populate services
+      .populate("professionalId", "name _id")  // populate professional
+      .sort({ date: -1, time: -1 });
 
-    // 3️⃣ Respond with data
-    res.status(200).json({
-      success: true,
-      message: `Past appointments for saloon ${saloon._id}`,
-      data: pastAppointments,
+    // 4️⃣ Filter past appointments
+    const pastAppointments = appointments.filter(a => {
+      const appDate = new Date(a.date);
+      return appDate.getTime() < today.getTime();
     });
+
+    // 5️⃣ Map appointments to include all fields + professional info
+    const response = pastAppointments.map(a => {
+      const prof = a.professionalId; // populated professional
+
+      return {
+        ...a.toObject(), // converts mongoose doc to plain object with all fields
+        professionalId: prof?._id || a.professionalId || null,
+        professionalName: prof?.name || "Not Assigned",
+      };
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Past appointments with full details",
+      data: response,
+    });
+
   } catch (err) {
     next(err);
   }
 };
+
+// export const getCurrentsAppointments = async (req, res, next) => {
+//   try {
+//     const ownerId = res.locals.user.id;
+
+//     const saloon = await Saloon.findOne({ owner: ownerId });
+//     if (!saloon) return next(new AppError("Saloon not found", 404));
+
+//     const today = new Date();
+//     today.setHours(0, 0, 0, 0);
+
+//     const appointments = await Appointment.find({ saloonId: saloon._id })
+//       .populate("customer.id", "name mobile")
+//       .populate("serviceIds", "name price")
+//       .populate("professionalId", "name")
+//       .sort({ time: 1 });
+
+//     const todayAppointments = appointments.filter((a) => {
+//       const appDate = new Date(a.date);
+//       return appDate.getTime() === today.getTime(); // SAME DATE ONLY
+//     });
+
+//     return res.status(200).json({
+//       success: true,
+//       message: "Today's appointments",
+//       data: todayAppointments,
+//     });
+
+//   } catch (err) {
+//     next(err);
+//   }
+// };
+
+
+
+export const getCurrentsAppointments = async (req, res, next) => {
+  try {
+    const ownerId = res.locals.user.id;
+
+    const saloon = await Saloon.findOne({ owner: ownerId });
+    if (!saloon) return next(new AppError("Saloon not found", 404));
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const appointments = await Appointment.find({ saloonId: saloon._id })
+      .populate("customer.id", "name mobile")
+      .populate("serviceIds", "name price")
+      .populate("professionalId", "name") // Make sure ref is correct
+      .sort({ time: 1 });
+
+   const todayAppointments = appointments.map(a => ({
+  _id: a._id,
+  bookingRef: a.bookingRef,
+  customer: a.customer,
+  serviceIds: a.serviceIds,
+  professionalId: a.professionalId?._id || null,
+  professionalName: a.professionalId?.name || "Not Assigned",
+  date: a.date,
+  time: a.time,
+  status: a.status,
+  price: a.price,
+}));
+
+
+    return res.status(200).json({
+      success: true,
+      message: "Today's appointments",
+      data: todayAppointments,
+    });
+
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+export const getPastAppointments = async (req, res, next) => {
+  try {
+    const ownerId = res.locals.user.id;
+
+    // Find the saloon of the logged-in owner
+    const saloon = await Saloon.findOne({ owner: ownerId });
+    if (!saloon) return next(new AppError("Saloon not found", 404));
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Set time to start of the day
+
+    // Fetch all appointments of the saloon
+    const appointments = await Appointment.find({ saloonId: saloon._id })
+      .populate("customer.id", "name mobile")
+      .populate("serviceIds", "name price")
+      .populate("professionalId", "name")
+      .sort({ date: -1, time: 1 }); // Sort by date descending, then time ascending
+
+    // Filter appointments that happened before today
+    const pastAppointments = appointments.filter((a) => {
+      const appDate = new Date(a.date);
+      appDate.setHours(0, 0, 0, 0); // Ignore time part
+      return appDate.getTime() < today.getTime();
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: `Past appointments for saloon ${saloon._id}`,
+      data: pastAppointments,
+    });
+
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+export const getAllAppointments = async (req, res, next) => {
+  try {
+    const ownerId = res.locals.user.id;
+
+    const saloon = await Saloon.findOne({ owner: ownerId });
+    if (!saloon) return next(new AppError("Saloon not found", 404));
+
+    const appointments = await Appointment.find({ saloonId: saloon._id })
+      .populate("customer.id", "name mobile")
+      .populate("serviceIds", "name price")
+      .populate("professionalId", "name")
+      .sort({ date: 1, time: 1 });
+
+    return res.status(200).json({
+      success: true,
+      message: "All appointments sorted by date & time",
+      data: appointments,
+    });
+
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+// export const getPastAppointments = async (req, res, next) => {
+//   try {
+//     const ownerId = res.locals.user.id;
+
+//     // 1️⃣ Get the saloon of the logged-in owner
+//     const saloon = await Saloon.findOne({ owner: ownerId });
+//     if (!saloon) return next(new AppError("Saloon not found", 404));
+
+//     const today = new Date();
+//     const todayStr = today.toDateString(); // e.g., "Mon Sep 15 2025"
+
+//     // 2️⃣ Fetch past appointments (before today)
+//     const pastAppointments = await Appointment.find({
+//       saloonId: saloon._id,
+//       date: { $lt: todayStr }, // only past dates
+//     })
+//       .populate("customer.id", "name mobile")
+//       .populate("serviceIds", "name price")
+//       .populate("professionalId", "name")
+//       .sort({ date: -1, time: -1 }); // most recent first
+
+//     // 3️⃣ Respond with data
+//     res.status(200).json({
+//       success: true,
+//       message: `Past appointments for saloon ${saloon._id}`,
+//       data: pastAppointments,
+//     });
+//   } catch (err) {
+//     next(err);
+//   }
+// };
 
 
 export const getLast7DaysDashboardStats = async (req, res, next) => {
@@ -2353,6 +3397,120 @@ export const updateSaloonData = async (req, res, next) => {
   }
 };
 
+// Helper to merge online + offline appointments
+const getAllAppointmentse = async (saloonId, filter = {}) => {
+  const online = await Appointment.find({ saloonId, ...filter })
+    .populate("customer.id", "name mobile")
+    .populate("serviceIds", "name price")
+    .populate("professionalId", "name");
+
+  const offline = await OfflineAppointment.find({ saloonId, ...filter })
+    .populate("customer.id", "name mobile")
+    .populate("serviceIds", "name price")
+    .populate("professionalId", "name");
+
+  return [...online, ...offline];
+};
+
+
+
+// ---------------------------
+// Controller: Generate Report
+// ---------------------------
+export const generateReport = async (req, res) => {
+  try {
+    const saloonId = req.params.saloonId;
+    const { type, startDate, endDate } = req.query; // type = all, weekly, monthly, team, earnings, etc.
+
+    let data = [];
+    let fields = [];
+    let fileName = 'report';
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    switch (type) {
+      case 'all_appointments':
+        data = await getAllAppointmentse(saloonId);
+        fields = ['bookingRef', 'customer.id.name', 'customer.mobile', 'professionalId.name', 'date', 'time', 'status', 'price'];
+        fileName = 'all_appointments';
+        break;
+
+      case 'weekly_appointments':
+        const weekStart = new Date(today);
+        weekStart.setDate(today.getDate() - today.getDay()); // Sunday
+        const weekEnd = new Date(weekStart);
+        weekEnd.setDate(weekStart.getDate() + 6);
+        data = await getAllAppointmentse(saloonId, {
+          realDate: { $gte: weekStart, $lte: weekEnd }
+        });
+        fields = ['bookingRef', 'customer.id.name', 'customer.mobile', 'professionalId.name', 'date', 'time', 'status', 'price'];
+        fileName = 'weekly_appointments';
+        break;
+
+      case 'monthly_appointments':
+        const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+        const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+        data = await getAllAppointmentse(saloonId, {
+          realDate: { $gte: monthStart, $lte: monthEnd }
+        });
+        fields = ['bookingRef', 'customer.id.name', 'customer.mobile', 'professionalId.name', 'date', 'time', 'status', 'price'];
+        fileName = 'monthly_appointments';
+        break;
+
+      case 'team_members':
+        data = await TeamMember.find({ saloonId });
+        fields = ['name', 'role', 'mobile', 'email'];
+        fileName = 'team_members';
+        break;
+
+      case 'daywise_earning':
+        data = await getAllAppointmentse(saloonId);
+        const dayMap = {};
+        data.forEach(a => {
+          const day = new Date(a.date).toDateString();
+          dayMap[day] = (dayMap[day] || 0) + Number(a.price);
+        });
+        data = Object.keys(dayMap).map(day => ({ day, earning: dayMap[day] }));
+        fields = ['day', 'earning'];
+        fileName = 'daywise_earning';
+        break;
+
+      case 'weekwise_earning':
+        data = await getAllAppointmentse(saloonId);
+        const weekEarnings = {};
+        data.forEach(a => {
+          const d = new Date(a.date);
+          const weekNumber = Math.ceil((d.getDate() + 6 - d.getDay()) / 7);
+          const key = `${d.getFullYear()}-W${weekNumber}`;
+          weekEarnings[key] = (weekEarnings[key] || 0) + Number(a.price);
+        });
+        data = Object.keys(weekEarnings).map(week => ({ week, earning: weekEarnings[week] }));
+        fields = ['week', 'earning'];
+        fileName = 'weekwise_earning';
+        break;
+
+      case 'custom_range':
+        if (!startDate || !endDate) return res.status(400).json({ success: false, message: 'Start and end date required' });
+        data = await getAllAppointmentse(saloonId, {
+          realDate: { $gte: new Date(startDate), $lte: new Date(endDate) }
+        });
+        fields = ['bookingRef', 'customer.id.name', 'customer.mobile', 'professionalId.name', 'date', 'time', 'status', 'price'];
+        fileName = `appointments_${startDate}_to_${endDate}`;
+        break;
+
+      default:
+        return res.status(400).json({ success: false, message: 'Invalid report type' });
+    }
+
+    generateCSV(data, fields, fileName, res);
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Server Error' });
+  }
+};
+
 
 // export const updateSaloonData = async (req, res, next) => {
 //   try {
@@ -2548,126 +3706,915 @@ export const updateSaloonData = async (req, res, next) => {
 
 
 
+// export const filterAppointments = async (req, res, next) => {
+//   try {
+//     const saloonId = res.locals.user?.id; // Saloon owner
+//     const {
+//       dateRange,
+//       startDate: customStartDate,
+//       endDate: customEndDate,
+//       customerName,
+//       staffId,
+//       status,
+//       serviceId,
+//       paymentStatus,
+//     } = req.body;
+
+//     if (!saloonId) {
+//       return res.status(401).json({ success: false, message: "Unauthorized" });
+//     }
+
+//     // ---------- Date Filter ----------
+//     let startDate, endDate;
+//     const today = new Date();
+//     const tomorrow = new Date();
+//     tomorrow.setDate(today.getDate() + 1);
+
+//     if (customStartDate && customEndDate) {
+//       // अगर user ने manual date दी है
+//       startDate = new Date(customStartDate);
+//       startDate.setHours(0, 0, 0, 0);
+
+//       endDate = new Date(customEndDate);
+//       endDate.setHours(23, 59, 59, 999);
+//     } else {
+//       // Predefined ranges
+//       switch (dateRange) {
+//         case "today":
+//           startDate = new Date();
+//           startDate.setHours(0, 0, 0, 0);
+//           endDate = new Date();
+//           endDate.setHours(23, 59, 59, 999);
+//           break;
+//         case "tomorrow":
+//           startDate = new Date(tomorrow.setHours(0, 0, 0, 0));
+//           endDate = new Date(tomorrow.setHours(23, 59, 59, 999));
+//           break;
+//         case "this_week":
+//           const first = today.getDate() - today.getDay();
+//           startDate = new Date(today.setDate(first));
+//           startDate.setHours(0, 0, 0, 0);
+//           endDate = new Date(today.setDate(first + 6));
+//           endDate.setHours(23, 59, 59, 999);
+//           break;
+//         case "this_month":
+//           startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+//           endDate = new Date(
+//             today.getFullYear(),
+//             today.getMonth() + 1,
+//             0,
+//             23,
+//             59,
+//             59,
+//             999
+//           );
+//           break;
+//       }
+//     }
+
+//     // ---------- Build Filter ----------
+//     const filter = { saloonId: new mongoose.Types.ObjectId(saloonId) };
+
+//     if (startDate && endDate) {
+//       filter.date = { $gte: startDate, $lte: endDate };
+//     }
+
+//     if (customerName) {
+//       filter.customerName = { $regex: customerName, $options: "i" };
+//     }
+
+//     if (status) {
+//       filter.status = new RegExp(`^${status}$`, "i"); // case-insensitive
+//     }
+
+//     if (paymentStatus && paymentStatus !== "all") {
+//       filter.paymentStatus = paymentStatus;
+//     }
+
+//     // ---------- Combine OR Conditions ----------
+//     const orConditions = [];
+//     if (staffId) {
+//       orConditions.push(
+//         { professionalId: new mongoose.Types.ObjectId(staffId) },
+//         { teamMemberId: new mongoose.Types.ObjectId(staffId) }
+//       );
+//     }
+//     if (serviceId) {
+//       orConditions.push(
+//         { serviceId: new mongoose.Types.ObjectId(serviceId) },
+//         { serviceIds: new mongoose.Types.ObjectId(serviceId) }
+//       );
+//     }
+//     if (orConditions.length) {
+//       filter.$or = orConditions;
+//     }
+
+//     console.log("Final Filter:", filter);
+
+//     // ---------- Fetch Appointments ----------
+//     const [onlineAppointments, offlineAppointments] = await Promise.all([
+//       Appointment.find(filter),
+//       OfflineAppointment.find(filter),
+//     ]);
+
+//     return res.status(200).json({
+//       success: true,
+//       data: [...onlineAppointments, ...offlineAppointments],
+//     });
+//   } catch (error) {
+//     console.error("Filter Error:", error);
+//     res.status(500).json({ success: false, message: "Server Error" });
+//   }
+// };
+
+
+
+
+
+// export const filterAppointments = async (req, res, next) => {
+//   try {
+//     const ownerId = res.locals.user.id;
+
+//     // find saloon of this owner
+//     const saloon = await Saloon.findOne({ owner: ownerId });
+//     if (!saloon) {
+//       return res.status(404).json({ success: false, message: "Saloon not found" });
+//     }
+
+//     const {
+//       bookingRef,
+//       customerName,
+//       mobile,
+//       status,
+//       serviceId,
+//       staffId,
+//       date,          // exact date string e.g. "Wed, Dec 03, 2025"
+//       startDate,     // custom range start
+//       endDate ,
+//       type                     // custom range end
+//     } = req.body;
+
+//     // ------------------------------
+//     // BUILD FILTER
+//     // ------------------------------
+//     const filter = { saloonId: saloon._id };
+
+//     // 🔍 1. Exact bookingRef
+//     if (bookingRef) {
+//       filter.bookingRef = bookingRef.trim();
+//     }
+
+//     // 🔍 2. Customer Name
+//     if (customerName) {
+//       filter["customerName"] = { $regex: customerName, $options: "i" };
+//     }
+
+//     // 🔍 3. Customer Mobile
+//     if (mobile) {
+//       filter["customer.mobile"] = { $regex: mobile, $options: "i" };
+//     }
+
+//     // 🔍 4. Status filter
+//     if (status) {
+//       filter.status = status;
+//     }
+
+//     // 🔍 5. Staff filter
+//     if (staffId) {
+//       filter.professionalId = staffId;
+//     }
+
+//     // 🔍 6. Single Date Filter (Exact string match)
+//     if (date) {
+//       filter.date = date;       // Because your date is a STRING
+//     }
+
+//     // 🔍 7. Date Range filter (string compare)
+//     if (startDate && endDate) {
+//       filter.date = { $gte: startDate, $lte: endDate };
+//     }
+
+//     // 🔍 8. Services filter
+//     if (serviceId) {
+//       filter.serviceIds = serviceId;
+//     }
+
+
+//      const today = new Date();
+//     today.setHours(0, 0, 0, 0);
+
+//     const tomorrow = new Date();
+//     tomorrow.setDate(today.getDate() + 1);
+//     tomorrow.setHours(0, 0, 0, 0);
+
+//     // Convert to string format (your DB stores date as STRING)
+//     const todayStr = today.toDateString();
+//     const tomorrowStr = tomorrow.toDateString();
+
+//     console.log("Today:", todayStr);
+//     console.log("Tomorrow:", tomorrowStr);
+
+//     // -------------------------
+//     // FILTER TYPES
+//     // -------------------------
+
+//     if (type === "current") {
+//       // today’s appointments
+//       filter.date = todayStr;
+//     }
+//     else if (type === "tomorrow") {
+//       filter.date = tomorrowStr;
+//     }
+//     else if (type === "past") {
+//       filter.date = { $lt: todayStr };
+//     }
+//     else if (type === "all") {
+//         delete filter.date;
+//     }
+
+//     // ------------------------------
+//     // FINAL QUERY
+//     // ------------------------------
+//     console.log("FINAL FILTER:", filter);
+
+//     // ------------------------------
+//     // FETCH FROM BOTH TABLES
+//     // ------------------------------
+//     const online = await Appointment.find(filter)
+//       .populate("customer.id", "name mobile")
+//       .populate("serviceIds", "name price")
+//       // .populate("professionalId", "name");
+
+//     const offline = await OfflineAppointment.find(filter)
+//       .populate("customer.id", "name mobile")
+//       .populate("serviceIds", "name price")
+//       // .populate("professionalId", "name");
+
+//     // Merge
+//     const data = [...online, ...offline];
+
+//     return res.status(200).json({
+//       success: true,
+//       message: "Filtered appointments",
+//       data,
+//     });
+
+//   } catch (err) {
+//     next(err);
+//   }
+// };
+
 export const filterAppointments = async (req, res, next) => {
   try {
-    const saloonId = res.locals.user?.id; // Saloon owner
+    const ownerId = res.locals.user.id;
+
+    const saloon = await Saloon.findOne({ owner: ownerId });
+    if (!saloon)
+      return res.status(404).json({ success: false, message: "Saloon not found" });
+
     const {
-      dateRange,
-      startDate: customStartDate,
-      endDate: customEndDate,
+      bookingRef,
       customerName,
-      staffId,
+      mobile,
       status,
       serviceId,
-      paymentStatus,
+      staffId,
+      date,
+      startDate,
+      endDate,
+      type
     } = req.body;
 
-    if (!saloonId) {
-      return res.status(401).json({ success: false, message: "Unauthorized" });
-    }
+    // -------------------------
+    // Fetch all appointments first
+    // -------------------------
+    let allOnline = await Appointment.find({ saloonId: saloon._id })
+      .populate("customer.id", "name mobile")
+      .populate("serviceIds", "name price");
 
-    // ---------- Date Filter ----------
-    let startDate, endDate;
+    let allOffline = await OfflineAppointment.find({ saloonId: saloon._id })
+      .populate("customer.id", "name mobile")
+      .populate("serviceIds", "name price");
+
+    let all = [...allOnline, ...allOffline];
+
+    // -------------------------
+    // Convert string date -> realDate
+    // -------------------------
+    all = all.map(a => ({
+      ...a._doc,
+      realDate: parseStringDate(a.date)
+    }));
+
     const today = new Date();
-    const tomorrow = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const tomorrow = new Date(today);
     tomorrow.setDate(today.getDate() + 1);
 
-    if (customStartDate && customEndDate) {
-      // अगर user ने manual date दी है
-      startDate = new Date(customStartDate);
-      startDate.setHours(0, 0, 0, 0);
-
-      endDate = new Date(customEndDate);
-      endDate.setHours(23, 59, 59, 999);
-    } else {
-      // Predefined ranges
-      switch (dateRange) {
-        case "today":
-          startDate = new Date();
-          startDate.setHours(0, 0, 0, 0);
-          endDate = new Date();
-          endDate.setHours(23, 59, 59, 999);
-          break;
-        case "tomorrow":
-          startDate = new Date(tomorrow.setHours(0, 0, 0, 0));
-          endDate = new Date(tomorrow.setHours(23, 59, 59, 999));
-          break;
-        case "this_week":
-          const first = today.getDate() - today.getDay();
-          startDate = new Date(today.setDate(first));
-          startDate.setHours(0, 0, 0, 0);
-          endDate = new Date(today.setDate(first + 6));
-          endDate.setHours(23, 59, 59, 999);
-          break;
-        case "this_month":
-          startDate = new Date(today.getFullYear(), today.getMonth(), 1);
-          endDate = new Date(
-            today.getFullYear(),
-            today.getMonth() + 1,
-            0,
-            23,
-            59,
-            59,
-            999
-          );
-          break;
-      }
-    }
-
-    // ---------- Build Filter ----------
-    const filter = { saloonId: new mongoose.Types.ObjectId(saloonId) };
-
-    if (startDate && endDate) {
-      filter.date = { $gte: startDate, $lte: endDate };
+    // -------------------------
+    // Apply Filters
+    // -------------------------
+    if (bookingRef) {
+      all = all.filter(a => a.bookingRef?.toLowerCase().includes(bookingRef.toLowerCase()));
     }
 
     if (customerName) {
-      filter.customerName = { $regex: customerName, $options: "i" };
+      all = all.filter(a => a.customer?.id?.name?.toLowerCase().includes(customerName.toLowerCase()));
+    }
+
+    if (mobile) {
+      all = all.filter(a =>
+        a.customer?.mobile?.includes(mobile) ||
+        a.customer?.id?.mobile?.includes(mobile)
+      );
     }
 
     if (status) {
-      filter.status = new RegExp(`^${status}$`, "i"); // case-insensitive
+      all = all.filter(a => a.status === status);
     }
 
-    if (paymentStatus && paymentStatus !== "all") {
-      filter.paymentStatus = paymentStatus;
-    }
-
-    // ---------- Combine OR Conditions ----------
-    const orConditions = [];
     if (staffId) {
-      orConditions.push(
-        { professionalId: new mongoose.Types.ObjectId(staffId) },
-        { teamMemberId: new mongoose.Types.ObjectId(staffId) }
-      );
+      all = all.filter(a => a.professionalId?.toString() === staffId);
     }
+
     if (serviceId) {
-      orConditions.push(
-        { serviceId: new mongoose.Types.ObjectId(serviceId) },
-        { serviceIds: new mongoose.Types.ObjectId(serviceId) }
+      all = all.filter(a =>
+        a.serviceIds.some(s => s._id.toString() === serviceId)
       );
     }
-    if (orConditions.length) {
-      filter.$or = orConditions;
+
+    // Exact date filter
+    if (date) {
+      const selected = parseStringDate(date);
+      all = all.filter(a => a.realDate?.getTime() === selected?.getTime());
     }
 
-    console.log("Final Filter:", filter);
+    // Custom date range
+    if (startDate && endDate) {
+      const s = new Date(startDate);
+      s.setHours(0, 0, 0, 0);
+      const e = new Date(endDate);
+      e.setHours(23, 59, 59, 999);
+      all = all.filter(a => a.realDate >= s && a.realDate <= e);
+    }
 
-    // ---------- Fetch Appointments ----------
-    const [onlineAppointments, offlineAppointments] = await Promise.all([
-      Appointment.find(filter),
-      OfflineAppointment.find(filter),
-    ]);
+    // Type filter
+    if (type === "current") all = all.filter(a => a.realDate?.getTime() === today.getTime());
+    if (type === "tomorrow") all = all.filter(a => a.realDate?.getTime() === tomorrow.getTime());
+    if (type === "past") all = all.filter(a => a.realDate < today);
+    if (type === "all") {} // no filter
 
     return res.status(200).json({
       success: true,
-      data: [...onlineAppointments, ...offlineAppointments],
+      message: "Filtered appointments",
+      data: all
     });
-  } catch (error) {
-    console.error("Filter Error:", error);
-    res.status(500).json({ success: false, message: "Server Error" });
+
+  } catch (err) {
+    next(err);
   }
 };
+
+
+
+
+
+
+// async function generateCSV(filename, rows) {
+//   const filePath = path.join(reportsPath, filename);
+
+//   const writer = createObjectCsvWriter({
+//     path: filePath,
+//     header: Object.keys(rows[0] || {}).map(key => ({ id: key, title: key }))
+//   });
+
+//   await writer.writeRecords(rows);
+// }
+
+// export const fullReport = async (req, res, next) => {
+//   try {
+//     const ownerId = res.locals.user.id;
+//     const saloon = await Saloon.findOne({ owner: ownerId });
+
+//     if (!saloon)
+//       return res.status(404).json({ success: false, message: "Saloon not found" });
+
+//     const saloonId = saloon._id;
+
+//     // Fetch all appointments
+//     const online = await Appointment.find({ saloonId });
+//     const offline = await OfflineAppointment.find({ saloonId });
+
+//     const all = [
+//       ...online.map(a => ({ ...a._doc, realDate: new Date(a.date) })),
+//       ...offline.map(a => ({ ...a._doc, realDate: new Date(a.date) }))
+//     ];
+
+//     const now = new Date();
+//     const todayStart = new Date(now.setHours(0, 0, 0, 0));
+//     const todayEnd = new Date(now.setHours(23, 59, 59, 999));
+//     const weekStart = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+//     const fifteenStart = new Date(Date.now() - 15 * 24 * 60 * 60 * 1000);
+//     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+//     const todayAppointments = all.filter(a => a.realDate >= todayStart && a.realDate <= todayEnd);
+//     const weekAppointments = all.filter(a => a.realDate >= weekStart);
+//     const fifteenDaysAppointments = all.filter(a => a.realDate >= fifteenStart);
+//     const monthAppointments = all.filter(a => a.realDate >= monthStart);
+
+//     const teamMembers = await teamMemberModel.find({ saloon: saloonId });
+
+//     const memberStats = teamMembers.map(tm => {
+//       const count = all.filter(a =>
+//         (a.professionalId && a.professionalId.toString() === tm._id.toString()) ||
+//         (a.teamMemberId && a.teamMemberId.toString() === tm._id.toString())
+//       ).length;
+
+//       return { id: tm._id, name: tm.name, role: tm.role, totalAppointments: count };
+//     });
+
+//     const topTeamMember = memberStats.sort((a, b) => b.totalAppointments - a.totalAppointments)[0];
+
+//     const earnings = online.reduce((s, a) => s + Number(a.price || 0), 0);
+
+//     // ---------------------------
+//     // Generate PDFs + CSVs
+//     // ---------------------------
+//     const files = [
+//       { name: "today", rows: todayAppointments },
+//       { name: "week", rows: weekAppointments },
+//       { name: "15days", rows: fifteenDaysAppointments },
+//       { name: "month", rows: monthAppointments },
+//       { name: "team-members", rows: memberStats },
+//       { name: "top-member", rows: [topTeamMember] },
+//       { name: "earnings", rows: [{ earnings }] }
+//     ];
+
+//     for (let f of files) {
+//       generatePDF(`${f.name}.pdf`, f.name.toUpperCase(), f.rows);
+//       await generateCSV(`${f.name}.csv`, f.rows);
+//     }
+
+//     const baseURL = `${req.protocol}://${req.headers.host}/api/reports`;
+
+//     return res.status(200).json({
+//       success: true,
+//       message: "Report files generated",
+//       files: {
+//         today: {
+//           pdf: `${baseURL}/today.pdf`,
+//           csv: `${baseURL}/today.csv`
+//         },
+//         week: {
+//           pdf: `${baseURL}/week.pdf`,
+//           csv: `${baseURL}/week.csv`
+//         },
+//         fifteenDays: {
+//           pdf: `${baseURL}/15days.pdf`,
+//           csv: `${baseURL}/15days.csv`
+//         },
+//         month: {
+//           pdf: `${baseURL}/month.pdf`,
+//           csv: `${baseURL}/month.csv`
+//         },
+//         teamMembers: {
+//           pdf: `${baseURL}/team-members.pdf`,
+//           csv: `${baseURL}/team-members.csv`
+//         },
+//         topTeamMember: {
+//           pdf: `${baseURL}/top-member.pdf`,
+//           csv: `${baseURL}/top-member.csv`
+//         },
+//         earnings: {
+//           pdf: `${baseURL}/earnings.pdf`,
+//           csv: `${baseURL}/earnings.csv`
+//         }
+//       }
+//     });
+
+//   } catch (err) {
+//     next(err);
+//   }
+// };
+
+// export const fullReport = async (req, res, next) => {
+//   try {
+//     const ownerId = res.locals.user.id;
+
+//     const saloon = await Saloon.findOne({ owner: ownerId });
+//     if (!saloon)
+//       return res.status(404).json({ success: false, message: "Saloon not found" });
+
+//     const saloonId = saloon._id;
+
+//     // --------------------------------
+//     // FETCH ALL ONLINE + OFFLINE APPTS
+//     // --------------------------------
+//     const onlineAppointments = await Appointment.find({ saloonId });
+//     const offlineAppointments = await OfflineAppointment.find({ saloonId });
+
+//     const all = [
+//       ...onlineAppointments.map(a => ({
+//         ...a._doc,
+//         realDate: new Date(a.date)
+//       })),
+//       ...offlineAppointments.map(a => ({
+//         ...a._doc,
+//         realDate: new Date(a.date)
+//       }))
+//     ];
+
+//     const now = new Date();
+//     const todayStart = new Date(now.setHours(0, 0, 0, 0));
+//     const todayEnd = new Date(now.setHours(23, 59, 59, 999));
+
+//     const weekStart = new Date();
+//     weekStart.setDate(weekStart.getDate() - 7);
+
+//     const fifteenDaysStart = new Date();
+//     fifteenDaysStart.setDate(fifteenDaysStart.getDate() - 15);
+
+//     const monthStart = new Date();
+//     monthStart.setDate(1);
+
+//     // --------------------------------
+//     // FILTER DATA
+//     // --------------------------------
+//     const todayAppointments = all.filter(a => a.realDate >= todayStart && a.realDate <= todayEnd);
+
+//     const weekAppointments = all.filter(a => a.realDate >= weekStart);
+
+//     const fifteenDaysAppointments = all.filter(a => a.realDate >= fifteenDaysStart);
+
+//     const monthAppointments = all.filter(a => a.realDate >= monthStart);
+
+//     // --------------------------------
+//     // TOTAL EARNINGS (ONLINE ONLY)
+//     // --------------------------------
+//     const earnings = onlineAppointments.reduce((sum, a) => {
+//       return sum + Number(a.price || 0);
+//     }, 0);
+
+//     // --------------------------------
+//     // TEAM MEMBER PERFORMANCE
+//     // --------------------------------
+//     const teamMembers = await teamMemberModel.find({ saloon: saloonId });
+
+//     const memberStats = teamMembers.map(tm => {
+//       const count = all.filter(a =>
+//         (a.professionalId && a.professionalId.toString() === tm._id.toString()) ||
+//         (a.teamMemberId && a.teamMemberId.toString() === tm._id.toString())
+//       ).length;
+
+//       return {
+//         id: tm._id,
+//         name: tm.name,
+//         role: tm.role,
+//         totalAppointments: count
+//       };
+//     });
+
+//     const topTeamMember = memberStats.sort((a, b) => b.totalAppointments - a.totalAppointments)[0] || null;
+
+//     // --------------------------------
+//     // TOP SERVICES
+//     // --------------------------------
+//     const serviceCount = {};
+
+//     all.forEach(a => {
+//       if (a.serviceIds) {
+//         a.serviceIds.forEach(s => {
+//           serviceCount[s] = (serviceCount[s] || 0) + 1;
+//         });
+//       }
+//       if (a.serviceId) {
+//         serviceCount[a.serviceId] = (serviceCount[a.serviceId] || 0) + 1;
+//       }
+//     });
+
+//     const topServices = Object.entries(serviceCount)
+//       .map(([serviceId, count]) => ({ serviceId, count }))
+//       .sort((a, b) => b.count - a.count)
+//       .slice(0, 5);
+
+//     // --------------------------------
+//     // FINAL RESPONSE
+//     // --------------------------------
+//     return res.status(200).json({
+//       success: true,
+//       message: "Complete Report Generated Successfully",
+//       data: {
+//         todayAppointments,
+//         weekAppointments,
+//         fifteenDaysAppointments,
+//         monthAppointments,
+//         totalTeamMembers: teamMembers.length,
+//         topTeamMember,
+//         earnings,
+//         topServices
+//       }
+//     });
+
+//   } catch (err) {
+//     next(err);
+//   }
+// };
+
+
+
+// export const fullReport = async (req, res, next) => {
+//   try {
+//     const ownerId = res.locals.user.id;
+
+//     // ----------------------------
+//     // FIND SALOON
+//     // ----------------------------
+//     const saloon = await Saloon.findOne({ owner: ownerId });
+//     if (!saloon)
+//       return res.status(404).json({ success: false, message: "Saloon not found" });
+
+//     const saloonId = saloon._id;
+
+//     // ----------------------------
+//     // FETCH ALL APPOINTMENTS
+//     // ----------------------------
+//     const onlineAppointments = await Appointment.find({ saloonId });
+//     const offlineAppointments = await OfflineAppointment.find({ saloonId });
+
+//     // Merge and normalize dates
+//     const all = [
+//       ...onlineAppointments.map(a => ({ ...a._doc, realDate: new Date(a.date) })),
+//       ...offlineAppointments.map(a => ({ ...a._doc, realDate: new Date(a.date) }))
+//     ];
+
+//     // ----------------------------
+//     // DATE RANGE CALCULATIONS
+//     // ----------------------------
+//     const now = new Date();
+
+//     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+//     const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+
+//     const weekStart = new Date();
+//     weekStart.setDate(weekStart.getDate() - 7);
+
+//     const fifteenDaysStart = new Date();
+//     fifteenDaysStart.setDate(fifteenDaysStart.getDate() - 15);
+
+//     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+//     // ----------------------------
+//     // FILTER APPOINTMENTS
+//     // ----------------------------
+//     const todayAppointments = all.filter(a => a.realDate >= todayStart && a.realDate <= todayEnd);
+//     const weekAppointments = all.filter(a => a.realDate >= weekStart);
+//     const fifteenDaysAppointments = all.filter(a => a.realDate >= fifteenDaysStart);
+//     const monthAppointments = all.filter(a => a.realDate >= monthStart);
+
+//     // ----------------------------
+//     // TOTAL EARNINGS (ONLINE ONLY)
+//     // ----------------------------
+//     const earnings = onlineAppointments.reduce((sum, a) => sum + Number(a.price || 0), 0);
+
+//     // ----------------------------
+//     // TEAM MEMBER PERFORMANCE
+//     // ----------------------------
+//     const teamMembers = await teamMemberModel.find({ saloon: saloonId });
+
+//     const memberStats = teamMembers.map(tm => {
+//       const count = all.filter(a =>
+//         (a.professionalId && a.professionalId.toString() === tm._id.toString()) ||
+//         (a.teamMemberId && a.teamMemberId.toString() === tm._id.toString())
+//       ).length;
+
+//       return {
+//         id: tm._id,
+//         name: tm.name,
+//         role: tm.role,
+//         totalAppointments: count
+//       };
+//     });
+
+//     const topTeamMember =
+//       memberStats.sort((a, b) => b.totalAppointments - a.totalAppointments)[0] || null;
+
+//     // ----------------------------
+//     // TOP SERVICES
+//     // ----------------------------
+//     const serviceCount = {};
+
+//     all.forEach(a => {
+//       if (a.serviceIds) {
+//         a.serviceIds.forEach(s => {
+//           serviceCount[s] = (serviceCount[s] || 0) + 1;
+//         });
+//       }
+//       if (a.serviceId) {
+//         serviceCount[a.serviceId] = (serviceCount[a.serviceId] || 0) + 1;
+//       }
+//     });
+
+//     const topServices = Object.entries(serviceCount)
+//       .map(([serviceId, count]) => ({ serviceId, count }))
+//       .sort((a, b) => b.count - a.count)
+//       .slice(0, 5);
+
+//     // ----------------------------
+//     // USER-FRIENDLY DOWNLOAD LINKS
+//     // ----------------------------
+//     const BASE = process.env.BASE_URL || "http://10.113.14.210:3000/api";
+
+//     const links = {
+//       todayAppointments: {
+//         pdf: `${BASE}/reports/today.pdf`,
+//         csv: `${BASE}/reports/today.csv`
+//       },
+//       weekAppointments: {
+//         pdf: `${BASE}/reports/week.pdf`,
+//         csv: `${BASE}/reports/week.csv`
+//       },
+//       fifteenDaysAppointments: {
+//         pdf: `${BASE}/reports/15days.pdf`,
+//         csv: `${BASE}/reports/15days.csv`
+//       },
+//       monthAppointments: {
+//         pdf: `${BASE}/reports/month.pdf`,
+//         csv: `${BASE}/reports/month.csv`
+//       },
+//       teamMembers: {
+//         pdf: `${BASE}/reports/team.pdf`,
+//         csv: `${BASE}/reports/team.csv`
+//       },
+//       topTeamMember: {
+//         pdf: `${BASE}/reports/top-member.pdf`,
+//         csv: `${BASE}/reports/top-member.csv`
+//       },
+//       earnings: {
+//         pdf: `${BASE}/reports/earnings.pdf`,
+//         csv: `${BASE}/reports/earnings.csv`
+//       }
+//     };
+
+//     // ----------------------------
+//     // FINAL RESPONSE
+//     // ----------------------------
+//     return res.status(200).json({
+//       success: true,
+//       message: "Complete Report Generated Successfully",
+//       data: {
+//         todayAppointments,
+//         weekAppointments,
+//         fifteenDaysAppointments,
+//         monthAppointments,
+//         totalTeamMembers: teamMembers.length,
+//         teamMembers: memberStats,
+//         topTeamMember,
+//         earnings,
+//         topServices
+//       },
+//       downloadLinks: links
+//     });
+
+//   } catch (err) {
+//     next(err);
+//   }
+// };
+
+
+// -------------------------
+// Helper: convert string date -> Date
+// -------------------------
+function parseStringDate(dateStr) {
+  const parsed = new Date(dateStr);
+  if (parsed.toString() === "Invalid Date") return null;
+  parsed.setHours(0, 0, 0, 0);
+  return parsed;
+}
+
+
+// export const filterAppointments = async (req, res, next) => {
+//   try {
+//     const ownerId = res.locals.user.id;
+
+//     const saloon = await Saloon.findOne({ owner: ownerId });
+//     if (!saloon)
+//       return res.status(404).json({ success: false, message: "Saloon not found" });
+
+//     const {
+//       bookingRef,
+//       customerName,
+//       mobile,
+//       status,
+//       serviceId,
+//       staffId,
+//       date,
+//       startDate,
+//       endDate,
+//       type
+//     } = req.body;
+
+//     const filter = { saloonId: saloon._id };
+
+//     // Basic Filters
+//     if (bookingRef) filter.bookingRef = bookingRef.trim();
+//     if (customerName) filter["customer.id.name"] = { $regex: customerName, $options: "i" };
+//     if (mobile) filter["customer.mobile"] = { $regex: mobile, $options: "i" };
+//     if (status) filter.status = status;
+//     if (staffId) filter.professionalId = staffId;
+//     if (serviceId) filter.serviceIds = serviceId;
+
+//     // Convert today/tomorrow into real Date
+//     const today = new Date();
+//     today.setHours(0, 0, 0, 0);
+
+//     const tomorrow = new Date(today);
+//     tomorrow.setDate(today.getDate() + 1);
+
+//     // Convert DB string date → Real Date for comparison
+//     // We will filter in JS after fetching
+
+//     let allOnline = await Appointment.find({ saloonId: saloon._id })
+//       .populate("customer.id", "name mobile")
+//       .populate("serviceIds", "name price");
+
+//     let allOffline = await OfflineAppointment.find({ saloonId: saloon._id })
+//       .populate("customer.id", "name mobile")
+//       .populate("serviceIds", "name price");
+
+//     let all = [...allOnline, ...allOffline];
+
+//     // Convert string date → real date
+//     all = all.map(a => ({
+//       ...a._doc,
+//       realDate: parseStringDate(a.date)
+//     }));
+
+//     // -------- FINAL FILTERS --------
+
+//     if (date) {
+//       const selected = parseStringDate(date);
+//       all = all.filter(a => a.realDate?.getTime() === selected?.getTime());
+//     }
+
+//     if (startDate && endDate) {
+//       const s = new Date(startDate);
+//       const e = new Date(endDate);
+//       s.setHours(0, 0, 0, 0);
+//       e.setHours(23, 59, 59, 999);
+
+//       all = all.filter(a => a.realDate >= s && a.realDate <= e);
+//     }
+
+//     // TYPE FILTERS
+//     if (type === "current") {
+//       all = all.filter(a => a.realDate?.getTime() === today.getTime());
+//     }
+
+//     if (type === "tomorrow") {
+//       all = all.filter(a => a.realDate?.getTime() === tomorrow.getTime());
+//     }
+
+//     if (type === "past") {
+//       all = all.filter(a => a.realDate < today);
+//     }
+
+//     if (type === "all") {
+//       // no date filter
+//     }
+
+//         // 🔍 Booking Ref search
+//     if (bookingRef) {
+//       orConditions.push({ bookingRef: { $regex: bookingRef, $options: "i" } });
+//     }
+
+//     if(status){
+//       filter.status=status;
+//     }
+
+//     return res.status(200).json({
+//       success: true,
+//       message: "Filtered appointments",
+//       data: all
+//     });
+
+//   } catch (err) {
+//     next(err);
+//   }
+// };
+
+// function parseStringDate(dateStr) {
+//   const parsed = new Date(dateStr);
+//   if (parsed.toString() === "Invalid Date") return null;
+//   parsed.setHours(0, 0, 0, 0);
+//   return parsed;
+// }
+
+
+// Helper: convert start-end to list of strings matching DB format
+
+
+
 
 
 // export const deleteSaloonImage = async (req, res, next) => {
@@ -2708,4 +4655,381 @@ export const filterAppointments = async (req, res, next) => {
 
 
 
+if (!fs.existsSync(reportsPath)) fs.mkdirSync(reportsPath, { recursive: true });
 
+// Utility to flatten appointments
+// function flattenAppointments(appointments) {
+//   return appointments.map(a => ({
+//     bookingRef: a.bookingRef,
+//     customerId: a.customer?.id || "",
+//     customerMobile: a.customer?.mobile || "",
+//     professionalId: a.professionalId || "",
+//     serviceIds: a.serviceIds ? a.serviceIds.join(", ") : a.serviceId || "",
+//     date: a.date,
+//     time: a.time,
+//     duration: a.duration,
+//     price: a.price,
+//     status: a.status,
+//     discount: a.discount,
+//     discountCode: a.discountCode || "",
+//     notes: a.notes || "",
+//     realDate: a.realDate ? a.realDate.toISOString().split("T")[0] : ""
+//   }));
+// }
+
+
+
+// Generate CSV
+// async function generateCSV(filename, rows) {
+//   if (!rows.length) return;
+//   const filePath = path.join(reportsPath, filename);
+//   const writer = createObjectCsvWriter({
+//     path: filePath,
+//     header: Object.keys(rows[0]).map(key => ({ id: key, title: key }))
+//   });
+//   await writer.writeRecords(rows);
+// }
+
+// Controller
+// export const fullReport = async (req, res, next) => {
+//   try {
+
+//   const saloonId = req.headers['saloon-id'] || req.query['saloon-id'];
+// if (!saloonId) return res.status(400).json({ success: false, message: "saloon-id missing" });
+
+
+//     const saloon = await Saloon.findById(saloonId);
+//     if (!saloon) return res.status(404).json({ success: false, message: "Saloon not found" });
+
+
+
+//     // Fetch all appointments
+//     const online = await Appointment.find({ saloonId });
+//     const offline = await OfflineAppointment.find({ saloonId });
+//     const allAppointments = [
+//       ...online.map(a => ({ ...a._doc, realDate: new Date(a.date) })),
+//       ...offline.map(a => ({ ...a._doc, realDate: new Date(a.date) }))
+//     ];
+
+//     // Time ranges
+//     const now = new Date();
+//     const todayStart = new Date(now.setHours(0, 0, 0, 0));
+//     const todayEnd = new Date(now.setHours(23, 59, 59, 999));
+//     const weekStart = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+//     const fifteenStart = new Date(Date.now() - 15 * 24 * 60 * 60 * 1000);
+//     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+//     // Filtered
+//     const todayAppointments = flattenAppointments(allAppointments.filter(a => a.realDate >= todayStart && a.realDate <= todayEnd));
+//     const weekAppointments = flattenAppointments(allAppointments.filter(a => a.realDate >= weekStart));
+//     const fifteenAppointments = flattenAppointments(allAppointments.filter(a => a.realDate >= fifteenStart));
+//     const monthAppointments = flattenAppointments(allAppointments.filter(a => a.realDate >= monthStart));
+
+//     // Team members
+//     const teamMembers = await teamMemberModel.find({ saloon: saloonId });
+//     const memberStats = teamMembers.map(tm => {
+//       const count = allAppointments.filter(a =>
+//         (a.professionalId && a.professionalId.toString() === tm._id.toString()) ||
+//         (a.teamMemberId && a.teamMemberId.toString() === tm._id.toString())
+//       ).length;
+//       return { id: tm._id, name: tm.name, role: tm.role, totalAppointments: count };
+//     });
+//     const topTeamMember = memberStats.sort((a, b) => b.totalAppointments - a.totalAppointments)[0] || {};
+
+//     // Earnings
+//     const earnings = online.reduce((sum, a) => sum + Number(a.price || 0), 0);
+
+//     // Generate files
+//     const files = [
+//       { name: "today", rows: todayAppointments },
+//       { name: "week", rows: weekAppointments },
+//       { name: "15days", rows: fifteenAppointments },
+//       { name: "month", rows: monthAppointments },
+//       { name: "team-members", rows: memberStats },
+//       { name: "top-member", rows: [topTeamMember] },
+//       { name: "earnings", rows: [{ earnings }] }
+//     ];
+
+//     for (let f of files) {
+//       generatePDF(`${f.name}.pdf`, f.name.toUpperCase(), f.rows);
+//       await generateCSV(`${f.name}.csv`, f.rows);
+//     }
+
+//     const baseURL = `${req.protocol}://${req.headers.host}/api/reports`;
+
+//     return res.status(200).json({
+//       success: true,
+//       message: "Report files generated",
+//       files: {
+//         today: { pdf: `${baseURL}/today.pdf`, csv: `${baseURL}/today.csv` },
+//         week: { pdf: `${baseURL}/week.pdf`, csv: `${baseURL}/week.csv` },
+//         fifteenDays: { pdf: `${baseURL}/15days.pdf`, csv: `${baseURL}/15days.csv` },
+//         month: { pdf: `${baseURL}/month.pdf`, csv: `${baseURL}/month.csv` },
+//         teamMembers: { pdf: `${baseURL}/team-members.pdf`, csv: `${baseURL}/team-members.csv` },
+//         topTeamMember: { pdf: `${baseURL}/top-member.pdf`, csv: `${baseURL}/top-member.csv` },
+//         earnings: { pdf: `${baseURL}/earnings.pdf`, csv: `${baseURL}/earnings.csv` }
+//       }
+//     });
+
+//   } catch (err) {
+//     next(err);
+//   }
+// };
+
+
+
+
+
+
+// Helper to flatten appointment objects
+function flattenAppointments(rows) {
+  return rows.map(a => ({
+    BookingRef: a.bookingRef || "",
+    CustomerName: a.customer?.id?.name || a.customerName || "",
+    CustomerMobile: a.customer?.id?.mobile || a.customer?.mobile || a.contactNumber || "",
+    Date: a.date || "",
+    Time: a.time || "",
+    Services: Array.isArray(a.serviceIds) ? a.serviceIds.map(s => s.name || s).join(", ") : (a.serviceName || ""),
+    Professional: a.professionalId || a.teamMemberName || "",
+    Price: a.price || "",
+    Status: a.status || "",
+    Notes: a.notes || "",
+  }));
+}
+
+function flattenTeamMembers(rows) {
+  return rows.map(tm => ({
+    Name: tm.name,
+    Role: tm.role,
+    TotalAppointments: tm.totalAppointments,
+  }));
+}
+
+function flattenTopMember(rows) {
+  return rows.map(tm => ({
+    Name: tm.name || "",
+    Role: tm.role || "",
+    TotalAppointments: tm.totalAppointments || 0,
+  }));
+}
+
+function flattenEarnings(rows) {
+  return rows.map(e => ({ Earnings: e.earnings || 0 }));
+}
+
+// Generate PDF
+// function generatePDF(fileName, title, rows) {
+//   const reportsPath = path.join(process.cwd(), "public/reports");
+//   if (!fs.existsSync(reportsPath)) fs.mkdirSync(reportsPath, { recursive: true });
+
+//   const doc = new PDFDocument({ margin: 30 });
+//   const filePath = path.join(reportsPath, fileName);
+//   doc.pipe(fs.createWriteStream(filePath));
+
+//   doc.fontSize(18).text(title, { align: "center" });
+//   doc.moveDown();
+
+//   if (rows.length > 0) {
+//     const keys = Object.keys(rows[0]);
+//     doc.fontSize(12);
+//     // Table header
+//     keys.forEach(key => doc.text(key, { continued: true, width: 100 }));
+//     doc.moveDown(0.5);
+
+//     // Table rows
+//     rows.forEach(row => {
+//       keys.forEach(key => doc.text(String(row[key] || ""), { continued: true, width: 100 }));
+//       doc.moveDown(0.5);
+//     });
+//   } else {
+//     doc.text("No data available", { align: "center" });
+//   }
+
+//   doc.end();
+// }
+
+
+export function generatePDF(fileName, title, rows) {
+  const reportsPath = path.join(process.cwd(), "public/reports");
+  if (!fs.existsSync(reportsPath)) fs.mkdirSync(reportsPath, { recursive: true });
+
+  const doc = new PDFDocument({ margin: 40, size: "A4" });
+  const filePath = path.join(reportsPath, fileName);
+  doc.pipe(fs.createWriteStream(filePath));
+
+  // Header
+  doc.fontSize(22).fillColor("#2E86C1").text(title, { align: "center" });
+  doc.moveDown(1);
+
+  if (!rows || rows.length === 0) {
+    doc.fontSize(14).fillColor("#555").text("No data available", { align: "center" });
+    doc.end();
+    return;
+  }
+
+  const keys = Object.keys(rows[0]);
+  const pageWidth = doc.page.width - doc.options.margin * 2;
+  const columnWidth = pageWidth / keys.length;
+  let y = doc.y + 10;
+
+  // Table Header
+  doc.fontSize(12).fillColor("#fff").font("Helvetica-Bold");
+  keys.forEach((key, i) => {
+    doc.rect(doc.options.margin + i * columnWidth, y, columnWidth, 25).fill("#2E86C1").stroke();
+    doc.fillColor("#fff").text(key, doc.options.margin + i * columnWidth + 5, y + 7, {
+      width: columnWidth - 10,
+      align: "left",
+    });
+  });
+  y += 25;
+
+  // Table Rows
+  doc.font("Helvetica").fontSize(11).fillColor("#000");
+  rows.forEach((row, rowIndex) => {
+    const bgColor = rowIndex % 2 === 0 ? "#f2f2f2" : "#ffffff";
+    keys.forEach((key, i) => {
+      doc.rect(doc.options.margin + i * columnWidth, y, columnWidth, 20).fill(bgColor).stroke();
+      doc.fillColor("#000").text(String(row[key] || ""), doc.options.margin + i * columnWidth + 5, y + 5, {
+        width: columnWidth - 10,
+        align: "left",
+        ellipsis: true, // truncates if text too long
+      });
+    });
+    y += 20;
+
+    // Check if page end reached
+    if (y > doc.page.height - 50) {
+      doc.addPage();
+      y = 50; // reset y
+    }
+  });
+
+  // Footer
+  doc.moveTo(doc.options.margin, doc.page.height - 40)
+     .lineTo(doc.page.width - doc.options.margin, doc.page.height - 40)
+     .strokeColor("#ccc").stroke();
+  doc.fontSize(10).fillColor("#999").text(`Generated on: ${new Date().toLocaleString()}`, doc.options.margin, doc.page.height - 30, { align: "right" });
+
+  doc.end();
+}
+
+// Generate CSV
+async function generateCSV(fileName, rows) {
+  const reportsPath = path.join(process.cwd(), "public/reports");
+  if (!fs.existsSync(reportsPath)) fs.mkdirSync(reportsPath, { recursive: true });
+
+  if (rows.length === 0) {
+    rows = [{}];
+  }
+
+  const csvWriter = createObjectCsvWriter({
+    path: path.join(reportsPath, fileName),
+    header: Object.keys(rows[0]).map(key => ({ id: key, title: key })),
+  });
+
+  await csvWriter.writeRecords(rows);
+}
+
+// Main full report controller
+export const fullReport = async (req, res, next) => {
+  try {
+    const saloonId = req.headers['saloon-id'] || req.query['saloon-id'];
+    if (!saloonId) return res.status(400).json({ success: false, message: "saloon-id missing" });
+
+
+
+
+    const saloon = await Saloon.findById(saloonId);
+    if (!saloon) return res.status(404).json({ success: false, message: "Saloon not found" });
+
+    // Fetch all appointments
+    const online = await Appointment.find({ saloonId });
+    const offline = await OfflineAppointment.find({ saloonId });
+
+    const allAppointments = [
+      ...online.map(a => ({ ...a._doc, realDate: new Date(a.date) })),
+      ...offline.map(a => ({ ...a._doc, realDate: new Date(a.date) }))
+    ];
+
+    const now = new Date();
+    const todayStart = new Date(now.setHours(0, 0, 0, 0));
+    const todayEnd = new Date(now.setHours(23, 59, 59, 999));
+    const weekStart = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const fifteenStart = new Date(Date.now() - 15 * 24 * 60 * 60 * 1000);
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const todayAppointments = flattenAppointments(allAppointments.filter(a => a.realDate >= todayStart && a.realDate <= todayEnd));
+    const weekAppointments = flattenAppointments(allAppointments.filter(a => a.realDate >= weekStart));
+    const fifteenAppointments = flattenAppointments(allAppointments.filter(a => a.realDate >= fifteenStart));
+    const monthAppointments = flattenAppointments(allAppointments.filter(a => a.realDate >= monthStart));
+
+    // Team members
+    const teamMembers = await teamMemberModel.find({ saloon: saloonId });
+    const memberStats = teamMembers.map(tm => {
+      const count = allAppointments.filter(a =>
+        (a.professionalId && a.professionalId.toString() === tm._id.toString()) ||
+        (a.teamMemberId && a.teamMemberId.toString() === tm._id.toString())
+      ).length;
+      return { id: tm._id, name: tm.name, role: tm.role, totalAppointments: count };
+    });
+    const topTeamMember = memberStats.sort((a, b) => b.totalAppointments - a.totalAppointments)[0] || {};
+
+    // Earnings
+    const earnings = online.reduce((sum, a) => sum + Number(a.price || 0), 0);
+
+    // Generate files
+    const files = [
+      { name: "today", rows: todayAppointments },
+      { name: "week", rows: weekAppointments },
+      { name: "15days", rows: fifteenAppointments },
+      { name: "month", rows: monthAppointments },
+      { name: "team-members", rows: memberStats },
+      { name: "top-member", rows: [topTeamMember] },
+      { name: "earnings", rows: [{ earnings }] }
+    ];
+
+    for (let f of files) {
+      let data;
+      switch (f.name) {
+        case "today":
+        case "week":
+        case "15days":
+        case "month":
+          data = flattenAppointments(f.rows);
+          break;
+        case "team-members":
+          data = flattenTeamMembers(f.rows);
+          break;
+        case "top-member":
+          data = flattenTopMember(f.rows);
+          break;
+        case "earnings":
+          data = flattenEarnings(f.rows);
+          break;
+        default:
+          data = f.rows;
+      }
+      generatePDF(`${f.name}.pdf`, f.name.toUpperCase(), data);
+      await generateCSV(`${f.name}.csv`, data);
+    }
+
+    const baseURL = `${req.protocol}://${req.headers.host}/api/reports`;
+
+    return res.status(200).json({
+      success: true,
+      message: "Report files generated",
+      files: {
+        today: { pdf: `${baseURL}/today.pdf`, csv: `${baseURL}/today.csv` },
+        week: { pdf: `${baseURL}/week.pdf`, csv: `${baseURL}/week.csv` },
+        fifteenDays: { pdf: `${baseURL}/15days.pdf`, csv: `${baseURL}/15days.csv` },
+        month: { pdf: `${baseURL}/month.pdf`, csv: `${baseURL}/month.csv` },
+        teamMembers: { pdf: `${baseURL}/team-members.pdf`, csv: `${baseURL}/team-members.csv` },
+        topTeamMember: { pdf: `${baseURL}/top-member.pdf`, csv: `${baseURL}/top-member.csv` },
+        earnings: { pdf: `${baseURL}/earnings.pdf`, csv: `${baseURL}/earnings.csv` }
+      }
+    });
+
+  } catch (err) {
+    next(err);
+  }
+};

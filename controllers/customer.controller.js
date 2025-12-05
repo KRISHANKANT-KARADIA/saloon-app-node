@@ -550,6 +550,33 @@ CustomerController.addFavouriteSaloon = async (req, res, next) => {
   }
 };
 
+CustomerController.removeFavouriteSaloon = async (req, res, next) => {
+  try {
+    const customerId = res.locals.user.id; // From auth middleware
+    const { saloonId } = req.body;
+
+    if (!saloonId) {
+      return next(new AppError("Saloon ID is required", STATUS_CODES.BAD_REQUEST));
+    }
+
+    const updatedCustomer = await Customer.findByIdAndUpdate(
+      customerId,
+      { $pull: { favouriteSaloonIds: saloonId } }, // Remove the saloonId
+      { new: true }
+    ).populate('favouriteSaloonIds', 'name logo address');
+
+    return res.status(STATUS_CODES.OK).json({
+      success: true,
+      message: "Saloon removed from favourites",
+      favourites: updatedCustomer.favouriteSaloonIds
+    });
+
+  } catch (err) {
+    next(err);
+  }
+};
+
+
 // Get all favourite saloons for the customer
 CustomerController.getFavouriteSaloons = async (req, res, next) => {
   try {

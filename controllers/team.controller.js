@@ -70,52 +70,104 @@ export const getTopPerformers = async (req, res, next) => {
   try {
     const ownerId = res.locals.user.id;
 
-    // 1️⃣ Find the saloon of this owner
     const saloon = await Saloon.findOne({ owner: ownerId });
-    if (!saloon) {
-      return res.status(404).json({ message: "Saloon not found" });
-    }
+    if (!saloon) return res.status(404).json({ message: "Saloon not found" });
 
-    // 2️⃣ Get all team members
     const teamMembers = await TeamMember.find({ saloon: saloon._id });
 
-    // 3️⃣ Get date range for current month
+    // Current month
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
 
-    // 4️⃣ Get all appointments in this month
+    // Fetch all appointments for this saloon in current month
     const appointments = await Appointment.find({
       saloonId: saloon._id,
-      date: { $gte: startOfMonth, $lte: endOfMonth },
-      status: "confirmed"
+      date: { $gte: startOfMonth, $lte: endOfMonth }
+      // Remove status filter temporarily
     });
 
-    // 5️⃣ Calculate appointments and revenue per team member
+    console.log("Total appointments fetched:", appointments.length);
+
     const membersStats = teamMembers.map(member => {
-      const memberAppointments = appointments.filter(a => a.professionalId.toString() === member._id.toString());
+      const memberAppointments = appointments.filter(a =>
+        a.professionalId && a.professionalId.toString() === member._id.toString()
+      );
+
       const totalAmount = memberAppointments.reduce((sum, a) => sum + Number(a.price || 0), 0);
+
+      console.log(member.name, memberAppointments.length, totalAmount);
 
       return {
         id: member._id,
         name: member.name,
         totalAppointments: memberAppointments.length,
-        totalRevenue: totalAmount,
+        totalRevenue: totalAmount
       };
     });
 
-    // 6️⃣ Sort descending by totalAppointments
     membersStats.sort((a, b) => b.totalAppointments - a.totalAppointments);
 
-    return res.status(200).json({
-      success: true,
-      topPerformers: membersStats
-    });
-
+    return res.status(200).json({ success: true, topPerformers: membersStats });
   } catch (err) {
+    console.error(err);
     next(err);
   }
 };
+
+
+// export const getTopPerformers = async (req, res, next) => {
+//   try {
+//     const ownerId = res.locals.user.id;
+
+//     const saloon = await Saloon.findOne({ owner: ownerId });
+//     if (!saloon) return res.status(404).json({ message: "Saloon not found" });
+
+//     const teamMembers = await TeamMember.find({ saloon: saloon._id });
+
+//     // Current month range
+//     const now = new Date();
+//     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+//     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+
+//     // Fetch all appointments for this saloon in current month
+//     const appointments = await Appointment.find({
+//       saloonId: saloon._id,
+//       date: { $gte: startOfMonth, $lte: endOfMonth }
+//       // remove status filter temporarily to debug
+//     });
+
+//     console.log("Appointments fetched:", appointments.length); // debug
+
+//     const membersStats = teamMembers.map(member => {
+//       // Compare ObjectIds safely
+//       const memberAppointments = appointments.filter(a =>
+//         a.professionalId && a.professionalId.toString() === member._id.toString()
+//       );
+
+//       const totalAmount = memberAppointments.reduce((sum, a) => sum + Number(a.price || 0), 0);
+
+//       console.log(member.name, memberAppointments.length, totalAmount); // debug
+
+//       return {
+//         id: member._id,
+//         name: member.name,
+//         totalAppointments: memberAppointments.length,
+//         totalRevenue: totalAmount
+//       };
+//     });
+
+//     // Sort descending
+//     membersStats.sort((a, b) => b.totalAppointments - a.totalAppointments);
+
+//     return res.status(200).json({ success: true, topPerformers: membersStats });
+
+//   } catch (err) {
+//     console.error(err);
+//     next(err);
+//   }
+// };
+
 
 
 export const updateTeamMember = async (req, res, next) => {
@@ -205,6 +257,34 @@ export const getAllTeamMembers = async (req, res, next) => {
 };
 
 // Get all team members by saloonId
+// export const getTeamMembersBySaloonId = async (req, res, next) => {
+//   try {
+//     const { saloonId } = req.params;
+
+//     if (!saloonId) {
+//       return res.status(400).json({ message: 'Saloon ID is required.' });
+//     }
+
+//     // Check if salon exists
+//     const saloon = await Saloon.findById(saloonId);
+//     if (!saloon) {
+//       return res.status(404).json({ message: 'Saloon not found.' });
+//     }
+
+//     // Find team members for this salon
+//     const teamMembers = await TeamMember.find({ saloon: saloonId });
+
+//     return res.status(200).json({
+//       success: true,
+//       message: 'Team members retrieved successfully',
+//       data: teamMembers,
+//     });
+//   } catch (error) {
+//     next(error);
+//   }
+// };
+
+
 export const getTeamMembersBySaloonId = async (req, res, next) => {
   try {
     const { saloonId } = req.params;
@@ -213,20 +293,31 @@ export const getTeamMembersBySaloonId = async (req, res, next) => {
       return res.status(400).json({ message: 'Saloon ID is required.' });
     }
 
-    // Check if salon exists
     const saloon = await Saloon.findById(saloonId);
     if (!saloon) {
       return res.status(404).json({ message: 'Saloon not found.' });
     }
 
-    // Find team members for this salon
     const teamMembers = await TeamMember.find({ saloon: saloonId });
+
+    const IMAGE_BASE = "https://saloon-app-node-50470848550.asia-south1.run.app";
+
+    const updatedTeamMembers = teamMembers.map(member => ({
+      ...member._doc,
+      profile:
+        member.profile
+          ? member.profile.startsWith("http")
+            ? member.profile
+            : `${IMAGE_BASE}${member.profile}`
+          : null,
+    }));
 
     return res.status(200).json({
       success: true,
-      message: 'Team members retrieved successfully',
-      data: teamMembers,
+      message: "Team members retrieved successfully",
+      data: updatedTeamMembers,
     });
+
   } catch (error) {
     next(error);
   }

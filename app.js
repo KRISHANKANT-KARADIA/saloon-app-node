@@ -185,9 +185,11 @@ connectDB();
 const __dirname = path.resolve();
 
 // IMPORTANT: For Cloud Run, absolute path required
-app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
-  fallthrough: true,
-}));
+// app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
+//   fallthrough: true,
+// }));
+app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
+app.use("/api/reports", express.static(path.join(process.cwd(), "public/reports")));
 
 // MIDDLEWARES ----------------------------------------------------
 app.use(express.json());
@@ -222,6 +224,8 @@ app.use((err, req, res, next) => {
 app.use('/', (req, res) => {
   res.send(`Hello world - ${process.env.ENVIROMENT}`);
 });
+
+
 
 // START SERVER ---------------------------------------------------
 const PORT = process.env.PORT || 3000;   // Cloud Run uses 8080

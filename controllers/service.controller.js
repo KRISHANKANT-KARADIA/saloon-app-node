@@ -414,22 +414,55 @@ export const deleteService = async (req, res, next) => {
 
 
 // Get all saloons by category
+// export const getSaloonsByCategory = async (req, res) => {
+//   try {
+//     const { category } = req.params;
+
+//     // Find all services for this category
+//     const services = await Service.find({ category });
+
+//     const saloonIds = [...new Set(services.map((s) => s.saloon.toString()))];
+
+//     const saloons = await Saloon.find({ _id: { $in: saloonIds } });
+
+//     res.json({ success: true, saloons });
+//   } catch (error) {
+//     res.status(500).json({ error: error.message });
+//   }
+// };
+
+
+// Get all saloons by category
 export const getSaloonsByCategory = async (req, res) => {
   try {
     const { category } = req.params;
 
-    // Find all services for this category
     const services = await Service.find({ category });
 
     const saloonIds = [...new Set(services.map((s) => s.saloon.toString()))];
 
     const saloons = await Saloon.find({ _id: { $in: saloonIds } });
 
-    res.json({ success: true, saloons });
+    // ADD BASE URL
+    const BASE_URL = "https://saloon-app-node-50470848550.asia-south1.run.app";
+
+    const updatedSaloons = saloons.map((saloon) => {
+      return {
+        ...saloon._doc,
+        logo: saloon.logo
+          ? `${BASE_URL}/uploads/saloon/${saloon.logo}`
+          : null,
+          category: saloon.category,
+      };
+    });
+
+    res.json({ success: true, saloons: updatedSaloons });
+
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
+
 
 
 export const getSaloonsByCategorys = async (req, res) => {
