@@ -545,43 +545,58 @@ export const searchSalons = async (req, res, next) => {
       return next(new AppError('Query is required', STATUS_CODES.BAD_REQUEST));
     }
 
-    // Normalize query: remove all spaces and make lowercase
+    // Remove spaces & lowercase in search query
     const normalizedQuery = query.replace(/\s+/g, '').toLowerCase();
 
-    // Regex to match spaced or non-spaced versions
-    const regex = new RegExp(query, 'i');               // original case-insensitive
-    const regexNoSpace = new RegExp(normalizedQuery, 'i'); // trimmed version
-
-    // SERVICES SEARCH
-    const matchedServices = await Service.find({
-      status: 'active',
-      $or: [
-        { name: { $regex: regex } },
-        { name: { $regex: regexNoSpace } }
-      ]
-    });
+    // 1️⃣ SERVICES MATCH (space-insensitive + case-insensitive)
+    const matchedServices = await Service.aggregate([
+      {
+        $addFields: {
+          normalizedName: {
+            $replaceAll: { input: { $toLower: "$name" }, find: " ", replacement: "" }
+          }
+        }
+      },
+      {
+        $match: {
+          status: "active",
+          normalizedName: { $regex: normalizedQuery, $options: "i" }
+        }
+      }
+    ]);
 
     const salonIdsFromServices = matchedServices.map(s => s.saloon);
 
-    // SALON SEARCH
-    const salons = await Saloon.find({
-      $or: [
-        { name: { $regex: regex } },
-        { name: { $regex: regexNoSpace } },
+    // 2️⃣ SALONS MATCH (space-insensitive + case-insensitive)
+    const salons = await Saloon.aggregate([
+      {
+        $addFields: {
+          normalizedName: {
+            $replaceAll: { input: { $toLower: "$name" }, find: " ", replacement: "" }
+          },
+          normalizedCity: {
+            $replaceAll: { input: { $toLower: "$city" }, find: " ", replacement: "" }
+          },
+          normalizedAddress: {
+            $replaceAll: { input: { $toLower: "$location.address1" }, find: " ", replacement: "" }
+          }
+        }
+      },
+      {
+        $match: {
+          $or: [
+            { normalizedName: { $regex: normalizedQuery } },
+            { normalizedCity: { $regex: normalizedQuery } },
+            { normalizedAddress: { $regex: normalizedQuery } },
+            { _id: { $in: salonIdsFromServices } }
+          ]
+        }
+      }
+    ]);
 
-        { city: { $regex: regex } },
-        { city: { $regex: regexNoSpace } },
-
-        { 'location.address1': { $regex: regex } },
-        { 'location.address1': { $regex: regexNoSpace } },
-
-        { _id: { $in: salonIdsFromServices } }
-      ]
-    });
-
-    res.status(STATUS_CODES.OK).json({
+    res.status(200).json({
       success: true,
-      message: 'Salons fetched successfully',
+      message: "Salons fetched successfully",
       count: salons.length,
       data: salons
     });
@@ -590,6 +605,7 @@ export const searchSalons = async (req, res, next) => {
     next(err);
   }
 };
+
 
 
 
