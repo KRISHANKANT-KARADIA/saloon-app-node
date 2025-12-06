@@ -27,25 +27,28 @@ router.post("/send-otp", validateMobile, async (req, res) => {
   try {
     const { mobile } = req.body;
 
-    // ✅ Generate OTP
+   
     const otp = generateOTP();
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
 
-    // ✅ Store in DB (replace old OTP if exists)
+
     await otpModel.findOneAndUpdate(
       { mobile },
       { otp, expiresAt },
       { upsert: true, new: true }
     );
 
-    // (optional) Save/update customer record for mobile
+  
     let customer = await Customer.findOne({ mobile });
     if (!customer) {
       customer = new Customer({ mobile });
       await customer.save();
     }
 
-    // ✅ Send SMS
+    console.log("📌 OTP for", mobile, "==>", otp);
+
+
+ 
     const message = `Your verification code is ${otp}. It will expire in 5 minutes.`;
     const smsUrl = `http://148.251.129.118/wapp/api/send`;
     const params = {
