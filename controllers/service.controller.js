@@ -493,34 +493,88 @@ export const getSaloonsByCategorys = async (req, res) => {
 };
 
 
+// export const searchSalons = async (req, res, next) => {
+//   try {
+//     const { query } = req.query; // ?query=ha
+
+//     if (!query) {
+//       return next(new AppError('Query is required', STATUS_CODES.BAD_REQUEST));
+//     }
+
+//     // ✅ Case-insensitive, partial match (starts with or contains anywhere)
+//     const regex = new RegExp(query, 'i'); // "i" = case-insensitive
+
+//     // 🔹 Find services matching the query
+//     const matchedServices = await Service.find({
+
+//       name: { $regex: regex }, 
+
+//       name: { $regex: regex },
+//       status: 'active'
+//     });
+
+//     const salonIdsFromServices = matchedServices.map(s => s.saloon);
+
+//     // 🔹 Find salons matching name, city, address OR linked services
+//     const salons = await Saloon.find({
+//       $or: [
+//         { name: { $regex: regex } },
+//         { city: { $regex: regex } },
+//         { 'location.address1': { $regex: regex } },
+//         { _id: { $in: salonIdsFromServices } }
+//       ]
+//     });
+
+//     res.status(STATUS_CODES.OK).json({
+//       success: true,
+//       message: 'Salons fetched successfully',
+//       count: salons.length,
+//       data: salons
+//     });
+
+//   } catch (err) {
+//     next(err);
+//   }
+// };
+
 export const searchSalons = async (req, res, next) => {
   try {
-    const { query } = req.query; // ?query=ha
+    const { query } = req.query;
 
     if (!query) {
       return next(new AppError('Query is required', STATUS_CODES.BAD_REQUEST));
     }
 
-    // ✅ Case-insensitive, partial match (starts with or contains anywhere)
-    const regex = new RegExp(query, 'i'); // "i" = case-insensitive
+    // Normalize query: remove all spaces and make lowercase
+    const normalizedQuery = query.replace(/\s+/g, '').toLowerCase();
 
-    // 🔹 Find services matching the query
+    // Regex to match spaced or non-spaced versions
+    const regex = new RegExp(query, 'i');               // original case-insensitive
+    const regexNoSpace = new RegExp(normalizedQuery, 'i'); // trimmed version
+
+    // SERVICES SEARCH
     const matchedServices = await Service.find({
-
-      name: { $regex: regex }, 
-
-      name: { $regex: regex },
-      status: 'active'
+      status: 'active',
+      $or: [
+        { name: { $regex: regex } },
+        { name: { $regex: regexNoSpace } }
+      ]
     });
 
     const salonIdsFromServices = matchedServices.map(s => s.saloon);
 
-    // 🔹 Find salons matching name, city, address OR linked services
+    // SALON SEARCH
     const salons = await Saloon.find({
       $or: [
         { name: { $regex: regex } },
+        { name: { $regex: regexNoSpace } },
+
         { city: { $regex: regex } },
+        { city: { $regex: regexNoSpace } },
+
         { 'location.address1': { $regex: regex } },
+        { 'location.address1': { $regex: regexNoSpace } },
+
         { _id: { $in: salonIdsFromServices } }
       ]
     });
