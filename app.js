@@ -190,7 +190,7 @@ const __dirname = path.resolve();
 // }));
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 app.use("/api/reports", express.static(path.join(process.cwd(), "public/reports")));
-
+app.use('/public', express.static('public'));
 // MIDDLEWARES ----------------------------------------------------
 app.use(express.json());
 app.use(logger);
