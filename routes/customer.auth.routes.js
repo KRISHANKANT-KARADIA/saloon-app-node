@@ -135,7 +135,7 @@ router.post("/send-otp", validateMobile, async (req, res) => {
     const { mobile } = req.body;
 
     // STATIC OTP
-    const otp = "1234"; 
+    const otp = "123456"; 
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
 
     // Save/Update OTP in DB
