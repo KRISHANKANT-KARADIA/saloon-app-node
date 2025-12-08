@@ -70,12 +70,72 @@ function generateOTP(length = 6) {
 
 // 🟢 VERIFY OTP
 
+// router.post("/send-otp", validateMobile, async (req, res) => {
+//   try {
+//     const { mobile } = req.body;
+
+//     // Generate OTP
+//     const otp = generateOTP();
+//     const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+
+//     // Save/Update OTP in DB
+//     await otpModel.findOneAndUpdate(
+//       { mobile },
+//       { otp, expiresAt },
+//       { upsert: true, new: true }
+//     );
+
+//     // Ensure customer exists
+//     let customer = await Customer.findOne({ mobile });
+//     if (!customer) {
+//       customer = new Customer({ mobile });
+//       await customer.save();
+//     }
+
+//     // STEP 1 — PRINT OTP BEFORE EVERYTHING
+//     console.log("📌 OTP for", mobile, "==>", otp);
+
+//     // Message content
+//     const message = `Your verification code is ${otp}. It will expire in 5 minutes.`;
+
+//     const smsUrl = `http://148.251.129.118/wapp/api/send`;
+//     const params = {
+//       apikey: "6400644141f6445ab6554b186f4b4403",
+//       mobile,
+//       msg: message,
+//     };
+
+//     // STEP 2 — TRY SENDING SMS (but don’t break OTP flow)
+//     try {
+//       const smsRes = await axios.get(smsUrl, { params });
+//       console.log("📩 SMS API Response:", smsRes.data);
+//     } catch (smsError) {
+//       console.error("❌ SMS API Failed:", smsError.message);
+//       console.error("📌 SMS API Error Response:", smsError.response?.data);
+//       // Continue anyway
+//     }
+
+//     // FINAL RESPONSE
+//     return res.json({
+//       success: true,
+//       message: "OTP generated & sent",
+//     });
+
+//   } catch (error) {
+//     console.error("❌ OTP Send Error:", error.message);
+//     return res.status(500).json({
+//       success: false,
+//       message: error.message
+//     });
+//   }
+// });
+
 router.post("/send-otp", validateMobile, async (req, res) => {
   try {
     const { mobile } = req.body;
 
-    // Generate OTP
-    const otp = generateOTP();
+    // STATIC OTP
+    const otp = "1234"; 
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
 
     // Save/Update OTP in DB
@@ -92,33 +152,34 @@ router.post("/send-otp", validateMobile, async (req, res) => {
       await customer.save();
     }
 
-    // STEP 1 — PRINT OTP BEFORE EVERYTHING
-    console.log("📌 OTP for", mobile, "==>", otp);
+    // Print OTP on server log
+    console.log("📌 STATIC OTP for", mobile, "==>", otp);
 
-    // Message content
-    const message = `Your verification code is ${otp}. It will expire in 5 minutes.`;
+    // MESSAGE — (Send SMS disabled)
+    const message = `Your verification code is ${otp}.`;
 
+    // ❌ SMS API Disabled — Commented out
+    /*
     const smsUrl = `http://148.251.129.118/wapp/api/send`;
     const params = {
       apikey: "6400644141f6445ab6554b186f4b4403",
       mobile,
       msg: message,
     };
-
-    // STEP 2 — TRY SENDING SMS (but don’t break OTP flow)
     try {
       const smsRes = await axios.get(smsUrl, { params });
       console.log("📩 SMS API Response:", smsRes.data);
     } catch (smsError) {
       console.error("❌ SMS API Failed:", smsError.message);
       console.error("📌 SMS API Error Response:", smsError.response?.data);
-      // Continue anyway
     }
+    */
 
     // FINAL RESPONSE
     return res.json({
       success: true,
-      message: "OTP generated & sent",
+      message: "OTP generated (static) & logged in console.",
+      otp: otp, // optional: remove in production
     });
 
   } catch (error) {
@@ -129,6 +190,7 @@ router.post("/send-otp", validateMobile, async (req, res) => {
     });
   }
 });
+
 
 
 router.post("/verify-otp", async (req, res) => {
