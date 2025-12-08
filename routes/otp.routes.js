@@ -380,6 +380,86 @@ function generateOTP(length = 6) {
 // router.post('/saloon/owner/send-otp', validateMobile, async (req, res) => {
  
 
+  router.post('/saloon/owner/send-otp', validateMobile, async (req, res) => {
+  try {
+    const { mobile } = req.body;
+    let user;
+
+    // 🔹 If logged in → update existing
+    if (res.locals.user) {
+      user = await ownerModel.findById(res.locals.user.id);
+      if (!user) throw new Error("Logged-in user not found");
+
+      user.mobile = mobile;
+    } 
+    // 🔹 If not logged in → find or create
+    else {
+      user = await ownerModel.findOne({ mobile });
+      if (!user) {
+        user = new ownerModel({ mobile, user_state_status: 1 });
+      }
+    }
+
+    // 🔹 Create STATIC OTP
+    const otp = "123456"; // ⚡ Static OTP
+    const expiresAt = Date.now() + 5 * 60 * 1000;
+
+    // 🔸 Store OTP
+    otpStore.set(mobile, { otp, expiresAt });
+    user.otp = otp;
+    user.otpExpiresAt = expiresAt;
+    await user.save();
+
+    console.log(`🔥 OTP for ${mobile} = ${otp}`);
+
+    // ---------------------------
+    // SEND OTP MESSAGE via SMS API (COMMENTED OUT)
+    // ---------------------------
+    /*
+    const message = `Your verification code is ${otp}. It will expire in 5 minutes.`;
+
+    const smsUrl = `http://148.251.129.118/wapp/api/send`;
+    const params = {
+      apikey: '6400644141f6445ab6554b186f4b4403',
+      mobile,
+      msg: message,
+    };
+
+    let response;
+    try {
+      response = await axios.get(smsUrl, { params });
+      if (response.data.status !== "success") {
+        console.error("❌ SMS API Response Error:", response.data);
+        return res.status(200).json({
+          success: true,
+          message: "OTP generated (SMS not sent, check console)",
+          otpDebug: otp,
+        });
+      }
+      console.log(`✅ OTP ${otp} sent to ${mobile}`);
+    } catch (smsError) {
+      console.error("❌ SMS API Error:", smsError.message);
+      return res.status(200).json({
+        success: true,
+        message: "OTP generated (SMS failed, check console)",
+        otpDebug: otp,
+      });
+    }
+    */
+
+    res.json({
+      success: true,
+      message: "OTP sent successfully (STATIC)",
+      otpDebug: otp, // ⚠️ Only for development
+    });
+
+  } catch (error) {
+    console.error("❌ Error sending OTP:", error.message);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+
 //    try {
 //     const { mobile } = req.body;
 //     let user;
@@ -491,87 +571,87 @@ function generateOTP(length = 6) {
 // });
 
 
-router.post('/saloon/owner/send-otp', validateMobile, async (req, res) => {
-  try {
-    const { mobile } = req.body;
-    let user;
+// router.post('/saloon/owner/send-otp', validateMobile, async (req, res) => {
+//   try {
+//     const { mobile } = req.body;
+//     let user;
 
-    // 🔹 If logged in → update existing
-    if (res.locals.user) {
-      user = await ownerModel.findById(res.locals.user.id);
-      if (!user) throw new Error("Logged-in user not found");
+//     // 🔹 If logged in → update existing
+//     if (res.locals.user) {
+//       user = await ownerModel.findById(res.locals.user.id);
+//       if (!user) throw new Error("Logged-in user not found");
 
-      user.mobile = mobile;
-    } 
-    // 🔹 If not logged in → find or create
-    else {
-      user = await ownerModel.findOne({ mobile });
-      if (!user) {
-        user = new ownerModel({ mobile, user_state_status: 1 });
-      }
-    }
+//       user.mobile = mobile;
+//     } 
+//     // 🔹 If not logged in → find or create
+//     else {
+//       user = await ownerModel.findOne({ mobile });
+//       if (!user) {
+//         user = new ownerModel({ mobile, user_state_status: 1 });
+//       }
+//     }
 
-    // 🔹 Create OTP
-    const otp = generateOTP();
-    const expiresAt = Date.now() + 5 * 60 * 1000;
+//     // 🔹 Create OTP
+//     const otp = generateOTP();
+//     const expiresAt = Date.now() + 5 * 60 * 1000;
 
-    // 🔸 Store OTP
-    otpStore.set(mobile, { otp, expiresAt });
-    user.otp = otp;
-    user.otpExpiresAt = expiresAt;
-    await user.save();
+//     // 🔸 Store OTP
+//     otpStore.set(mobile, { otp, expiresAt });
+//     user.otp = otp;
+//     user.otpExpiresAt = expiresAt;
+//     await user.save();
 
-    // 🔥 Console OTP before sending
-    console.log(`🔥 OTP for ${mobile} = ${otp}`);
+//     // 🔥 Console OTP before sending
+//     console.log(`🔥 OTP for ${mobile} = ${otp}`);
 
-    // ---------------------------
-    // SEND OTP MESSAGE via SMS API
-    // ---------------------------
-    const message = `Your verification code is ${otp}. It will expire in 5 minutes.`;
+//     // ---------------------------
+//     // SEND OTP MESSAGE via SMS API
+//     // ---------------------------
+//     const message = `Your verification code is ${otp}. It will expire in 5 minutes.`;
 
-    const smsUrl = `http://148.251.129.118/wapp/api/send`;
-    const params = {
-      apikey: '6400644141f6445ab6554b186f4b4403',
-      mobile,
-      msg: message,
-    };
+//     const smsUrl = `http://148.251.129.118/wapp/api/send`;
+//     const params = {
+//       apikey: '6400644141f6445ab6554b186f4b4403',
+//       mobile,
+//       msg: message,
+//     };
 
-    let response;
+//     let response;
 
-    try {
-      response = await axios.get(smsUrl, { params });
-    } catch (smsError) {
-      console.error("❌ SMS API Error:", smsError.message);
+//     try {
+//       response = await axios.get(smsUrl, { params });
+//     } catch (smsError) {
+//       console.error("❌ SMS API Error:", smsError.message);
 
-      return res.status(200).json({
-        success: true,
-        message: "OTP generated (SMS failed, check console)",
-        otpDebug: otp, // ⚠️ Only for development
-      });
-    }
+//       return res.status(200).json({
+//         success: true,
+//         message: "OTP generated (SMS failed, check console)",
+//         otpDebug: otp, // ⚠️ Only for development
+//       });
+//     }
 
-    if (response.data.status !== "success") {
-      console.error("❌ SMS API Response Error:", response.data);
+//     if (response.data.status !== "success") {
+//       console.error("❌ SMS API Response Error:", response.data);
 
-      return res.status(200).json({
-        success: true,
-        message: "OTP generated (SMS not sent, check console)",
-        otpDebug: otp, // ⚠️ Only for development
-      });
-    }
+//       return res.status(200).json({
+//         success: true,
+//         message: "OTP generated (SMS not sent, check console)",
+//         otpDebug: otp, // ⚠️ Only for development
+//       });
+//     }
 
-    console.log(`✅ OTP ${otp} sent to ${mobile}`);
+//     console.log(`✅ OTP ${otp} sent to ${mobile}`);
 
-    res.json({
-      success: true,
-      message: "OTP sent successfully",
-    });
+//     res.json({
+//       success: true,
+//       message: "OTP sent successfully",
+//     });
 
-  } catch (error) {
-    console.error("❌ Error sending OTP:", error.message);
-    res.status(500).json({ success: false, message: error.message });
-  }
-});
+//   } catch (error) {
+//     console.error("❌ Error sending OTP:", error.message);
+//     res.status(500).json({ success: false, message: error.message });
+//   }
+// });
 
 router.post('/saloon/owner/verify-otp', async (req, res) => {
  try {
