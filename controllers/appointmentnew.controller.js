@@ -294,28 +294,91 @@ AppointmentNewController.getConfirmAppointments = async (req, res, next) => {
 
 
 // ✅ 3. Get All Appointments for Logged-In Customer
+// AppointmentNewController.getAllAppointments = async (req, res, next) => {
+//   try {
+//     const customer = res.locals.user;
+
+//     const appointments = await Appointment.find({
+//       'customer.id': customer.id,
+//     })
+//     .populate('saloonId', 'name logo')
+//     .populate('serviceIds', 'name price')
+//     .populate('professionalId', 'name')
+//     .sort({ date: 1, time: 1 });
+
+//     return res.status(STATUS_CODES.OK).json({
+//       success: true,
+//       count: appointments.length,
+//       data: appointments
+//     });
+
+//   } catch (err) {
+//     next(err);
+//   }
+// };
+
 AppointmentNewController.getAllAppointments = async (req, res, next) => {
   try {
     const customer = res.locals.user;
+    const now = new Date();
 
+    // 1️⃣ Fetch appointments
     const appointments = await Appointment.find({
       'customer.id': customer.id,
     })
-    .populate('saloonId', 'name logo')
-    .populate('serviceIds', 'name price')
-    .populate('professionalId', 'name')
-    .sort({ date: 1, time: 1 });
+      .populate('saloonId', 'name logo')
+      .populate('serviceIds', 'name price')
+      .populate('professionalId', 'name')
+      .sort({ createdAt: -1 });
 
-    return res.status(STATUS_CODES.OK).json({
+    // 2️⃣ Loop & auto reject past appointments
+    for (const appt of appointments) {
+      if (appt.status === "PENDING" || appt.status === "CONFIRMED") {
+
+        // Convert date + time to Date object
+        const appointmentDateTime = getAppointmentDateTime(
+          appt.date,
+          appt.time
+        );
+
+        if (appointmentDateTime && appointmentDateTime < now) {
+          appt.status = "REJECTED";
+          await appt.save();
+        }
+      }
+    }
+
+    return res.status(200).json({
       success: true,
       count: appointments.length,
-      data: appointments
+      data: appointments,
     });
 
   } catch (err) {
     next(err);
   }
 };
+
+const getAppointmentDateTime = (dateStr, timeStr) => {
+  try {
+    // Example:
+    // dateStr = "Mon, Dec 15, 2025"
+    // timeStr = "11:00 - 12:00 (60 mins)"
+
+    const startTime = timeStr.split("-")[0].trim(); // "11:00"
+
+    const fullDateTimeStr = `${dateStr} ${startTime}`;
+
+    const dateTime = new Date(fullDateTimeStr);
+
+    if (isNaN(dateTime.getTime())) return null;
+
+    return dateTime;
+  } catch (err) {
+    return null;
+  }
+};
+
 
 // ✅ 4. Cancel Appointment
 
