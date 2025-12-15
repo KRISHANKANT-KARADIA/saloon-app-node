@@ -1459,7 +1459,9 @@ export const getDashboardData = async (req, res, next) => {
 };
 
 
-
+import Appointment from "../models/Appointment.js";
+import Saloon from "../models/Saloon.js";
+import AppError from "../utils/AppError.js";
 
 export const getPastAppointmentsProfessionalIdOnly = async (req, res, next) => {
   try {
@@ -1469,50 +1471,47 @@ export const getPastAppointmentsProfessionalIdOnly = async (req, res, next) => {
     const saloon = await Saloon.findOne({ owner: ownerId });
     if (!saloon) return next(new AppError("Saloon not found", 404));
 
-    // 2️⃣ Define today's date for filtering past
+    // 2️⃣ Today's date (00:00:00)
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
     // 3️⃣ Fetch all appointments for this saloon
     const appointments = await Appointment.find({ saloonId: saloon._id })
-    .populate("customer.id", "name mobile")        // 🔥 Populate customer name & mobile
-      .populate("serviceIds", "name price")          // 🔥 Populate service names & price
-      
+      .populate("customer.id", "name mobile")   // customer details
+      .populate("serviceIds", "name price")     // services
       .sort({ date: -1, time: -1 });
 
-    // 4️⃣ Filter past appointments
+    // 4️⃣ Filter past appointments (any status, including rejected)
     const pastAppointments = appointments.filter(a => {
       const appDate = new Date(a.date);
       return appDate.getTime() < today.getTime();
     });
 
-    // 5️⃣ Map to only professionalId
-    const response = pastAppointments.map(a => {
-      return {
-        _id: a._id,
-        bookingRef: a.bookingRef,
-        professionalId: a.professionalId, // raw ObjectId
-        createdAt: a.createdAt,
-            discount:a.discount,
-            saloonId:a.saloonId,
-            serviceIds:a.serviceIds,
-            date:a.date,
-            time:a.time,
-            duration:a.duration,
-            price:a.price,
-            status:a.status,
-            discountCode:a.discountCode,
-            discountAmount:a.discountAmount,
-            discountCodeId:a.discountCodeId,
-            cardstatus:a.cardstatus,
-            notes:a.notes,
-            customer:a.customer
-      };
-    });
+    // 5️⃣ Map to required fields
+    const response = pastAppointments.map(a => ({
+      _id: a._id,
+      bookingRef: a.bookingRef,
+      professionalId: a.professionalId, 
+      createdAt: a.createdAt,
+      discount: a.discount,
+      saloonId: a.saloonId,
+      serviceIds: a.serviceIds,
+      date: a.date,
+      time: a.time,
+      duration: a.duration,
+      price: a.price,
+      status: a.status,           // rejected, completed, pending etc.
+      discountCode: a.discountCode,
+      discountAmount: a.discountAmount,
+      discountCodeId: a.discountCodeId,
+      cardstatus: a.cardstatus,
+      notes: a.notes,
+      customer: a.customer
+    }));
 
     return res.status(200).json({
       success: true,
-      message: "Past appointments professionalId only",
+      message: "Past appointments (including rejected) for professionalId",
       data: response,
     });
 
@@ -1520,6 +1519,67 @@ export const getPastAppointmentsProfessionalIdOnly = async (req, res, next) => {
     next(err);
   }
 };
+
+
+// export const getPastAppointmentsProfessionalIdOnly = async (req, res, next) => {
+//   try {
+//     const ownerId = res.locals.user.id;
+
+//     // 1️⃣ Find saloon
+//     const saloon = await Saloon.findOne({ owner: ownerId });
+//     if (!saloon) return next(new AppError("Saloon not found", 404));
+
+//     // 2️⃣ Define today's date for filtering past
+//     const today = new Date();
+//     today.setHours(0, 0, 0, 0);
+
+//     // 3️⃣ Fetch all appointments for this saloon
+//     const appointments = await Appointment.find({ saloonId: saloon._id })
+//     .populate("customer.id", "name mobile")        // 🔥 Populate customer name & mobile
+//       .populate("serviceIds", "name price")          // 🔥 Populate service names & price
+      
+//       .sort({ date: -1, time: -1 });
+
+//     // 4️⃣ Filter past appointments
+//     const pastAppointments = appointments.filter(a => {
+//       const appDate = new Date(a.date);
+//       return appDate.getTime() < today.getTime();
+//     });
+
+//     // 5️⃣ Map to only professionalId
+//     const response = pastAppointments.map(a => {
+//       return {
+//         _id: a._id,
+//         bookingRef: a.bookingRef,
+//         professionalId: a.professionalId, // raw ObjectId
+//         createdAt: a.createdAt,
+//             discount:a.discount,
+//             saloonId:a.saloonId,
+//             serviceIds:a.serviceIds,
+//             date:a.date,
+//             time:a.time,
+//             duration:a.duration,
+//             price:a.price,
+//             status:a.status,
+//             discountCode:a.discountCode,
+//             discountAmount:a.discountAmount,
+//             discountCodeId:a.discountCodeId,
+//             cardstatus:a.cardstatus,
+//             notes:a.notes,
+//             customer:a.customer
+//       };
+//     });
+
+//     return res.status(200).json({
+//       success: true,
+//       message: "Past appointments professionalId only",
+//       data: response,
+//     });
+
+//   } catch (err) {
+//     next(err);
+//   }
+// };
 
 
 
