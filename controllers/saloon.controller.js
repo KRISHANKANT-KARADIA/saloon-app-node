@@ -1842,25 +1842,37 @@ export const getCumulativeDashboard = async (req, res, next) => {
 
     // 1️⃣ Get saloon
     const saloon = await Saloon.findOne({ owner: ownerId });
-    if (!saloon)
-      return res.status(404).json({ success: false, message: "Saloon not found" });
+    if (!saloon) {
+      return res.status(404).json({
+        success: false,
+        message: "Saloon not found",
+      });
+    }
 
     // 2️⃣ Get all appointments
     const appointments = await Appointment.find({ saloonId: saloon._id });
 
     const totalAppointments = appointments.length;
-    const totalPending = appointments.filter(a => a.status === "pending").length;
+    const totalPending = appointments.filter(
+      a => a.status === "pending"
+    ).length;
+
+    // ✅ confirmed statuses
+    const CONFIRMED_STATUSES = ["accepted", "completed"];
 
     // --------------------------------
-    // ⭐ TOTAL REVENUE (Final amount customer paid)
+    // ⭐ TOTAL REVENUE (ONLY CONFIRMED)
     // --------------------------------
     let totalRevenue = 0;
+
     appointments.forEach(a => {
-      totalRevenue += Number(a.price || 0);
+      if (CONFIRMED_STATUSES.includes(a.status)) {
+        totalRevenue += Number(a.price || 0);
+      }
     });
 
     // --------------------------------
-    // ⭐ GROWTH RATIO CALCULATION
+    // ⭐ DATE RANGES
     // --------------------------------
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
@@ -1877,47 +1889,135 @@ export const getCumulativeDashboard = async (req, res, next) => {
     let todayRevenue = 0;
     let yesterdayRevenue = 0;
 
+    // --------------------------------
+    // ⭐ TODAY & YESTERDAY REVENUE (ONLY CONFIRMED)
+    // --------------------------------
     appointments.forEach(a => {
+      if (!CONFIRMED_STATUSES.includes(a.status)) return;
+
       const appDate = new Date(a.date);
       const amount = Number(a.price || 0);
 
-      // Today revenue
       if (appDate >= todayStart && appDate <= todayEnd) {
         todayRevenue += amount;
       }
 
-      // Yesterday revenue
       if (appDate >= yesterdayStart && appDate <= yesterdayEnd) {
         yesterdayRevenue += amount;
       }
     });
 
-    // Formula:
-    // ((today - yesterday) / yesterday) * 100
+    // --------------------------------
+    // ⭐ GROWTH RATIO
+    // --------------------------------
     let growthRatio = 0;
 
     if (yesterdayRevenue === 0) {
       growthRatio = todayRevenue > 0 ? 100 : 0;
     } else {
-      growthRatio = ((todayRevenue - yesterdayRevenue) / yesterdayRevenue) * 100;
+      growthRatio =
+        ((todayRevenue - yesterdayRevenue) / yesterdayRevenue) * 100;
     }
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
-            saloonId: saloon._id, 
+      saloonId: saloon._id,
       totalAppointments,
       totalPending,
       totalRevenue,
       todayRevenue,
       yesterdayRevenue,
-      growthRatio: growthRatio.toFixed(2)
+      growthRatio: growthRatio.toFixed(2),
     });
 
   } catch (err) {
-    console.log(err);
+    console.error(err);
     next(err);
   }
 };
+
+// export const getCumulativeDashboard = async (req, res, next) => {
+//   try {
+//     const ownerId = res.locals.user.id;
+
+//     // 1️⃣ Get saloon
+//     const saloon = await Saloon.findOne({ owner: ownerId });
+//     if (!saloon)
+//       return res.status(404).json({ success: false, message: "Saloon not found" });
+
+//     // 2️⃣ Get all appointments
+//     const appointments = await Appointment.find({ saloonId: saloon._id });
+
+//     const totalAppointments = appointments.length;
+//     const totalPending = appointments.filter(a => a.status === "pending").length;
+
+//     // --------------------------------
+//     // ⭐ TOTAL REVENUE (Final amount customer paid)
+//     // --------------------------------
+//     let totalRevenue = 0;
+//     appointments.forEach(a => {
+//       totalRevenue += Number(a.price || 0);
+//     });
+
+//     // --------------------------------
+//     // ⭐ GROWTH RATIO CALCULATION
+//     // --------------------------------
+//     const todayStart = new Date();
+//     todayStart.setHours(0, 0, 0, 0);
+
+//     const todayEnd = new Date();
+//     todayEnd.setHours(23, 59, 59, 999);
+
+//     const yesterdayStart = new Date(todayStart);
+//     yesterdayStart.setDate(yesterdayStart.getDate() - 1);
+
+//     const yesterdayEnd = new Date(todayEnd);
+//     yesterdayEnd.setDate(yesterdayEnd.getDate() - 1);
+
+//     let todayRevenue = 0;
+//     let yesterdayRevenue = 0;
+
+//     appointments.forEach(a => {
+//       const appDate = new Date(a.date);
+//       const amount = Number(a.price || 0);
+
+//       // Today revenue
+//       if (appDate >= todayStart && appDate <= todayEnd) {
+//         todayRevenue += amount;
+//       }
+
+//       // Yesterday revenue
+//       if (appDate >= yesterdayStart && appDate <= yesterdayEnd) {
+//         yesterdayRevenue += amount;
+//       }
+//     });
+
+//     // Formula:
+//     // ((today - yesterday) / yesterday) * 100
+//     let growthRatio = 0;
+
+//     if (yesterdayRevenue === 0) {
+//       growthRatio = todayRevenue > 0 ? 100 : 0;
+//     } else {
+//       growthRatio = ((todayRevenue - yesterdayRevenue) / yesterdayRevenue) * 100;
+//     }
+
+//     res.status(200).json({
+//       success: true,
+//             saloonId: saloon._id, 
+//       totalAppointments,
+//       totalPending,
+//       totalRevenue,
+//       todayRevenue,
+//       yesterdayRevenue,
+//       growthRatio: growthRatio.toFixed(2)
+//     });
+
+//   } catch (err) {
+//     console.log(err);
+//     next(err);
+//   }
+// };
 
 
 
