@@ -320,7 +320,6 @@ AppointmentNewController.getConfirmAppointments = async (req, res, next) => {
 AppointmentNewController.getAllAppointments = async (req, res, next) => {
   try {
     const customer = res.locals.user;
-    const now = new Date();
 
     // 1️⃣ Fetch appointments
     const appointments = await Appointment.find({
@@ -331,22 +330,17 @@ AppointmentNewController.getAllAppointments = async (req, res, next) => {
       .populate('professionalId', 'name')
       .sort({ createdAt: -1 });
 
+    // 2️⃣ Loop & auto reject past appointments (date only)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Reset time to 00:00
+
     for (const appt of appointments) {
       if (appt.status === "pending") {
-        // Parse date and time
-        const { startDateTime, endDateTime } = getAppointmentDateTime(appt.date, appt.time);
-
-        // Reject if current time is past the end time
-        if (endDateTime && now > endDateTime) {
+        const appointmentDate = getAppointmentDateOnly(appt.date);
+        if (appointmentDate && appointmentDate < today) {
           appt.status = "rejected";
           await appt.save();
         }
-
-        // Parse time for frontend display
-        const { startTime, endTime, duration } = parseAppointmentTime(appt.time);
-        appt.startTime = startTime;
-        appt.endTime = endTime;
-        appt.duration = duration;
       }
     }
 
@@ -361,39 +355,18 @@ AppointmentNewController.getAllAppointments = async (req, res, next) => {
   }
 };
 
-// Convert dateStr and timeStr to JS Date objects
-const getAppointmentDateTime = (dateStr, timeStr) => {
+// Parse date string and ignore time
+const getAppointmentDateOnly = (dateStr) => {
   try {
+    // Support different formats: "Mon, Dec 15, 2025" or "2025-12-15"
     const date = new Date(dateStr);
-    if (isNaN(date.getTime())) return { startDateTime: null, endDateTime: null };
+    if (isNaN(date.getTime())) return null;
 
-    const { startTime, endTime } = parseAppointmentTime(timeStr);
-
-    const [startHour, startMin] = startTime?.split(":").map(Number) || [0, 0];
-    const [endHour, endMin] = endTime?.split(":").map(Number) || [0, 0];
-
-    const startDateTime = new Date(date.getFullYear(), date.getMonth(), date.getDate(), startHour, startMin);
-    const endDateTime = new Date(date.getFullYear(), date.getMonth(), date.getDate(), endHour, endMin);
-
-    return { startDateTime, endDateTime };
+    // Reset time to 00:00
+    date.setHours(0, 0, 0, 0);
+    return date;
   } catch (err) {
-    return { startDateTime: null, endDateTime: null };
-  }
-};
-
-// Parse time string like "12:00 - 13:00 (60 mins)"
-const parseAppointmentTime = (timeStr) => {
-  try {
-    const parts = timeStr.split("-");
-    const startTime = parts[0]?.trim() || null;
-    const endAndDuration = parts[1]?.trim() || "";
-    const durationMatch = endAndDuration.match(/\((\d+)\s*mins\)/);
-    const duration = durationMatch ? parseInt(durationMatch[1], 10) : null;
-    const endTime = endAndDuration.split("(")[0]?.trim() || null;
-
-    return { startTime, endTime, duration };
-  } catch (err) {
-    return { startTime: null, endTime: null, duration: null };
+    return null;
   }
 };
 
