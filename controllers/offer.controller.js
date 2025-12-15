@@ -371,7 +371,7 @@ export const getTrendingSaloons = async (req, res) => {
       ]),
 
   { $sort: { totalAppointments: -1 } },
-  { $limit: 5 },
+  { $limit: 25 },
 
   {
     $project: {
@@ -388,7 +388,7 @@ export const getTrendingSaloons = async (req, res) => {
 
     if (trending.length === 0) {
       // fallback — top 5 active salons
-      const fallback = await Saloon.find({ status: "active" }).limit(5);
+      const fallback = await Saloon.find({ status: "active" }).limit(25);
       return res.status(200).json({ success: true, saloons: fallback });
     }
 

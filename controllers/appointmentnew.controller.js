@@ -361,15 +361,14 @@ AppointmentNewController.getAllAppointments = async (req, res, next) => {
 
 const getAppointmentDateTime = (dateStr, timeStr) => {
   try {
-    // Example:
-    // dateStr = "Mon, Dec 15, 2025"
-    // timeStr = "11:00 - 12:00 (60 mins)"
+    // Ensure dateStr is in YYYY-MM-DD format
+    const [year, month, day] = dateStr.split("-").map(Number); // month 1-12
 
-    const startTime = timeStr.split("-")[0].trim(); // "11:00"
+    // Extract hour and minute from timeStr ("HH:mm" or "HH:mm - HH:mm (duration)")
+    const startTime = timeStr.split("-")[0].trim(); // "14:00"
+    const [hour, minute] = startTime.split(":").map(Number);
 
-    const fullDateTimeStr = `${dateStr} ${startTime}`;
-
-    const dateTime = new Date(fullDateTimeStr);
+    const dateTime = new Date(year, month - 1, day, hour, minute); // JS month is 0-indexed
 
     if (isNaN(dateTime.getTime())) return null;
 
