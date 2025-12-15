@@ -333,7 +333,7 @@ AppointmentNewController.getAllAppointments = async (req, res, next) => {
 
     // 2️⃣ Loop & auto reject past appointments
     for (const appt of appointments) {
-      if (appt.status === "PENDING" || appt.status === "CONFIRMED") {
+      if (appt.status === "pending") {
 
         // Convert date + time to Date object
         const appointmentDateTime = getAppointmentDateTime(
