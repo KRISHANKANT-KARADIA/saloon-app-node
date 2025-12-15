@@ -342,7 +342,7 @@ AppointmentNewController.getAllAppointments = async (req, res, next) => {
         );
 
         if (appointmentDateTime && appointmentDateTime < now) {
-          appt.status = "REJECTED";
+          appt.status = "rejected";
           await appt.save();
         }
       }
