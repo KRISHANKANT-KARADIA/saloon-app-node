@@ -1870,8 +1870,6 @@ export const getAllAppointmentsFull = async (req, res, next) => {
 //     next(err);
 //   }
 // };
-
-
 export const getCumulativeDashboard = async (req, res, next) => {
   try {
     const ownerId = res.locals.user.id;
@@ -1889,20 +1887,21 @@ export const getCumulativeDashboard = async (req, res, next) => {
     const appointments = await Appointment.find({ saloonId: saloon._id });
 
     const totalAppointments = appointments.length;
+
     const totalPending = appointments.filter(
       a => a.status === "pending"
     ).length;
 
-    // ✅ confirmed statuses
-    const CONFIRMED_STATUSES = ["accepted", "completed"];
+    // ✅ ONLY CONFIRMED
+    const CONFIRMED_STATUS = "confirmed";
 
     // --------------------------------
-    // ⭐ TOTAL REVENUE (ONLY CONFIRMED)
+    // ⭐ TOTAL REVENUE (CONFIRMED ONLY)
     // --------------------------------
     let totalRevenue = 0;
 
     appointments.forEach(a => {
-      if (CONFIRMED_STATUSES.includes(a.status)) {
+      if (a.status === CONFIRMED_STATUS) {
         totalRevenue += Number(a.price || 0);
       }
     });
@@ -1926,18 +1925,20 @@ export const getCumulativeDashboard = async (req, res, next) => {
     let yesterdayRevenue = 0;
 
     // --------------------------------
-    // ⭐ TODAY & YESTERDAY REVENUE (ONLY CONFIRMED)
+    // ⭐ TODAY & YESTERDAY REVENUE (CONFIRMED ONLY)
     // --------------------------------
     appointments.forEach(a => {
-      if (!a.status==="confirmed") return;
+      if (a.status !== CONFIRMED_STATUS) return;
 
       const appDate = new Date(a.date);
       const amount = Number(a.price || 0);
 
+      // Today
       if (appDate >= todayStart && appDate <= todayEnd) {
         todayRevenue += amount;
       }
 
+      // Yesterday
       if (appDate >= yesterdayStart && appDate <= yesterdayEnd) {
         yesterdayRevenue += amount;
       }
@@ -1971,6 +1972,107 @@ export const getCumulativeDashboard = async (req, res, next) => {
     next(err);
   }
 };
+
+
+// export const getCumulativeDashboard = async (req, res, next) => {
+//   try {
+//     const ownerId = res.locals.user.id;
+
+//     // 1️⃣ Get saloon
+//     const saloon = await Saloon.findOne({ owner: ownerId });
+//     if (!saloon) {
+//       return res.status(404).json({
+//         success: false,
+//         message: "Saloon not found",
+//       });
+//     }
+
+//     // 2️⃣ Get all appointments
+//     const appointments = await Appointment.find({ saloonId: saloon._id });
+
+//     const totalAppointments = appointments.length;
+//     const totalPending = appointments.filter(
+//       a => a.status === "pending"
+//     ).length;
+
+//     // ✅ confirmed statuses
+//     const CONFIRMED_STATUSES = ["accepted", "completed"];
+
+//     // --------------------------------
+//     // ⭐ TOTAL REVENUE (ONLY CONFIRMED)
+//     // --------------------------------
+//     let totalRevenue = 0;
+
+//     appointments.forEach(a => {
+//       if (CONFIRMED_STATUSES.includes(a.status)) {
+//         totalRevenue += Number(a.price || 0);
+//       }
+//     });
+
+//     // --------------------------------
+//     // ⭐ DATE RANGES
+//     // --------------------------------
+//     const todayStart = new Date();
+//     todayStart.setHours(0, 0, 0, 0);
+
+//     const todayEnd = new Date();
+//     todayEnd.setHours(23, 59, 59, 999);
+
+//     const yesterdayStart = new Date(todayStart);
+//     yesterdayStart.setDate(yesterdayStart.getDate() - 1);
+
+//     const yesterdayEnd = new Date(todayEnd);
+//     yesterdayEnd.setDate(yesterdayEnd.getDate() - 1);
+
+//     let todayRevenue = 0;
+//     let yesterdayRevenue = 0;
+
+//     // --------------------------------
+//     // ⭐ TODAY & YESTERDAY REVENUE (ONLY CONFIRMED)
+//     // --------------------------------
+//     appointments.forEach(a => {
+//       if (!a.status==="confirmed") return;
+
+//       const appDate = new Date(a.date);
+//       const amount = Number(a.price || 0);
+
+//       if (appDate >= todayStart && appDate <= todayEnd) {
+//         todayRevenue += amount;
+//       }
+
+//       if (appDate >= yesterdayStart && appDate <= yesterdayEnd) {
+//         yesterdayRevenue += amount;
+//       }
+//     });
+
+//     // --------------------------------
+//     // ⭐ GROWTH RATIO
+//     // --------------------------------
+//     let growthRatio = 0;
+
+//     if (yesterdayRevenue === 0) {
+//       growthRatio = todayRevenue > 0 ? 100 : 0;
+//     } else {
+//       growthRatio =
+//         ((todayRevenue - yesterdayRevenue) / yesterdayRevenue) * 100;
+//     }
+
+//     return res.status(200).json({
+//       success: true,
+//       saloonId: saloon._id,
+//       totalAppointments,
+//       totalPending,
+//       totalRevenue,
+//       todayRevenue,
+//       yesterdayRevenue,
+//       growthRatio: growthRatio.toFixed(2),
+//     });
+
+//   } catch (err) {
+//     console.error(err);
+//     next(err);
+//   }
+// };
 
 // export const getCumulativeDashboard = async (req, res, next) => {
 //   try {
