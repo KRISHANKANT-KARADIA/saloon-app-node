@@ -435,74 +435,142 @@ router.get('/saloon/fetch/top/twenty/public', async (req, res, next) => {
   }
 });
 
+router.get(
+  "/saloon/fetch/top/twenty/public/city",
+  async (req, res, next) => {
+    try {
+      const { city } = req.query;
 
-router.get('/saloon/fetch/top/twenty/public/city', async (req, res, next) => {
-  try {
-    const { city } = req.query;
+      if (!city) {
+        return res.status(400).json({
+          success: false,
+          message: "City query is required",
+        });
+      }
 
-    if (!city) {
-      return res.status(400).json({
-        success: false,
-        message: "City query is required",
-      });
-    }
+      // 1️⃣ Find locations having city in address
+      const locations = await Location.find({
+        address1: { $regex: city, $options: "i" },
+      }).select("owner address1 city");
 
-    // 1️⃣ Find locations matching city (Jaipur)
-    const locations = await Location.find({
-      address1: { $regex: city, $options: "i" }, // Jaipur anywhere in address
-    }).select("saloon owner city address1");
+      if (!locations.length) {
+        return res.json({
+          success: true,
+          message: `No saloons found in ${city}`,
+          count: 0,
+          saloons: [],
+          locations: [],
+        });
+      }
 
-    if (!locations.length) {
+      // 2️⃣ Extract OWNER IDS (IMPORTANT FIX)
+      const ownerIds = locations.map(loc => loc.owner);
+
+      // 3️⃣ Fetch saloons by owner
+      const saloons = await Saloon.find({
+        owner: { $in: ownerIds },
+      })
+        .sort({ createdAt: -1 })
+        .limit(20)
+        .select("name logo rating owner description operatingHours");
+
+      // 4️⃣ Attach logo URL
+      const saloonsWithLogo = saloons.map(saloon => ({
+        _id: saloon._id,
+        name: saloon.name,
+        logo: saloon.logo
+          ? saloon.logo.startsWith("http")
+            ? saloon.logo
+            : `https://saloon-app-node-50470848550.asia-south1.run.app/uploads/saloon/${saloon.logo}`
+          : `https://saloon-app-node-50470848550.asia-south1.run.app/default-logo.jpg`,
+        rating: saloon.rating || null,
+        owner: saloon.owner,
+        description: saloon.description || null,
+        operatingHours: saloon.operatingHours || null,
+      }));
+
       return res.json({
         success: true,
-        message: "No saloons found for this city",
-        count: 0,
-        saloons: [],
-        locations: [],
+        message: `Top saloons in ${city}`,
+        count: saloonsWithLogo.length,
+        saloons: saloonsWithLogo,
+        locations,
       });
+    } catch (error) {
+      console.error("City wise saloon error:", error);
+      next(error);
     }
-
-    // 2️⃣ Extract saloon IDs
-    const saloonIds = locations
-      .map(loc => loc.saloon)
-      .filter(Boolean);
-
-    // 3️⃣ Fetch saloons
-    const saloons = await Saloon.find({
-      _id: { $in: saloonIds },
-    })
-      .sort({ createdAt: -1 })
-      .limit(20)
-      .select("name logo rating owner description operatingHours");
-
-    // 4️⃣ Attach full logo
-    const saloonsWithLogo = saloons.map(saloon => ({
-      _id: saloon._id,
-      name: saloon.name,
-      logo: saloon.logo
-        ? saloon.logo.startsWith("http")
-          ? saloon.logo
-          : `https://saloon-app-node-50470848550.asia-south1.run.app/uploads/saloon/${saloon.logo}`
-        : `https://saloon-app-node-50470848550.asia-south1.run.app/default-logo.jpg`,
-      rating: saloon.rating || null,
-      owner: saloon.owner || null,
-      description: saloon.description || null,
-      operatingHours: saloon.operatingHours || null,
-    }));
-
-    res.json({
-      success: true,
-      message: `Top saloons in ${city}`,
-      count: saloonsWithLogo.length,
-      saloons: saloonsWithLogo,
-      locations,
-    });
-
-  } catch (error) {
-    console.error("City wise saloon error:", error);
-    next(error);
   }
-});
+);
+
+
+// router.get('/saloon/fetch/top/twenty/public/city', async (req, res, next) => {
+//   try {
+//     const { city } = req.query;
+
+//     if (!city) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "City query is required",
+//       });
+//     }
+
+//     // 1️⃣ Find locations matching city (Jaipur)
+//     const locations = await Location.find({
+//       address1: { $regex: city, $options: "i" }, // Jaipur anywhere in address
+//     }).select("saloon owner city address1");
+
+//     if (!locations.length) {
+//       return res.json({
+//         success: true,
+//         message: "No saloons found for this city",
+//         count: 0,
+//         saloons: [],
+//         locations: [],
+//       });
+//     }
+
+//     // 2️⃣ Extract saloon IDs
+//     const saloonIds = locations
+//       .map(loc => loc.saloon)
+//       .filter(Boolean);
+
+//     // 3️⃣ Fetch saloons
+//     const saloons = await Saloon.find({
+//       _id: { $in: saloonIds },
+//     })
+//       .sort({ createdAt: -1 })
+//       .limit(20)
+//       .select("name logo rating owner description operatingHours");
+
+//     // 4️⃣ Attach full logo
+//     const saloonsWithLogo = saloons.map(saloon => ({
+//       _id: saloon._id,
+//       name: saloon.name,
+//       logo: saloon.logo
+//         ? saloon.logo.startsWith("http")
+//           ? saloon.logo
+//           : `https://saloon-app-node-50470848550.asia-south1.run.app/uploads/saloon/${saloon.logo}`
+//         : `https://saloon-app-node-50470848550.asia-south1.run.app/default-logo.jpg`,
+//       rating: saloon.rating || null,
+//       owner: saloon.owner || null,
+//       description: saloon.description || null,
+//       operatingHours: saloon.operatingHours || null,
+//     }));
+
+//     res.json({
+//       success: true,
+//       message: `Top saloons in ${city}`,
+//       count: saloonsWithLogo.length,
+//       saloons: saloonsWithLogo,
+//       locations,
+//     });
+
+//   } catch (error) {
+//     console.error("City wise saloon error:", error);
+//     next(error);
+//   }
+// });
 
 
 
