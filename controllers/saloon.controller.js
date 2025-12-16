@@ -1818,6 +1818,84 @@ export const getTodaysAppointmentsFull = async (req, res, next) => {
 };
 
 
+export const getTodaysAppointmentsFull = async (req, res, next) => {
+  try {
+    const ownerId = res.locals.user.id;
+
+    // 1️⃣ Find saloon
+    const saloon = await Saloon.findOne({ owner: ownerId });
+    if (!saloon) {
+      return res.status(404).json({
+        success: false,
+        message: "Saloon not found",
+      });
+    }
+
+    // 2️⃣ Today's date (date only)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // 3️⃣ Fetch all appointments of this saloon
+    const appointments = await Appointment.find({
+      saloonId: saloon._id,
+    })
+      .populate("customer.id", "name mobile")
+      .populate("serviceIds", "name price")
+      .populate("professionalId", "name");
+
+    // 4️⃣ Filter ONLY today's appointments (string-safe)
+    const todaysAppointments = appointments.filter(a => {
+      if (!a.date) return false;
+
+      // "Mon, Dec 15, 2025" ➜ safe Date
+      const appDate = new Date(a.date.replace(/,/g, ""));
+      appDate.setHours(0, 0, 0, 0);
+
+      return appDate.getTime() === today.getTime();
+    });
+
+    // 5️⃣ Sort by start time
+    todaysAppointments.sort((a, b) =>
+      (a.time || "").localeCompare(b.time || "")
+    );
+
+    // 6️⃣ Map response (ALL STATUSES)
+    const response = todaysAppointments.map(a => ({
+      _id: a._id,
+      bookingRef: a.bookingRef,
+      professionalId: a.professionalId?._id || a.professionalId,
+      professionalName: a.professionalId?.name || "Not Assigned",
+      createdAt: a.createdAt,
+      discount: a.discount,
+      saloonId: a.saloonId,
+      serviceIds: a.serviceIds,
+      date: a.date,
+      time: a.time,
+      duration: a.duration,
+      price: a.price,
+      status: a.status, // ✅ pending, confirmed, rejected, cancelled — ALL
+      discountCode: a.discountCode,
+      discountAmount: a.discountAmount,
+      discountCodeId: a.discountCodeId,
+      cardstatus: a.cardstatus,
+      notes: a.notes,
+      customer: a.customer,
+    }));
+
+    return res.status(200).json({
+      success: true,
+      message: "Today's appointments (all statuses)",
+      count: response.length,
+      data: response,
+    });
+
+  } catch (err) {
+    console.error(err);
+    next(err);
+  }
+};
+
+
 
 export const getAllAppointmentsFull = async (req, res, next) => {
   try {
