@@ -189,10 +189,14 @@ const __dirname = path.resolve();
 //   fallthrough: true,
 // }));
 // app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
-app.use(
-  "/uploads",
-  express.static(path.resolve(process.cwd(), "uploads"))
-);
+// app.use(
+//   "/uploads",
+//   express.static(path.resolve(process.cwd(), "uploads"))
+  
+// );
+
+
+app.use("/uploads", express.static("uploads"));
 app.use("/api/reports", express.static(path.join(process.cwd(), "public/reports")));
 app.use('/public', express.static('public'));
 // MIDDLEWARES ----------------------------------------------------
