@@ -3163,7 +3163,7 @@ export const registerSaloon = async (req, res) => {
       saloon: {
         ...saloon._doc,
         logo: saloon.logo
-          ? `${IMAGE_BASE_URL}/${saloon.logo}`
+          ? `${IMAGE_BASE_URL1}/${saloon.logo}`
           : null,
       },
     });
