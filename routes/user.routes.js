@@ -436,6 +436,61 @@ router.get('/saloon/fetch/top/twenty/public', async (req, res, next) => {
 });
 
 
+router.get('/saloon/fetch/top/twenty/public/city', async (req, res, next) => {
+  try {
+    const { city } = req.query;
+
+    // 🔹 City filter
+    const filter = {};
+    if (city) {
+      filter.city = { $regex: new RegExp(`^${city}$`, 'i') }; // case-insensitive
+    }
+
+    // 🔹 Fetch top 20 latest saloons city-wise
+    const saloons = await Saloon.find(filter)
+      .sort({ createdAt: -1 })
+      .limit(20)
+      .select("name logo rating city owner description operatingHours");
+
+    const saloonsWithLogo = saloons.map(saloon => ({
+      _id: saloon._id,
+      name: saloon.name,
+      logo: saloon.logo
+        ? saloon.logo.startsWith('http')
+          ? saloon.logo
+          : `https://saloon-app-node-50470848550.asia-south1.run.app/uploads/saloon/${saloon.logo}`
+        : `https://saloon-app-node-50470848550.asia-south1.run.app/default-logo.jpg`,
+      rating: saloon.rating || null,
+      city: saloon.city || null,
+      owner: saloon.owner || null,
+      description: saloon.description || null,
+      operatingHours: saloon.operatingHours || null,
+    }));
+
+    // 🔹 Fetch locations of same city saloons
+    const saloonIds = saloons.map(s => s._id);
+
+    const locations = await Location.find({
+      saloon: { $in: saloonIds }
+    })
+      .select("_id owner address1 city lat long saloon");
+
+    res.json({
+      success: true,
+      message: city
+        ? `Top 20 saloons in ${city}`
+        : 'Top 20 saloons fetched successfully',
+      count: saloonsWithLogo.length,
+      saloons: saloonsWithLogo,
+      locations
+    });
+
+  } catch (error) {
+    console.error('Error fetching saloons:', error);
+    next(error);
+  }
+});
+
 
 
 router.post('/owner/location', AuthMiddlewares.checkAuth, addSaloonLocation);
