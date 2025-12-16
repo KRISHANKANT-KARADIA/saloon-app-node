@@ -3128,8 +3128,13 @@ export const registerSaloon = async (req, res) => {
       });
     }
 
+    const BASE_URL = "https://saloon-app-node-50470848550.asia-south1.run.app";
+
+const logo = req.file
+  ? `${BASE_URL}/uploads/saloon/${req.file.filename}`
+  : null;
     // ✅ Always save RELATIVE PATH in DB
-    const logo = req.file ? `saloon/${req.file.filename}` : null;
+    // const logo = req.file ? `saloon/${req.file.filename}` : null;
 
     let saloon = await Saloon.findOne({ owner: ownerId });
 
@@ -3156,6 +3161,7 @@ export const registerSaloon = async (req, res) => {
     await ownerModel.findByIdAndUpdate(ownerId, {
       owner_state_status: 4,
     });
+    
 
     return res.status(201).json({
       success: true,
