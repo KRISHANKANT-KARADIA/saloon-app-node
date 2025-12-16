@@ -1831,11 +1831,12 @@ export const getTodaysAppointmentsFull = async (req, res, next) => {
       });
     }
 
-    // 2️⃣ Today's date (date only)
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    // 2️⃣ TODAY STRING (same format as DB)
+    // Example: "Mon, Dec 15, 2025"
+    const todayStr = new Date().toDateString(); 
+    // "Mon Dec 15 2025"
 
-    // 3️⃣ Fetch all appointments of this saloon
+    // 3️⃣ Fetch all appointments
     const appointments = await Appointment.find({
       saloonId: saloon._id,
     })
@@ -1843,23 +1844,20 @@ export const getTodaysAppointmentsFull = async (req, res, next) => {
       .populate("serviceIds", "name price")
       .populate("professionalId", "name");
 
-    // 4️⃣ Filter ONLY today's appointments (string-safe)
+    // 4️⃣ FILTER ONLY TODAY (STRING MATCH)
     const todaysAppointments = appointments.filter(a => {
       if (!a.date) return false;
 
-      // "Mon, Dec 15, 2025" ➜ safe Date
-      const appDate = new Date(a.date.replace(/,/g, ""));
-      appDate.setHours(0, 0, 0, 0);
-
-      return appDate.getTime() === today.getTime();
+      const appDateStr = new Date(a.date).toDateString();
+      return appDateStr === todayStr;
     });
 
-    // 5️⃣ Sort by start time
+    // 5️⃣ Sort by time
     todaysAppointments.sort((a, b) =>
       (a.time || "").localeCompare(b.time || "")
     );
 
-    // 6️⃣ Map response (ALL STATUSES)
+    // 6️⃣ Map response (ALL statuses)
     const response = todaysAppointments.map(a => ({
       _id: a._id,
       bookingRef: a.bookingRef,
@@ -1873,7 +1871,7 @@ export const getTodaysAppointmentsFull = async (req, res, next) => {
       time: a.time,
       duration: a.duration,
       price: a.price,
-      status: a.status, // ✅ pending, confirmed, rejected, cancelled — ALL
+      status: a.status, // ✅ pending / confirmed / rejected / cancelled
       discountCode: a.discountCode,
       discountAmount: a.discountAmount,
       discountCodeId: a.discountCodeId,
@@ -1894,6 +1892,7 @@ export const getTodaysAppointmentsFull = async (req, res, next) => {
     next(err);
   }
 };
+
 
 
 
