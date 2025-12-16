@@ -1678,35 +1678,110 @@ export const getRejectedAppointments = async (req, res, next) => {
 
 
 
+// export const getTodaysAppointmentsFull = async (req, res, next) => {
+//   try {
+//     const ownerId = res.locals.user.id;
+
+//     // 1️⃣ Find saloon
+//     const saloon = await Saloon.findOne({ owner: ownerId });
+//     if (!saloon) return next(new AppError("Saloon not found", 404));
+
+//     // 2️⃣ Define start and end of today
+//     const todayStart = new Date();
+//     todayStart.setHours(0, 0, 0, 0);
+
+//     const todayEnd = new Date();
+//     todayEnd.setHours(23, 59, 59, 999);
+
+//     // 3️⃣ Fetch appointments for today
+//     const appointments = await Appointment.find({
+//       saloonId: saloon._id,
+//       date: { $gte: todayStart.toISOString(), $lte: todayEnd.toISOString() }
+//     })
+
+    
+//     .populate("customer.id", "name mobile")
+//     .populate("serviceIds", "name price")
+//     .populate("professionalId", "name")
+//     .sort({ time: 1 });
+
+//     // 4️⃣ Map full details
+//     const response = appointments.map(a => ({
+//       _id: a._id,
+//       bookingRef: a.bookingRef,
+//       professionalId: a.professionalId?._id || a.professionalId,
+//       professionalName: a.professionalId?.name || "Not Assigned",
+//       createdAt: a.createdAt,
+//       discount: a.discount,
+//       saloonId: a.saloonId,
+//       serviceIds: a.serviceIds,
+//       date: a.date,
+//       time: a.time,
+//       duration: a.duration,
+//       price: a.price,
+//       status: a.status,
+//       discountCode: a.discountCode,
+//       discountAmount: a.discountAmount,
+//       discountCodeId: a.discountCodeId,
+//       cardstatus: a.cardstatus,
+//       notes: a.notes,
+//       customer: a.customer
+//     }));
+
+//     return res.status(200).json({
+//       success: true,
+//       message: "Today's appointments",
+//       data: response
+//     });
+
+//   } catch (err) {
+//     next(err);
+//   }
+// };
+
+
 export const getTodaysAppointmentsFull = async (req, res, next) => {
   try {
     const ownerId = res.locals.user.id;
 
     // 1️⃣ Find saloon
     const saloon = await Saloon.findOne({ owner: ownerId });
-    if (!saloon) return next(new AppError("Saloon not found", 404));
+    if (!saloon) {
+      return res.status(404).json({
+        success: false,
+        message: "Saloon not found",
+      });
+    }
 
-    // 2️⃣ Define start and end of today
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
+    // 2️⃣ Define today's date (ONLY DATE, NO TIME)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-    const todayEnd = new Date();
-    todayEnd.setHours(23, 59, 59, 999);
-
-    // 3️⃣ Fetch appointments for today
+    // 3️⃣ Fetch ALL appointments of this saloon
     const appointments = await Appointment.find({
       saloonId: saloon._id,
-      date: { $gte: todayStart.toISOString(), $lte: todayEnd.toISOString() }
     })
+      .populate("customer.id", "name mobile")
+      .populate("serviceIds", "name price")
+      .populate("professionalId", "name");
 
-    
-    .populate("customer.id", "name mobile")
-    .populate("serviceIds", "name price")
-    .populate("professionalId", "name")
-    .sort({ time: 1 });
+    // 4️⃣ Filter ONLY today's appointments (STRING SAFE)
+    const todaysAppointments = appointments.filter(a => {
+      if (!a.date) return false;
 
-    // 4️⃣ Map full details
-    const response = appointments.map(a => ({
+      const appDate = new Date(a.date);
+      appDate.setHours(0, 0, 0, 0);
+
+      return appDate.getTime() === today.getTime();
+    });
+
+    // 5️⃣ Sort by time
+    todaysAppointments.sort((a, b) => {
+      return (a.time || "").localeCompare(b.time || "");
+    });
+
+    // 6️⃣ Map full response
+    const response = todaysAppointments.map(a => ({
       _id: a._id,
       bookingRef: a.bookingRef,
       professionalId: a.professionalId?._id || a.professionalId,
@@ -1719,19 +1794,20 @@ export const getTodaysAppointmentsFull = async (req, res, next) => {
       time: a.time,
       duration: a.duration,
       price: a.price,
-      status: a.status,
+      status: a.status,          // ✅ pending WILL SHOW
       discountCode: a.discountCode,
       discountAmount: a.discountAmount,
       discountCodeId: a.discountCodeId,
       cardstatus: a.cardstatus,
       notes: a.notes,
-      customer: a.customer
+      customer: a.customer,
     }));
 
     return res.status(200).json({
       success: true,
       message: "Today's appointments",
-      data: response
+      count: response.length,
+      data: response,
     });
 
   } catch (err) {
@@ -2237,7 +2313,7 @@ export const getTodayRevenue = async (req, res, next) => {
     // 2️⃣ Fetch today's completed appointments
     const appointments = await Appointment.find({
       saloonId: saloon._id,
-      status: "completed", // ya "paid", jo bhi aapke schema me hai
+      status: "confirmed", // ya "paid", jo bhi aapke schema me hai
       date: { $gte: todayStart, $lte: todayEnd },
     }).populate("serviceIds", "price");
 
