@@ -1459,9 +1459,7 @@ export const getDashboardData = async (req, res, next) => {
 };
 
 
-import Appointment from "../models/Appointment.js";
-import Saloon from "../models/Saloon.js";
-import AppError from "../utils/AppError.js";
+
 
 // export const getPastAppointmentsProfessionalIdOnly = async (req, res, next) => {
 //   try {
@@ -1831,12 +1829,11 @@ export const getTodaysAppointmentsFull = async (req, res, next) => {
       });
     }
 
-    // 2️⃣ TODAY STRING (same format as DB)
-    // Example: "Mon, Dec 15, 2025"
-    const todayStr = new Date().toDateString(); 
-    // "Mon Dec 15 2025"
+    // 2️⃣ Today's date (date only)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-    // 3️⃣ Fetch all appointments
+    // 3️⃣ Fetch all appointments of this saloon
     const appointments = await Appointment.find({
       saloonId: saloon._id,
     })
@@ -1844,20 +1841,23 @@ export const getTodaysAppointmentsFull = async (req, res, next) => {
       .populate("serviceIds", "name price")
       .populate("professionalId", "name");
 
-    // 4️⃣ FILTER ONLY TODAY (STRING MATCH)
+    // 4️⃣ Filter ONLY today's appointments (string-safe)
     const todaysAppointments = appointments.filter(a => {
       if (!a.date) return false;
 
-      const appDateStr = new Date(a.date).toDateString();
-      return appDateStr === todayStr;
+      // "Mon, Dec 15, 2025" ➜ safe Date
+      const appDate = new Date(a.date.replace(/,/g, ""));
+      appDate.setHours(0, 0, 0, 0);
+
+      return appDate.getTime() === today.getTime();
     });
 
-    // 5️⃣ Sort by time
+    // 5️⃣ Sort by start time
     todaysAppointments.sort((a, b) =>
       (a.time || "").localeCompare(b.time || "")
     );
 
-    // 6️⃣ Map response (ALL statuses)
+    // 6️⃣ Map response (ALL STATUSES)
     const response = todaysAppointments.map(a => ({
       _id: a._id,
       bookingRef: a.bookingRef,
@@ -1871,7 +1871,7 @@ export const getTodaysAppointmentsFull = async (req, res, next) => {
       time: a.time,
       duration: a.duration,
       price: a.price,
-      status: a.status, // ✅ pending / confirmed / rejected / cancelled
+      status: a.status, // ✅ pending, confirmed, rejected, cancelled — ALL
       discountCode: a.discountCode,
       discountAmount: a.discountAmount,
       discountCodeId: a.discountCodeId,
@@ -1892,7 +1892,6 @@ export const getTodaysAppointmentsFull = async (req, res, next) => {
     next(err);
   }
 };
-
 
 
 
@@ -2128,105 +2127,6 @@ export const getAllAppointmentsFull = async (req, res, next) => {
 //     next(err);
 //   }
 // };
-export const getCumulativeDashboard = async (req, res, next) => {
-  try {
-    const ownerId = res.locals.user.id;
-
-    // 1️⃣ Get saloon
-    const saloon = await Saloon.findOne({ owner: ownerId });
-    if (!saloon) {
-      return res.status(404).json({
-        success: false,
-        message: "Saloon not found",
-      });
-    }
-
-    // 2️⃣ Get all appointments
-    const appointments = await Appointment.find({ saloonId: saloon._id });
-
-    const totalAppointments = appointments.length;
-
-    const totalPending = appointments.filter(
-      a => a.status === "pending"
-    ).length;
-
-    // ✅ ONLY COMPLETED
-    const CONFIRMED_STATUS = "completed";
-
-    // --------------------------------
-    // ⭐ TOTAL REVENUE (ALL COMPLETED)
-    // --------------------------------
-    let totalRevenue = 0;
-
-    appointments.forEach(a => {
-      if (a.status === CONFIRMED_STATUS) {
-        totalRevenue += Number(a.price || 0);
-      }
-    });
-
-    // --------------------------------
-    // ⭐ TODAY & YESTERDAY (DATE ONLY)
-    // --------------------------------
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-
-    let todayRevenue = 0;
-    let yesterdayRevenue = 0;
-
-    // --------------------------------
-    // ⭐ TODAY & YESTERDAY REVENUE (COMPLETED ONLY)
-    // --------------------------------
-    appointments.forEach(a => {
-      if (a.status !== CONFIRMED_STATUS || !a.date) return;
-
-      // 🔥 STRING SAFE DATE PARSE
-      const appDate = new Date(a.date.replace(/,/g, ""));
-      appDate.setHours(0, 0, 0, 0);
-
-      const amount = Number(a.price || 0);
-
-      // Today revenue
-      if (appDate.getTime() === today.getTime()) {
-        todayRevenue += amount;
-      }
-
-      // Yesterday revenue
-      if (appDate.getTime() === yesterday.getTime()) {
-        yesterdayRevenue += amount;
-      }
-    });
-
-    // --------------------------------
-    // ⭐ GROWTH RATIO
-    // --------------------------------
-    let growthRatio = 0;
-
-    if (yesterdayRevenue === 0) {
-      growthRatio = todayRevenue > 0 ? 100 : 0;
-    } else {
-      growthRatio =
-        ((todayRevenue - yesterdayRevenue) / yesterdayRevenue) * 100;
-    }
-
-    return res.status(200).json({
-      success: true,
-      saloonId: saloon._id,
-      totalAppointments,
-      totalPending,
-      totalRevenue,       // 🔥 all completed
-      todayRevenue,       // 🔥 ONLY TODAY completed
-      yesterdayRevenue,
-      growthRatio: growthRatio.toFixed(2),
-    });
-
-  } catch (err) {
-    console.error(err);
-    next(err);
-  }
-};
 
 
 // export const getCumulativeDashboard = async (req, res, next) => {
@@ -2412,6 +2312,105 @@ export const getCumulativeDashboard = async (req, res, next) => {
 //   }
 // };
 
+export const getCumulativeDashboard = async (req, res, next) => {
+  try {
+    const ownerId = res.locals.user.id;
+
+    // 1️⃣ Get saloon
+    const saloon = await Saloon.findOne({ owner: ownerId });
+    if (!saloon) {
+      return res.status(404).json({
+        success: false,
+        message: "Saloon not found",
+      });
+    }
+
+    // 2️⃣ Get all appointments
+    const appointments = await Appointment.find({ saloonId: saloon._id });
+
+    const totalAppointments = appointments.length;
+
+    const totalPending = appointments.filter(
+      a => a.status === "pending"
+    ).length;
+
+    // ✅ ONLY COMPLETED
+    const CONFIRMED_STATUS = "completed";
+
+    // --------------------------------
+    // ⭐ TOTAL REVENUE (ALL COMPLETED)
+    // --------------------------------
+    let totalRevenue = 0;
+
+    appointments.forEach(a => {
+      if (a.status === CONFIRMED_STATUS) {
+        totalRevenue += Number(a.price || 0);
+      }
+    });
+
+    // --------------------------------
+    // ⭐ TODAY & YESTERDAY (DATE ONLY)
+    // --------------------------------
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    let todayRevenue = 0;
+    let yesterdayRevenue = 0;
+
+    // --------------------------------
+    // ⭐ TODAY & YESTERDAY REVENUE (COMPLETED ONLY)
+    // --------------------------------
+    appointments.forEach(a => {
+      if (a.status !== CONFIRMED_STATUS || !a.date) return;
+
+      // 🔥 STRING SAFE DATE PARSE
+      const appDate = new Date(a.date.replace(/,/g, ""));
+      appDate.setHours(0, 0, 0, 0);
+
+      const amount = Number(a.price || 0);
+
+      // Today revenue
+      if (appDate.getTime() === today.getTime()) {
+        todayRevenue += amount;
+      }
+
+      // Yesterday revenue
+      if (appDate.getTime() === yesterday.getTime()) {
+        yesterdayRevenue += amount;
+      }
+    });
+
+    // --------------------------------
+    // ⭐ GROWTH RATIO
+    // --------------------------------
+    let growthRatio = 0;
+
+    if (yesterdayRevenue === 0) {
+      growthRatio = todayRevenue > 0 ? 100 : 0;
+    } else {
+      growthRatio =
+        ((todayRevenue - yesterdayRevenue) / yesterdayRevenue) * 100;
+    }
+
+    return res.status(200).json({
+      success: true,
+      saloonId: saloon._id,
+      totalAppointments,
+      totalPending,
+      totalRevenue,       // 🔥 all completed
+      todayRevenue,       // 🔥 ONLY TODAY completed
+      yesterdayRevenue,
+      growthRatio: growthRatio.toFixed(2),
+    });
+
+  } catch (err) {
+    console.error(err);
+    next(err);
+  }
+};
 
 
 // export const getCumulativeDashboard = async (req, res, next) => {
