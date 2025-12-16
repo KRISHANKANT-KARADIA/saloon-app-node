@@ -1972,7 +1972,7 @@ export const getCumulativeDashboard = async (req, res, next) => {
     ).length;
 
     // ✅ ONLY CONFIRMED
-    const CONFIRMED_STATUS = "confirmed";
+    const CONFIRMED_STATUS = "completed";
 
     // --------------------------------
     // ⭐ TOTAL REVENUE (CONFIRMED ONLY)
