@@ -1,44 +1,3 @@
-
-// Create a new user
-// export const createUser = async (req, res) => {
-//   try {
-//     const { mobile, username, email } = req.body;
-
-//     if (!mobile) {
-//       return res.status(400).json({ success: false, message: 'Mobile number is required' });
-//     }
-
-//     const user = new User({ mobile, username, email });
-//     await user.save();
-
-//     res.status(201).json({ success: true, message: 'User created', user });
-//   } catch (err) {
-//     console.error('Create user error:', err);
-//     res.status(500).json({ success: false, error: 'Internal server error' });
-//   }
-// };
-
-// // Get all users
-// export const getAllUsers = async (req, res) => {
-//   try {
-//     const users = await User.find().sort({ createdAt: -1 });
-//     res.json({ success: true, count: users.length, users });
-//   } catch (err) {
-//     console.error('Get users error:', err);
-//     res.status(500).json({ success: false, error: 'Internal server error' });
-//   }
-// };
-
-
-
-
-
-
-// Create new user
-
-
-
-
 import Owner from '../models/owner.model.js'; 
 
 
@@ -84,29 +43,6 @@ export const createUser = async (req, res, next) => {
     next(error);
   }
 };
-
-
-
-
-// Get all users
-// controllers/user.controller.js
-
-
-// export const getAllUsers = async (req, res, next) => {
-//   try {
-//     console.log('Request user:', res.locals.user); // debug who is requesting
-
-//     const users = await User.find().sort({ createdAt: -1 });
-
-//     res.status(200).json({
-//       success: true,
-//       count: users.length,
-//       users
-//     });
-//   } catch (error) {
-//     next(error);
-//   }
-// };
 
 
 
@@ -226,33 +162,3 @@ export const getRegisteredMobileNumber = async (req, res, next) => {
     next(err);
   }
 };
-
-// export const getMySaloonProfile = async (req, res, next) => {
-//   try {
-//     const { id } = res.locals.user;
-
-//     if (!id) {
-//       return res.status(401).json({ success: false, message: 'Unauthorized: no user ID found' });
-//     }
-
-//     const saloon = await User.findById(id).select('-__v -updatedAt');
-
-//     if (!saloon || saloon.role !== 'owner') {
-//       return res.status(403).json({ success: false, message: 'Access denied: only owners can access this endpoint' });
-//     }
-
-//     res.json({
-//       success: true,
-//       saloon: {
-//         ...saloon.toObject(),
-//         registrationDate: saloon.createdAt
-//       }
-//     });
-//   } catch (error) {
-//     next(error);
-//   }
-// };
-
-
-
-

@@ -90,8 +90,7 @@ export const verifyOtp = async (req, res, next) => {
 };
 
 export const logoutCustomer = (req, res) => {
-  // Since JWT is stateless, backend can't really invalidate token without extra work (like a blacklist)
-  // So just tell client to delete token on logout
+
 
   res.status(200).json({
     success: true,

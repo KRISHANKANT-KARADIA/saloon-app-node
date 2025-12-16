@@ -85,68 +85,6 @@ export const getAllCoupons = async (req, res, next) => {
   }
 };
 
-// ➤ Verify coupon
-// export const verifyCoupon = async (req, res, next) => {
-//   try {
-//     const { code, cart_amount, service_ids, user_id } = req.body;
-
-//     const coupon = await Coupon.findOne({ code });
-//     if (!coupon) {
-//       return res.json({ valid: false, reason: 'not_found' });
-//     }
-
-//     const now = new Date();
-//     if (!coupon.active || now < coupon.valid_from || now > coupon.valid_until) {
-//       return res.json({ valid: false, reason: 'expired' });
-//     }
-
-//     if (coupon.min_order_value && cart_amount < coupon.min_order_value) {
-//       return res.json({ valid: false, reason: 'min_order_not_met' });
-//     }
-
-//     if (
-//       coupon.applicable_services?.length &&
-//       service_ids?.length &&
-//       !service_ids.some(s => coupon.applicable_services.includes(s))
-//     ) {
-//       return res.json({ valid: false, reason: 'not_applicable_service' });
-//     }
-
-//     if (coupon.max_uses && coupon.uses >= coupon.max_uses) {
-//       return res.json({ valid: false, reason: 'usage_limit_reached' });
-//     }
-
-//     if (coupon.max_uses_per_user && user_id) {
-//       const userCount = coupon.users_used?.get(user_id) || 0;
-//       if (userCount >= coupon.max_uses_per_user) {
-//         return res.json({ valid: false, reason: 'user_limit_reached' });
-//       }
-//     }
-
-//     let discount = 0;
-//     if (coupon.discount_type === 'percent') {
-//       discount = (cart_amount * coupon.discount_value) / 100;
-//     } else {
-//       discount = coupon.discount_value;
-//     }
-//     if (discount > cart_amount) discount = cart_amount;
-
-//     const final_amount = cart_amount - discount;
-
-//     res.json({
-//       valid: true,
-//       code: coupon.code,
-//       discount_amount: discount,
-//       final_amount,
-//       message: 'Coupon applied'
-//     });
-//   } catch (err) {
-//     next(err);
-//   }
-// };
-
-
-// ➤ Verify coupon and increment usage
 export const verifyCoupon = async (req, res, next) => {
   try {
     const { code, cart_amount, service_ids, user_id } = req.body;

@@ -208,34 +208,6 @@ export const updateTeamMember = async (req, res, next) => {
 
 
 
-// export const updateTeamMember = async (req, res, next) => {
-//   try {
-//     const teamMemberId = req.params.id;
-
-//     // Prepare update data from body
-//     const updateData = { ...req.body };
-
-//     // If profile image uploaded
-//     if (req.file) {
-//       updateData.profile = `/uploads/teamMembers/${req.file.filename}`;
-//     }
-
-//     // Find and update
-//     const updatedMember = await TeamMember.findByIdAndUpdate(
-//       teamMemberId,
-//       updateData,
-//       { new: true, runValidators: true }
-//     );
-
-//     if (!updatedMember) {
-//       return res.status(404).json({ message: 'Team member not found' });
-//     }
-
-//     res.status(200).json({ message: 'Team member updated', updatedMember });
-//   } catch (error) {
-//     next(error);
-//   }
-// };
 
 export const getAllTeamMembers = async (req, res, next) => {
   try {
@@ -256,33 +228,6 @@ export const getAllTeamMembers = async (req, res, next) => {
   }
 };
 
-// Get all team members by saloonId
-// export const getTeamMembersBySaloonId = async (req, res, next) => {
-//   try {
-//     const { saloonId } = req.params;
-
-//     if (!saloonId) {
-//       return res.status(400).json({ message: 'Saloon ID is required.' });
-//     }
-
-//     // Check if salon exists
-//     const saloon = await Saloon.findById(saloonId);
-//     if (!saloon) {
-//       return res.status(404).json({ message: 'Saloon not found.' });
-//     }
-
-//     // Find team members for this salon
-//     const teamMembers = await TeamMember.find({ saloon: saloonId });
-
-//     return res.status(200).json({
-//       success: true,
-//       message: 'Team members retrieved successfully',
-//       data: teamMembers,
-//     });
-//   } catch (error) {
-//     next(error);
-//   }
-// };
 
 
 export const getTeamMembersBySaloonId = async (req, res, next) => {

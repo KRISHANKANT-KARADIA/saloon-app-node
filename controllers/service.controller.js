@@ -8,140 +8,6 @@ import { buildFileUrl } from "../utils/filePath.js";
 
 
 
-// export const createService = async (req, res, next) => {
-//   try {
-//     const ownerId = res.locals.user.id;
-
-//     // Find saloon of owner
-//     const saloon = await Saloon.findOne({ owner: ownerId });
-//     if (!saloon) {
-//       return next(new AppError("Saloon not found", STATUS_CODES.NOT_FOUND));
-//     }
-
-//     const { name, category, description, duration, price, status } = req.body;
-
-//     // Multer file: req.file
-//     const logo = req.file ? `/uploads/services/${req.file.filename}` : null;
-
-//     const newService = new Service({
-//       saloon: saloon._id,
-//       name,
-//       category,
-//       description,
-//       duration,
-//       price,
-//       logo,
-//       status: status || "active",
-//     });
-
-//     await newService.save();
-
-//     res.status(201).json({
-//       message: "Service registered successfully",
-//       data: newService,
-//     });
-//   } catch (err) {
-//     next(err);
-//   }
-// };
-
-
-// export const createService = async (req, res, next) => {
-//   try {
-//     const ownerId = res.locals.user.id;
-
-//     // Find saloon of owner
-//     const saloon = await Saloon.findOne({ owner: ownerId });
-//     if (!saloon) {
-//       return next(new AppError("Saloon not found", STATUS_CODES.NOT_FOUND));
-//     }
-
-//     const { name, category, description, duration, price, status } = req.body;
-
-//     // Multer file: req.file
-//     const logo = req.file ? `/uploads/services/${req.file.filename}` : null;
-
-//     const newService = new Service({
-//       saloon: saloon._id,
-//       name,
-//       category,
-//       description,
-//       duration,
-//       price,
-//       logo,
-//       status: status || "active",
-//     });
-
-//     await newService.save();
-
-//     res.status(201).json({
-//       message: "Service registered successfully",
-//       data: newService,
-//     });
-//   } catch (err) {
-//     next(err);
-//   }
-// };
-
-// export const createService = async (req, res, next) => {
-//   try {
-//     const ownerId = res.locals.user.id;
-
-
-//     const saloon = await Saloon.findOne({ owner: ownerId });
-//     if (!saloon) {
-//       return next(new AppError("Saloon not found", STATUS_CODES.NOT_FOUND));
-//     }
-
-//     const { name, category, description, duration, price, status } = req.body;
-
-
-//     // Multer file: req.file
-//     const logo = req.file ? `/uploads/services/${req.file.filename}` : null;
-
-//     if (!name || !category || !duration || !price) {
-//       return res.status(400).json({
-//         success: false,
-//         message: "Name, category, duration and price are required",
-//       });
-//     }
-
-//     // Base URL
-//     const baseUrl = `${req.protocol}://${req.get("host")}`;
-
-//     // Full image URL (if uploaded)
-//     // const logo = req.file
-//     //   ? `${baseUrl}/uploads/services/${req.file.filename}`
-//     //   : null;
-
-
-//     const newService = new Service({
-//       saloon: saloon._id,
-//       name,
-//       category,
-//       description,
-//       duration,
-//       price,
-//       logo,
-//       status: status || "active",
-//     });
-
-//     await newService.save();
-
-//     res.status(201).json({
-
-//       success: true,
-//       message: "Service registered successfully",
-//       data: newService,
-//     });
-//   } catch (err) {
-
-//     console.error("Error creating service:", err);
-
-//     next(err);
-//   }
-// };
-
 export const createService = async (req, res, next) => {
   try {
     const ownerId = res.locals.user.id;
@@ -190,39 +56,6 @@ export const createService = async (req, res, next) => {
   }
 };
 
-
-
-// export const updateService = async (req, res, next) => {
-//   try {
-//     const { serviceId } = req.params;
-//     const updateData = { ...req.body };
-
-//     // Optional: validate status if present
-//     if (updateData.status && !['active', 'inactive'].includes(updateData.status)) {
-//       return next(new AppError('Invalid status value', STATUS_CODES.BAD_REQUEST));
-//     }
-
-//     // Find and update the service
-//     const updatedService = await Service.findByIdAndUpdate(
-//       serviceId,
-//       updateData,
-//       { new: true, runValidators: true }
-//     );
-
-//     if (!updatedService) {
-//       return next(new AppError('Service not found', STATUS_CODES.NOT_FOUND));
-//     }
-
-//     res.status(200).json({
-//       message: 'Service updated successfully',
-//       data: updatedService
-//     });
-//   } catch (err) {
-//     next(err);
-//   }
-// };
-
-
 export const updateService = async (req, res, next) => {
   try {
     const { serviceId } = req.params;
@@ -252,27 +85,7 @@ export const updateService = async (req, res, next) => {
 };
 
 
-// export const getSaloonServices = async (req, res, next) => {
-//   try {
-//     const ownerId = res.locals.user.id;
 
-//     // Find the saloon owned by this user
-//     const saloon = await Saloon.findOne({ owner: ownerId });
-//     if (!saloon) {
-//       return next(new AppError('Saloon not found', STATUS_CODES.NOT_FOUND));
-//     }
-
-//     // Find services for this saloon
-//     const services = await Service.find({ saloon: saloon._id });
-
-//     res.status(200).json({
-//       message: 'Services retrieved successfully',
-//       data: services
-//     });
-//   } catch (err) {
-//     next(err);
-//   }
-// };
 export const getSaloonServices = async (req, res, next) => {
   try {
     const ownerId = res.locals.user.id;
@@ -450,7 +263,7 @@ export const getSaloonsByCategory = async (req, res) => {
       return {
         ...saloon._doc,
         logo: saloon.logo
-          ? `${BASE_URL}/uploads/saloon/${saloon.logo}`
+          ? `${saloon.logo}`
           : null,
           category: saloon.category,
       };
@@ -491,51 +304,6 @@ export const getSaloonsByCategorys = async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 };
-
-
-// export const searchSalons = async (req, res, next) => {
-//   try {
-//     const { query } = req.query; // ?query=ha
-
-//     if (!query) {
-//       return next(new AppError('Query is required', STATUS_CODES.BAD_REQUEST));
-//     }
-
-//     // ✅ Case-insensitive, partial match (starts with or contains anywhere)
-//     const regex = new RegExp(query, 'i'); // "i" = case-insensitive
-
-//     // 🔹 Find services matching the query
-//     const matchedServices = await Service.find({
-
-//       name: { $regex: regex }, 
-
-//       name: { $regex: regex },
-//       status: 'active'
-//     });
-
-//     const salonIdsFromServices = matchedServices.map(s => s.saloon);
-
-//     // 🔹 Find salons matching name, city, address OR linked services
-//     const salons = await Saloon.find({
-//       $or: [
-//         { name: { $regex: regex } },
-//         { city: { $regex: regex } },
-//         { 'location.address1': { $regex: regex } },
-//         { _id: { $in: salonIdsFromServices } }
-//       ]
-//     });
-
-//     res.status(STATUS_CODES.OK).json({
-//       success: true,
-//       message: 'Salons fetched successfully',
-//       count: salons.length,
-//       data: salons
-//     });
-
-//   } catch (err) {
-//     next(err);
-//   }
-// };
 
 export const searchSalons = async (req, res, next) => {
   try {
@@ -606,85 +374,4 @@ export const searchSalons = async (req, res, next) => {
   }
 };
 
-
-
-
-// export const searchSalons = async (req, res, next) => {
-//  try {
-//       const { query = '', city = '', service = '' } = req.query;
-
-//       // Build dynamic filter
-//       const filters = {};
-
-//       if (query) {
-//         filters.name = { $regex: query, $options: 'i' }; // case-insensitive
-//       }
-
-//       if (city) {
-//         filters.city = { $regex: city, $options: 'i' };
-//       }
-
-//       // Search by service
-//       let serviceFilter = {};
-//       if (service) {
-//         const serviceDoc = await Service.find({ name: { $regex: service, $options: 'i' } });
-//         const serviceIds = serviceDoc.map(s => s._id);
-//         serviceFilter = { services: { $in: serviceIds } };
-//       }
-
-//       // Merge filters
-//       const finalFilter = { ...filters, ...serviceFilter };
-
-//       const salons = await Saloon.find(finalFilter)
-//         .populate('services')
-//         .limit(50); // limit results
-
-//       res.status(STATUS_CODES.OK).json({
-//         success: true,
-//         message: 'Salons fetched successfully',
-//         count: salons.length,
-//         data: salons,
-//       });
-//     } catch (err) {
-//       next(err);
-//     }
-// }
-
-// export const searchSalons = async (req, res, next) => {
-//   try {
-//     const { query } = req.query; // ?query=haircut
-
-//     if (!query) {
-//       return next(new AppError('Query is required', STATUS_CODES.BAD_REQUEST));
-//     }
-
-//     // 🔹 Find services matching the query
-//     const matchedServices = await Service.find({
-//       name: { $regex: query, $options: 'i' }, // case-insensitive
-//       status: 'active'
-//     });
-
-//     const salonIdsFromServices = matchedServices.map(s => s.saloon);
-
-//     // 🔹 Find salons matching name, city, address OR linked services
-//     const salons = await Saloon.find({
-//       $or: [
-//         { name: { $regex: query, $options: 'i' } },
-//         { city: { $regex: query, $options: 'i' } },
-//         { 'location.address1': { $regex: query, $options: 'i' } },
-//         { _id: { $in: salonIdsFromServices } } // salons from matched services
-//       ]
-//     });
-
-//     res.status(STATUS_CODES.OK).json({
-//       success: true,
-//       message: 'Salons fetched successfully',
-//       count: salons.length,
-//       data: salons
-//     });
-
-//   } catch (err) {
-//     next(err);
-//   }
-// };
 

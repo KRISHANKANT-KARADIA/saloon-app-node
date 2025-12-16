@@ -3,7 +3,6 @@ import Owner from '../models/owner.model.js';
 import { STATUS_CODES } from '../helpers/constants.js';
 import { AppError } from '../helpers/error.js';
 
-// ✅ Add country & attach to owner
 export const addCountryForOwner = async (req, res, next) => {
   try {
     const { name, code } = req.body;
@@ -92,88 +91,3 @@ export const getLocationBySaloonId = async (req, res, next) => {
   }
 };
 
-
-
-
-// export const addOrUpdateOwnerLocation = async (req, res, next) => {
-//   try {
-//     const ownerId = res.locals.user.id;
-//     const {
-//       label = 'Home',
-//       address1,
-//       address2,
-//       lat,
-//       long,
-//       pincode,
-//       area,
-//       city,
-//       state,
-//       geoLocation,
-//     } = req.body;
-
-//     // Validation
-//     if (!address1 || !pincode || !city || !state || lat === undefined || long === undefined) {
-//       return next(new AppError('Missing required location fields', STATUS_CODES.BAD_REQUEST));
-//     }
-
-//     const locationObj = geoLocation || { type: 'Point', coordinates: [long, lat] };
-
-//     // Check if location with this label exists
-//     let location = await OwnerLocation.findOne({ owner: ownerId, label });
-
-//     if (location) {
-//       // Update only address/location fields
-//       location.address1 = address1;
-//       location.address2 = address2;
-//       location.lat = lat;
-//       location.long = long;
-//       location.pincode = pincode;
-//       location.area = area;
-//       location.city = city;
-//       location.state = state;
-//       location.geoLocation = locationObj;
-
-//       await location.save();
-//     } else {
-//       // Create new location
-//       location = new OwnerLocation({
-//         owner: ownerId,
-//         label,
-//         address1,
-//         address2,
-//         lat,
-//         long,
-//         pincode,
-//         area,
-//         city,
-//         state,
-//         geoLocation: locationObj,
-//       });
-//       await location.save();
-//     }
-
-//     res.status(201).json({
-//       success: true,
-//       message: 'Owner location saved successfully',
-//       location,
-//     });
-
-//   } catch (err) {
-//     next(err);
-//   }
-// };
-
-
-// ✅ Get all countries
-// export const getAllCountriesForOwner = async (req, res, next) => {
-//   try {
-//     const countries = await Country.find().sort({ name: 1 });
-
-//     res.status(200).json({
-//       success: true,
-//       countries,
-//     });
-//   } catch (err) {
-//     next(err);
-//   }
-// };

@@ -191,43 +191,6 @@ export const getAllActiveOffers = async (req, res, next) => {
   }
 };
 
-// export const getAllActiveOffers = async (req, res, next) => {
-//   try {
-//     const offers = await Offer.find()
-//       .populate({
-//         path: "applicable_services",
-//         populate: { path: "saloon", select: "name logo" },
-//       })
-//       .sort({ createdAt: -1 });
-
-//     const formattedOffers = offers.map(offer => ({
-//       id: offer._id,
-//       title: offer.title,
-//       description: offer.description,
-//       discount_type: offer.discount_type,
-//       discount_value: offer.discount_value,
-//       min_order_value: offer.min_order_value,
-//       valid_from: offer.valid_from,
-//       valid_until: offer.valid_until,
-//       max_uses: offer.max_uses,
-//       max_uses_per_user: offer.max_uses_per_user,
-//       active: offer.active,
-//       applicable_services: offer.applicable_services.map(s => ({
-//         id: s._id,
-//         name: s.name,
-//         saloon: s.saloon ? {
-//           id: s.saloon._id,
-//           name: s.saloon.name,
-//           image: s.saloon.logo || null
-//         } : null
-//       }))
-//     }));
-
-//     res.json({ success: true, offers: formattedOffers });
-//   } catch (err) {
-//     next(err);
-//   }
-// };
 
 
 export const updateTrendingSaloons = async (req, res) => {
@@ -263,73 +226,6 @@ export const updateTrendingSaloons = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
-
-// export const getTrendingSaloons = async (req, res) => {
-//   try {
-//     const { city } = req.query;
-
-//     const trending = await Appointment.aggregate([
-//       {
-//         $group: {
-//           _id: "$saloonId",
-//           totalAppointments: { $sum: 1 },
-//         },
-//       },
-//       {
-//         $lookup: {
-//           from: "saloons",
-//           localField: "_id",
-//           foreignField: "_id",
-//           as: "saloon",
-//         },
-//       },
-//       { $unwind: "$saloon" },
-
-//       ...(city
-//         ? [
-//             {
-//               $match: {
-//                 "saloon.city": { $regex: new RegExp(city, "i") },
-//                 "saloon.status": "active",
-//               },
-//             },
-//           ]
-//         : [
-//             {
-//               $match: {
-//                 "saloon.status": "active",
-//               },
-//             },
-//           ]),
-
-//       { $sort: { totalAppointments: -1 } },
-//       { $limit: 5 },
-
-//       {
-//         $project: {
-//           _id: "$saloon._id",
-//           name: "$saloon.name",
-//           logo: "$saloon.logo",
-//           city: "$saloon.city",
-//           rating: "$saloon.rating",
-//           totalAppointments: 1,
-//         },
-//       },
-//     ]);
-
-//     return res.status(200).json({
-//       success: true,
-//       saloons: trending,
-//     });
-//   } catch (error) {
-//     console.error("🔥 Error fetching trending saloons:", error);
-//     return res.status(500).json({
-//       success: false,
-//       message: "Server error while fetching trending saloons",
-//       error: error.message,
-//     });
-//   }
-// };
 
 export const getTrendingSaloons = async (req, res) => {
   try {
@@ -559,30 +455,6 @@ export const forMultipleSaloonReview = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 
-// try {
-//     const { saloonId } = req.params;
-
-//     const reviews = await Review.find({ saloon: saloonId })
-//       .populate("user", "name profileImage") // Get user info
-//       .sort({ createdAt: -1 });             // Latest first
-
-//     // Optional: Calculate average rating and breakdown
-//     const total = reviews.length;
-//     const avgRating =
-//       reviews.reduce((sum, r) => sum + r.rating, 0) / (total || 1);
-
-//     const breakdown = [1, 2, 3, 4, 5].map((star) => ({
-//       star,
-//       percent:
-//         total > 0
-//           ? (reviews.filter((r) => r.rating === star).length / total) * 100
-//           : 0,
-//     }));
-
-//     res.json({ success: true, avgRating, total, breakdown, reviews });
-//   } catch (error) {
-//     res.status(500).json({ error: error.message });
-//   }
 };
 
 
@@ -629,90 +501,7 @@ export const forMultipleSaloonReviews = async (req, res) => {
 
 
 export const addReply = async (req, res) => {
-  //  try {
-  //   const { reviewId, replyComment } = req.body;
-  //   const userId = res.locals.user.id;// comes from auth middleware
-
-  //   if (!reviewId || !replyComment) {
-  //     return res.status(400).json({ success: false, message: "Review ID and comment required" });
-  //   }
-
-  //   const review = await Review.findById(reviewId);
-  //   if (!review) {
-  //     return res.status(404).json({ success: false, message: "Review not found" });
-  //   }
-
-  //   review.replies.push({
-  //     replyBy: userId,
-  //     replyComment,
-  //   });
-
-  //   await review.save();
-  //   res.json({ success: true, review });
-  // } catch (error) {
-  //   console.error(error);
-  //   res.status(500).json({ success: false, message: error.message });
-  // }
-
-
-  // try {
-  //   const { reviewId, replyComment } = req.body;
-  //   const userId = res.locals.user.id; // from auth middleware
-
-  //   if (!reviewId || !replyComment) {
-  //     return res.status(400).json({ success: false, message: "Review ID and comment required" });
-  //   }
-
-  //   const review = await Review.findById(reviewId);
-  //   if (!review) {
-  //     return res.status(404).json({ success: false, message: "Review not found" });
-  //   }
-
-  //   // Fetch saloon name using userId
-  //   const saloon = await Saloon.findById(userId);
-  //   const saloonName = saloon ? saloon.name : "Saloon";
-
-  //   review.replies.push({
-  //     replyBy: saloonName,
-  //     replyComment,
-  //   });
-
-  //   await review.save();
-  //   res.json({ success: true, review });
-  // } catch (error) {
-  //   console.error(error);
-  //   res.status(500).json({ success: false, message: error.message });
-  // }
-
-  //  try {
-  //   const { reviewId, replyComment } = req.body;
-  //   const ownerId = res.locals.user.id; // owner id from auth middleware
-
-  //   if (!reviewId || !replyComment) {
-  //     return res.status(400).json({ success: false, message: "Review ID and comment required" });
-  //   }
-
-  //   const review = await Review.findById(reviewId);
-  //   if (!review) {
-  //     return res.status(404).json({ success: false, message: "Review not found" });
-  //   }
-
-  //   // Find the saloon owned by this owner
-  //   const saloon = await Saloon.findOne({ owner: ownerId });
-  //   const saloonName = saloon ? saloon.name : "Saloon";
-
-  //   // Add reply with saloon name
-  //   review.replies.push({
-  //     replyBy: saloonName,
-  //     replyComment,
-  //   });
-
-  //   await review.save();
-  //   res.json({ success: true, review });
-  // } catch (error) {
-  //   console.error(error);
-  //   res.status(500).json({ success: false, message: error.message });
-  // }
+  
 
    try {
     const { reviewId, replyComment } = req.body;
@@ -787,24 +576,3 @@ export const getSaloonReview = async (req, res) => {
   }
 };
 
-
-
-// export const getTrendingSaloons = async (req, res) => {
-//   try {
-//     const saloons = await Saloon.find({ isTrending: true, status: "active" });
-//     res.json({ success: true, saloons });
-//   } catch (error) {
-//     res.status(500).json({ error: error.message });
-//   }
-// };
-
-
-// // Optional: fetch all trending saloons
-// export const  getTrendingSaloons = async (req, res, next) => {
-//   try {
-//     const trendingSaloons = await Saloon.find({ isTrending: true, status: "active" });
-//     res.json({ success: true, saloons: trendingSaloons });
-//   } catch (err) {
-//     next(err);
-//   }
-// };
