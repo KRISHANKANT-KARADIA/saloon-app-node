@@ -19,6 +19,8 @@ import teamMemberModel from "../models/teamMember.model.js";
 import { createObjectCsvWriter } from "csv-writer";
 import PDFDocument from "pdfkit";
 const IMAGE_BASE_URL = "https://saloon-app-node-50470848550.asia-south1.run.app/uploads/saloon";
+const IMAGE_BASE_URL1 =
+  "https://saloon-app-node-50470848550.asia-south1.run.app/uploads";
 // Path to store PDF/CSV reports
 
 const reportsPath = path.join(process.cwd(), "public/reports");
@@ -3114,66 +3116,125 @@ export const getPublicOwnerLocation = async (req, res, next) => {
 //   }
 // };
 
-
-export const registerSaloon = async (req, res, next) => {
+export const registerSaloon = async (req, res) => {
   try {
     const { name, ownerName, mobile } = req.body;
     const ownerId = res.locals.user.id;
 
-    // If an image was uploaded, get its filename or path
-    const logo = req.file ? req.file.filename || req.file.path : null;
-
-    // Validate required fields
     if (!name || !ownerName || !mobile) {
       return res.status(400).json({
         success: false,
-        message: 'All fields (name, ownerName, mobile) are required.'
+        message: "All fields are required",
       });
     }
 
-    // Find existing Saloon for this owner (temporary or real)
+    // ✅ Always save RELATIVE PATH in DB
+    const logo = req.file ? `saloon/${req.file.filename}` : null;
+
     let saloon = await Saloon.findOne({ owner: ownerId });
 
     if (saloon) {
-      // Update the existing Saloon with profile info
+      // UPDATE
       saloon.name = name;
-      if (logo) saloon.logo = logo; // only update if new image uploaded
       saloon.ownerName = ownerName;
       saloon.mobile = mobile;
-      saloon.status = 'active'; // Set status to active
+      if (logo) saloon.logo = logo;
+      saloon.status = "active";
       await saloon.save();
     } else {
-      // Create new Saloon if none exists
-      saloon = new Saloon({
+      // CREATE
+      saloon = await Saloon.create({
         name,
-        logo,
         ownerName,
         mobile,
         owner: ownerId,
-        status: 'active'
+        logo,
+        status: "active",
       });
-      await saloon.save();
     }
 
-    // Update owner's state status to 4 (profile completed)
-    await ownerModel.findByIdAndUpdate(ownerId, { owner_state_status: 4 });
+    await ownerModel.findByIdAndUpdate(ownerId, {
+      owner_state_status: 4,
+    });
 
     return res.status(201).json({
       success: true,
-      message: 'Saloon registered successfully.',
-      saloon,
-      owner_state_status: 4
+      message: "Saloon registered successfully",
+      saloon: {
+        ...saloon._doc,
+        logo: saloon.logo
+          ? `${IMAGE_BASE_URL}/${saloon.logo}`
+          : null,
+      },
     });
-
   } catch (err) {
-    console.error('Error registering saloon:', err);
+    console.error("Register saloon error:", err);
     return res.status(500).json({
       success: false,
-      message: 'Server error while registering saloon.',
-      error: err.message
+      message: "Server error",
     });
   }
 };
+
+// export const registerSaloon = async (req, res, next) => {
+//   try {
+//     const { name, ownerName, mobile } = req.body;
+//     const ownerId = res.locals.user.id;
+
+//     // If an image was uploaded, get its filename or path
+//     const logo = req.file ? req.file.filename || req.file.path : null;
+
+//     // Validate required fields
+//     if (!name || !ownerName || !mobile) {
+//       return res.status(400).json({
+//         success: false,
+//         message: 'All fields (name, ownerName, mobile) are required.'
+//       });
+//     }
+
+//     // Find existing Saloon for this owner (temporary or real)
+//     let saloon = await Saloon.findOne({ owner: ownerId });
+
+//     if (saloon) {
+//       // Update the existing Saloon with profile info
+//       saloon.name = name;
+//       if (logo) saloon.logo = logo; // only update if new image uploaded
+//       saloon.ownerName = ownerName;
+//       saloon.mobile = mobile;
+//       saloon.status = 'active'; // Set status to active
+//       await saloon.save();
+//     } else {
+//       // Create new Saloon if none exists
+//       saloon = new Saloon({
+//         name,
+//         logo,
+//         ownerName,
+//         mobile,
+//         owner: ownerId,
+//         status: 'active'
+//       });
+//       await saloon.save();
+//     }
+
+//     // Update owner's state status to 4 (profile completed)
+//     await ownerModel.findByIdAndUpdate(ownerId, { owner_state_status: 4 });
+
+//     return res.status(201).json({
+//       success: true,
+//       message: 'Saloon registered successfully.',
+//       saloon,
+//       owner_state_status: 4
+//     });
+
+//   } catch (err) {
+//     console.error('Error registering saloon:', err);
+//     return res.status(500).json({
+//       success: false,
+//       message: 'Server error while registering saloon.',
+//       error: err.message
+//     });
+//   }
+// };
 
 
 // export const registerSaloon = async (req, res, next) => {
