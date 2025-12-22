@@ -8,6 +8,55 @@ import { buildFileUrl } from "../utils/filePath.js";
 
 
 
+// export const createService = async (req, res, next) => {
+//   try {
+//     const ownerId = res.locals.user.id;
+
+//     const saloon = await Saloon.findOne({ owner: ownerId });
+//     if (!saloon) {
+//       return next(new AppError("Saloon not found", STATUS_CODES.NOT_FOUND));
+//     }
+
+//     const { name, category, description, duration, price, status } = req.body;
+
+//     if (!name || !category || !duration || !price) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "Name, category, duration and price are required",
+//       });
+//     }
+
+//     // ❗ MUST START WITH `/uploads/...`
+//     const logo = req.file
+//       ? `/uploads/services/${req.file.filename}`
+//       : null;
+
+//     const newService = new Service({
+//       saloon: saloon._id,
+//       name,
+//       category,
+//       description,
+//       duration,
+//       price,
+//       logo,
+//       status: status || "active",
+//     });
+
+//     await newService.save();
+
+//     res.status(201).json({
+//       success: true,
+//       message: "Service registered successfully",
+//       data: newService,
+//     });
+
+//   } catch (err) {
+//     console.error("Error creating service:", err);
+//     next(err);
+//   }
+// };
+
+
 export const createService = async (req, res, next) => {
   try {
     const ownerId = res.locals.user.id;
@@ -26,9 +75,11 @@ export const createService = async (req, res, next) => {
       });
     }
 
-    // ❗ MUST START WITH `/uploads/...`
+    const BASE_URL = "https://saloon-app-node-50470848550.asia-south1.run.app";
+
+    // ✅ FULL URL LOGO
     const logo = req.file
-      ? `/uploads/services/${req.file.filename}`
+      ? `${BASE_URL}/uploads/services/${req.file.filename}`
       : null;
 
     const newService = new Service({

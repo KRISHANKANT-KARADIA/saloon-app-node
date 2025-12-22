@@ -1,6 +1,52 @@
 import TeamMember from '../models/teamMember.model.js';
 import Saloon from '../models/saloon.model.js';
 import Appointment from '../models/appointment.model.js';
+// export const addTeamMember = async (req, res, next) => {
+//   try {
+//     const ownerId = res.locals.user.id;
+
+//     // Find saloon by owner
+//     const saloon = await Saloon.findOne({ owner: ownerId });
+//     if (!saloon) {
+//       return res.status(404).json({ message: 'Saloon not found' });
+//     }
+
+//     const {
+//       name,
+//       role,
+//       services,
+//       startTime,
+//       endTime,
+//       workingDays,
+//       mobile,
+//       email
+//     } = req.body;
+
+//     // profile image path (if uploaded)
+//     const profile = req.file ? `/uploads/teamMembers/${req.file.filename}` : null;
+
+//     const teamMember = new TeamMember({
+//       saloon: saloon._id,
+//       profile,
+//       name,
+//       role,
+//       services,        // make sure client sends array or string array
+//       startTime,
+//       endTime,
+//       workingDays,     // array of days expected
+//       mobile,
+//       email
+//     });
+
+//     await teamMember.save();
+
+//     return res.status(201).json({ message: 'Team member added', teamMember });
+//   } catch (error) {
+//     next(error);
+//   }
+// };
+
+
 export const addTeamMember = async (req, res, next) => {
   try {
     const ownerId = res.locals.user.id;
@@ -22,25 +68,33 @@ export const addTeamMember = async (req, res, next) => {
       email
     } = req.body;
 
-    // profile image path (if uploaded)
-    const profile = req.file ? `/uploads/teamMembers/${req.file.filename}` : null;
+    const BASE_URL = "https://saloon-app-node-50470848550.asia-south1.run.app";
+
+    // ✅ FULL IMAGE PATH
+    const profile = req.file
+      ? `${BASE_URL}/uploads/teamMembers/${req.file.filename}`
+      : null;
 
     const teamMember = new TeamMember({
       saloon: saloon._id,
       profile,
       name,
       role,
-      services,        // make sure client sends array or string array
+      services,
       startTime,
       endTime,
-      workingDays,     // array of days expected
+      workingDays,
       mobile,
       email
     });
 
     await teamMember.save();
 
-    return res.status(201).json({ message: 'Team member added', teamMember });
+    return res.status(201).json({
+      success: true,
+      message: 'Team member added successfully',
+      teamMember
+    });
   } catch (error) {
     next(error);
   }

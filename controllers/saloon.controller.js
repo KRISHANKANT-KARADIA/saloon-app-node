@@ -22,6 +22,7 @@ const IMAGE_BASE_URL = "https://saloon-app-node-50470848550.asia-south1.run.app/
 const IMAGE_BASE_URL1 =
   "https://saloon-app-node-50470848550.asia-south1.run.app/uploads";
 // Path to store PDF/CSV reports
+const BASE_URL = "https://saloon-app-node-50470848550.asia-south1.run.app";
 
 const reportsPath = path.join(process.cwd(), "public/reports");
 
@@ -165,6 +166,36 @@ export const getSaloonByOwnerId = async (req, res) => {
 };
 
 
+// export const addSaloonContent = async (req, res, next) => {
+//   try {
+//     const { title, description } = req.body;
+//     const ownerId = res.locals.user.id;
+
+//     const saloon = await Saloon.findOne({ owner: ownerId });
+//     if (!saloon) {
+//       return res.status(404).json({ message: "Saloon not found for this owner." });
+//     }
+
+//     // If file uploaded, store path
+//     let images = [];
+//     if (req.file) {
+//       images.push(`/uploads/saloonContent/${req.file.filename}`);
+//     }
+
+//     const content = new SaloonContentModel({
+//       saloon: saloon._id,
+//       title,
+//       description,
+//       images,
+//     });
+
+//     await content.save();
+//     res.status(201).json({ message: "Saloon content added successfully", content });
+//   } catch (error) {
+//     next(error);
+//   }
+// };
+
 export const addSaloonContent = async (req, res, next) => {
   try {
     const { title, description } = req.body;
@@ -172,25 +203,35 @@ export const addSaloonContent = async (req, res, next) => {
 
     const saloon = await Saloon.findOne({ owner: ownerId });
     if (!saloon) {
-      return res.status(404).json({ message: "Saloon not found for this owner." });
+      return res.status(404).json({
+        success: false,
+        message: "Saloon not found for this owner."
+      });
     }
 
-    // If file uploaded, store path
+    // ✅ Store FULL image path
     let images = [];
     if (req.file) {
-      images.push(`/uploads/saloonContent/${req.file.filename}`);
+      images.push(`${BASE_URL}/uploads/saloonContent/${req.file.filename}`);
     }
 
     const content = new SaloonContentModel({
       saloon: saloon._id,
       title,
       description,
-      images,
+      images
     });
 
     await content.save();
-    res.status(201).json({ message: "Saloon content added successfully", content });
+
+    return res.status(201).json({
+      success: true,
+      message: "Saloon content added successfully",
+      content
+    });
+
   } catch (error) {
+    console.error("Add saloon content error:", error);
     next(error);
   }
 };
@@ -2335,6 +2376,51 @@ export const uploadSaloonLogo = async (req, res, next) => {
 
 
 
+// export const uploadSaloonImages = async (req, res, next) => {
+//   try {
+//     const ownerId = res.locals.user.id;
+
+//     const saloon = await Saloon.findOne({ owner: ownerId });
+//     if (!saloon) {
+//       return res.status(404).json({ message: 'Saloon not found' });
+//     }
+
+//     if (!req.files || req.files.length === 0) {
+//       return res.status(400).json({ message: 'No images uploaded' });
+//     }
+
+//     // Convert old string images to proper objects and filter invalid entries
+//     saloon.images = (saloon.images || [])
+//       .map(img => {
+//         if (!img) return null; // remove null / undefined
+//         if (typeof img === 'string') {
+//           return { id: uuidv4(), path: img };
+//         }
+//         if (img.id && img.path) return img; // valid object
+//         return null; // remove invalid objects
+//       })
+//       .filter(Boolean); // remove nulls
+
+//     const baseUrl = `${req.protocol}://${req.get('host')}`;
+//     const imageObjects = req.files.map(file => ({
+//       id: uuidv4(),
+//       path: `${baseUrl}/uploads/saloons/${file.filename}`
+//     }));
+
+//     saloon.images.push(...imageObjects);
+
+//     await saloon.save();
+
+//     res.status(200).json({
+//       message: 'Images uploaded successfully',
+//       images: saloon.images
+//     });
+//   } catch (err) {
+//     console.error('Error uploading saloon images:', err);
+//     next(err);
+//   }
+// };
+
 export const uploadSaloonImages = async (req, res, next) => {
   try {
     const ownerId = res.locals.user.id;
@@ -2348,38 +2434,56 @@ export const uploadSaloonImages = async (req, res, next) => {
       return res.status(400).json({ message: 'No images uploaded' });
     }
 
-    // Convert old string images to proper objects and filter invalid entries
+    // ✅ Normalize existing images (ensure FULL URL)
     saloon.images = (saloon.images || [])
       .map(img => {
-        if (!img) return null; // remove null / undefined
-        if (typeof img === 'string') {
-          return { id: uuidv4(), path: img };
-        }
-        if (img.id && img.path) return img; // valid object
-        return null; // remove invalid objects
-      })
-      .filter(Boolean); // remove nulls
+        if (!img) return null;
 
-    const baseUrl = `${req.protocol}://${req.get('host')}`;
+        // Old string image
+        if (typeof img === 'string') {
+          return {
+            id: uuidv4(),
+            path: img.startsWith('http')
+              ? img
+              : `${BASE_URL}${img}`
+          };
+        }
+
+        // Existing object
+        if (img.id && img.path) {
+          return {
+            ...img,
+            path: img.path.startsWith('http')
+              ? img.path
+              : `${BASE_URL}${img.path}`
+          };
+        }
+
+        return null;
+      })
+      .filter(Boolean);
+
+    // ✅ New uploaded images → FULL URL
     const imageObjects = req.files.map(file => ({
       id: uuidv4(),
-      path: `${baseUrl}/uploads/saloons/${file.filename}`
+      path: `${BASE_URL}/uploads/saloons/${file.filename}`
     }));
 
     saloon.images.push(...imageObjects);
 
     await saloon.save();
 
-    res.status(200).json({
+    return res.status(200).json({
+      success: true,
       message: 'Images uploaded successfully',
       images: saloon.images
     });
+
   } catch (err) {
     console.error('Error uploading saloon images:', err);
     next(err);
   }
 };
-
 
 
 
