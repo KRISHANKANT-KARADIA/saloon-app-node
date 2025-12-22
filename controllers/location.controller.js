@@ -32,7 +32,7 @@ export const addSaloonLocation = async (req, res, next) => {
         state,
         pincode,
         mapLink,
-        geoLocation: { type: "Point", coordinates: [long, lat] },
+        geoLocation: { type: "Point", coordinates: [lat,long] },
       });
     }
 

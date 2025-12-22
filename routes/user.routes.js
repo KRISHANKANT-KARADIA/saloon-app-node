@@ -210,43 +210,95 @@ user,
 // update 
 
 // Update Saloon details
+// router.put(
+//   '/saloon/update/:id',
+//   AuthMiddlewares.checkAuth,
+//   upload.single('logo'), // multer for logo
+//   async (req, res, next) => {
+//     try {
+//       const { id } = req.params;
+//       const ownerId = res.locals.user.id;
+//       const { name, ownerName, mobile } = req.body;
+
+//       // Check saloon exists & belongs to owner
+//       const saloon = await Saloon.findOne({ _id: id, owner: ownerId });
+//       if (!saloon) {
+//         return res.status(404).json({
+//           success: false,
+//           message: 'Saloon not found or unauthorized'
+//         });
+//       }
+
+//       // Update text fields
+//       if (name) saloon.name = name;
+//       if (ownerName) saloon.ownerName = ownerName;
+//       if (mobile) saloon.mobile = mobile;
+
+//       const BASE_URL = "https://saloon-app-node-50470848550.asia-south1.run.app";
+
+//       // Update logo if file uploaded
+//       if (req.file) {
+//         saloon.logo = `/uploads/saloon/${req.file.filename}`;
+//       }
+
+//       const logo = req.file
+//   ? `${BASE_URL}/uploads/saloon/${req.file.filename}`
+//   : null;
+
+//       await saloon.save();
+
+//       res.json({
+//         success: true,
+//         message: 'Saloon updated successfully',
+//         saloon
+//       });
+//     } catch (error) {
+//       next(error);
+//     }
+//   }
+// );
+
+
 router.put(
   '/saloon/update/:id',
   AuthMiddlewares.checkAuth,
-  upload.single('logo'), // multer for logo
+  upload.single('logo'),
   async (req, res, next) => {
     try {
       const { id } = req.params;
       const ownerId = res.locals.user.id;
       const { name, ownerName, mobile } = req.body;
 
-      // Check saloon exists & belongs to owner
       const saloon = await Saloon.findOne({ _id: id, owner: ownerId });
       if (!saloon) {
         return res.status(404).json({
           success: false,
-          message: 'Saloon not found or unauthorized'
+          message: 'Saloon not found or unauthorized',
         });
       }
 
-      // Update text fields
+      // Update fields
       if (name) saloon.name = name;
       if (ownerName) saloon.ownerName = ownerName;
       if (mobile) saloon.mobile = mobile;
 
-      // Update logo if file uploaded
+      const BASE_URL =
+        'https://saloon-app-node-50470848550.asia-south1.run.app';
+
+      // ✅ FULL URL save karo (register jaisa)
       if (req.file) {
-        saloon.logo = `/uploads/saloon/${req.file.filename}`;
+        saloon.logo = `${BASE_URL}/uploads/saloon/${req.file.filename}`;
       }
 
       await saloon.save();
 
-      res.json({
+      return res.status(200).json({
         success: true,
         message: 'Saloon updated successfully',
-        saloon
+        saloon,
       });
     } catch (error) {
+      console.error('Saloon update error:', error);
       next(error);
     }
   }
