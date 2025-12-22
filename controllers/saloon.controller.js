@@ -212,7 +212,7 @@ export const addSaloonContent = async (req, res, next) => {
     // ✅ Store FULL image path
     let images = [];
     if (req.file) {
-      images.push(`${BASE_URL}/uploads/saloonContent/${req.file.filename}`);
+      images.push(`${BASE_URL}/uploads/saloon/${req.file.filename}`);
     }
 
     const content = new SaloonContentModel({
