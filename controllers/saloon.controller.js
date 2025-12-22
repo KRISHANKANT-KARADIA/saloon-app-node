@@ -85,7 +85,7 @@ export const getSaloonByOwnerId = async (req, res) => {
 
     const userPoint = {
       type: "Point",
-      coordinates: [longitude, latitude],
+      coordinates: [latitude,longitude],
     };
 
     // ✅ STEP 1: Find ALL locations within 40km
