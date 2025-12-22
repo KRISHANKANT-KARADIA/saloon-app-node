@@ -156,7 +156,7 @@ export const getSaloonServices = async (req, res, next) => {
     // 🔥 Full URL me convert karein
     const formattedServices = services.map(service => ({
       ...service._doc,
-      logo: `${BASE_URL}${service.logo}`,  
+      logo: `${service.logo}`,  
       // Example: http://localhost:5000/uploads/services/1764589422068.jpg
     }));
 
