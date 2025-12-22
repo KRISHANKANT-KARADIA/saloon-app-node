@@ -224,23 +224,63 @@ export const getTopPerformers = async (req, res, next) => {
 
 
 
+// export const updateTeamMember = async (req, res, next) => {
+//   try {
+//     const teamMemberId = req.params.id;
+//     const updateData = { ...req.body };
+
+//     // Parse services and workingDays if sent as JSON strings
+//     if (updateData.services && typeof updateData.services === "string") {
+//       updateData.services = JSON.parse(updateData.services);
+//     }
+
+//     if (updateData.workingDays && typeof updateData.workingDays === "string") {
+//       updateData.workingDays = JSON.parse(updateData.workingDays);
+//     }
+
+//     // If profile image uploaded
+//     if (req.file) {
+//       updateData.profile = `/uploads/teamMembers/${req.file.filename}`;
+//     }
+
+//     const updatedMember = await TeamMember.findByIdAndUpdate(
+//       teamMemberId,
+//       updateData,
+//       { new: true, runValidators: true }
+//     );
+
+//     if (!updatedMember) {
+//       return res.status(404).json({ message: "Team member not found" });
+//     }
+
+//     res.status(200).json({ message: "Team member updated", updatedMember });
+//   } catch (error) {
+//     console.error(error);
+//     next(error);
+//   }
+// };
+
+
 export const updateTeamMember = async (req, res, next) => {
   try {
     const teamMemberId = req.params.id;
     const updateData = { ...req.body };
 
-    // Parse services and workingDays if sent as JSON strings
+    const BASE_URL = "https://saloon-app-node-50470848550.asia-south1.run.app";
+
+    // Parse services if sent as JSON string
     if (updateData.services && typeof updateData.services === "string") {
       updateData.services = JSON.parse(updateData.services);
     }
 
+    // Parse workingDays if sent as JSON string
     if (updateData.workingDays && typeof updateData.workingDays === "string") {
       updateData.workingDays = JSON.parse(updateData.workingDays);
     }
 
-    // If profile image uploaded
+    // ✅ If profile image uploaded → FULL URL
     if (req.file) {
-      updateData.profile = `/uploads/teamMembers/${req.file.filename}`;
+      updateData.profile = `${BASE_URL}/uploads/teamMembers/${req.file.filename}`;
     }
 
     const updatedMember = await TeamMember.findByIdAndUpdate(
@@ -250,12 +290,20 @@ export const updateTeamMember = async (req, res, next) => {
     );
 
     if (!updatedMember) {
-      return res.status(404).json({ message: "Team member not found" });
+      return res.status(404).json({
+        success: false,
+        message: "Team member not found",
+      });
     }
 
-    res.status(200).json({ message: "Team member updated", updatedMember });
+    return res.status(200).json({
+      success: true,
+      message: "Team member updated successfully",
+      teamMember: updatedMember,
+    });
+
   } catch (error) {
-    console.error(error);
+    console.error("Update team member error:", error);
     next(error);
   }
 };
