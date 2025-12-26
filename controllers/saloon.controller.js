@@ -469,6 +469,65 @@ export const getServiceWiseCounts = async (req, res, next) => {
 };
 
 
+// export const getAppointmentById = async (req, res, next) => {
+//   try {
+//     const ownerId = res.locals.user?.id;
+//     if (!ownerId) {
+//       return next(new AppError("Unauthorized", STATUS_CODES.UNAUTHORIZED));
+//     }
+
+//     // ⭐ Find saloon of this owner
+//     const saloon = await Saloon.findOne({ owner: ownerId });
+//     if (!saloon) {
+//       return next(new AppError("Saloon not found", STATUS_CODES.NOT_FOUND));
+//     }
+
+//     const appointmentId = req.params.id;
+//     if (!appointmentId) {
+//       return next(new AppError("Appointment ID required", STATUS_CODES.BAD_REQUEST));
+//     }
+
+//     // ⭐ Appointment Find + Full Populate Fix
+//     const appointment = await Appointment.findOne({
+//       _id: appointmentId,
+//       saloonId: saloon._id,   // ensure the appointment belongs to this saloon
+//     })
+//       .populate({
+//         path: "customer.id",
+//         select: "name mobile",
+//       })
+//       .populate({
+//         path: "serviceIds",
+//         select: "name price",
+//       })
+//       .populate({
+//         path: "professionalId",
+//         model: "Professional",  
+//         select: "name mobile role",
+//       });
+
+//     // ⭐ If appointment not found
+//     if (!appointment) {
+//       return next(
+//         new AppError("Appointment not found or not authorized", STATUS_CODES.NOT_FOUND)
+//       );
+//     }
+
+//     // ⭐ Debugging (optional but very useful)
+//     console.log("Professional ID in DB:", appointment.professionalId);
+
+//     return res.status(200).json({
+//       success: true,
+//       message: `Appointment ${appointmentId} fetched successfully`,
+//       data: appointment,
+//     });
+//   } catch (err) {
+//     console.error(err);
+//     next(err);
+//   }
+// };
+
+
 export const getAppointmentById = async (req, res, next) => {
   try {
     const ownerId = res.locals.user?.id;
@@ -476,7 +535,7 @@ export const getAppointmentById = async (req, res, next) => {
       return next(new AppError("Unauthorized", STATUS_CODES.UNAUTHORIZED));
     }
 
-    // ⭐ Find saloon of this owner
+    // 1️⃣ Find saloon of owner
     const saloon = await Saloon.findOne({ owner: ownerId });
     if (!saloon) {
       return next(new AppError("Saloon not found", STATUS_CODES.NOT_FOUND));
@@ -484,13 +543,15 @@ export const getAppointmentById = async (req, res, next) => {
 
     const appointmentId = req.params.id;
     if (!appointmentId) {
-      return next(new AppError("Appointment ID required", STATUS_CODES.BAD_REQUEST));
+      return next(
+        new AppError("Appointment ID required", STATUS_CODES.BAD_REQUEST)
+      );
     }
 
-    // ⭐ Appointment Find + Full Populate Fix
-    const appointment = await Appointment.findOne({
+    // 2️⃣ FIRST: Try ONLINE appointment
+    let appointment = await Appointment.findOne({
       _id: appointmentId,
-      saloonId: saloon._id,   // ensure the appointment belongs to this saloon
+      saloonId: saloon._id,
     })
       .populate({
         path: "customer.id",
@@ -502,25 +563,47 @@ export const getAppointmentById = async (req, res, next) => {
       })
       .populate({
         path: "professionalId",
-        model: "Professional",  // ⭐ force correct model
+        model: "Professional",
         select: "name mobile role",
       });
 
-    // ⭐ If appointment not found
+    // 3️⃣ If NOT found → Try OFFLINE appointment
     if (!appointment) {
-      return next(
-        new AppError("Appointment not found or not authorized", STATUS_CODES.NOT_FOUND)
-      );
+      const offlineAppointment = await OfflineAppointment.findOne({
+        _id: appointmentId,
+        saloonId: saloon._id,
+      });
+
+      if (!offlineAppointment) {
+        return next(
+          new AppError(
+            "Appointment not found",
+            STATUS_CODES.NOT_FOUND
+          )
+        );
+      }
+
+      // 4️⃣ Normalize OFFLINE appointment response
+      return res.status(200).json({
+        success: true,
+        message: "Offline appointment fetched successfully",
+        data: {
+          ...offlineAppointment.toObject(),
+          mode: "offline",
+        },
+      });
     }
 
-    // ⭐ Debugging (optional but very useful)
-    console.log("Professional ID in DB:", appointment.professionalId);
-
+    // 5️⃣ ONLINE appointment response
     return res.status(200).json({
       success: true,
-      message: `Appointment ${appointmentId} fetched successfully`,
-      data: appointment,
+      message: "Online appointment fetched successfully",
+      data: {
+        ...appointment.toObject(),
+        mode: "automatic",
+      },
     });
+
   } catch (err) {
     console.error(err);
     next(err);
