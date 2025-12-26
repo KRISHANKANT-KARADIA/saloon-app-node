@@ -274,29 +274,76 @@ export const addSaloonContent = async (req, res, next) => {
 // };
 
 
+// export const deleteSaloonContent = async (req, res, next) => {
+//   try {
+//     const { contentId } = req.params;
+//     const ownerId = res.locals.user?.id; // optional chaining
+
+//     if (!ownerId) return res.status(401).json({ message: "Unauthorized" });
+
+//     const content = await SaloonContentModel.findById(contentId).populate("saloon");
+//     if (!content) return res.status(404).json({ message: "Content not found" });
+
+//     // Check owner
+//     if (!content.saloon || content.saloon.owner.toString() !== ownerId.toString()) {
+//       return res.status(403).json({ message: "Not authorized" });
+//     }
+
+//     await content.remove();
+//     return res.status(200).json({ success: true, message: "Content deleted successfully" });
+
+//   } catch (error) {
+//     console.error("Delete error:", error);
+//     next(error);
+//   }
+// };
+
 export const deleteSaloonContent = async (req, res, next) => {
   try {
     const { contentId } = req.params;
-    const ownerId = res.locals.user?.id; // optional chaining
+    const ownerId = res.locals.user?.id;
 
-    if (!ownerId) return res.status(401).json({ message: "Unauthorized" });
-
-    const content = await SaloonContentModel.findById(contentId).populate("saloon");
-    if (!content) return res.status(404).json({ message: "Content not found" });
-
-    // Check owner
-    if (!content.saloon || content.saloon.owner.toString() !== ownerId.toString()) {
-      return res.status(403).json({ message: "Not authorized" });
+    if (!ownerId) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized"
+      });
     }
 
-    await content.remove();
-    return res.status(200).json({ success: true, message: "Content deleted successfully" });
+    // Find content
+    const content = await SaloonContentModel
+      .findById(contentId)
+      .populate("saloon");
+
+    if (!content) {
+      return res.status(404).json({
+        success: false,
+        message: "Saloon content not found"
+      });
+    }
+
+    // Owner check
+    if (!content.saloon || content.saloon.owner.toString() !== ownerId.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: "You are not authorized to delete this content"
+      });
+    }
+
+    // ✅ FIX HERE
+    await content.deleteOne();
+
+    return res.status(200).json({
+      success: true,
+      message: "Saloon content deleted successfully"
+    });
 
   } catch (error) {
-    console.error("Delete error:", error);
+    console.error("Delete saloon content error:", error);
     next(error);
   }
 };
+
 
 
 export const getPublicSaloonContent = async (req, res, next) => {
