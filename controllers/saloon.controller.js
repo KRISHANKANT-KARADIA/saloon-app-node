@@ -2132,6 +2132,62 @@ export const getLast7DaysDashboardStats = async (req, res, next) => {
 //   }
 // };
 
+// export const addOfflineAppointment = async (req, res, next) => {
+//   try {
+//     const {
+//       customerName,
+//       contactNumber,
+//       serviceId,
+//       serviceName,
+//       teamMemberId,
+//       teamMemberName,
+//       date,
+//       time,
+//       notes,
+//     } = req.body;
+
+//     const saloonId = res.locals.user?.id;
+//     if (!saloonId) {
+//       return res.status(401).json({
+//         success: false,
+//         message: 'Unauthorized',
+//       });
+//     }
+
+//     // ⏱️ 5 minutes later
+//     const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+
+//     const appointment = new OfflineAppointment({
+//       saloonId,
+//       customerName,
+//       contactNumber,
+//       serviceId,
+//       serviceName,
+//       teamMemberId,
+//       teamMemberName,
+//       date,
+//       time,
+//       notes,
+//       status: 'pending',
+//       expiresAt,
+//     });
+
+//     const savedAppointment = await appointment.save();
+
+//     return res.status(201).json({
+//       success: true,
+//       message: 'Offline appointment created (auto-cancel in 5 minutes)',
+//       data: savedAppointment,
+//     });
+
+//   } catch (error) {
+//     console.error(error);
+//     next(error);
+//   }
+// };
+
+
+
 export const addOfflineAppointment = async (req, res, next) => {
   try {
     const {
@@ -2154,10 +2210,7 @@ export const addOfflineAppointment = async (req, res, next) => {
       });
     }
 
-    // ⏱️ 5 minutes later
-    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
-
-    const appointment = new OfflineAppointment({
+    const appointment = await OfflineAppointment.create({
       saloonId,
       customerName,
       contactNumber,
@@ -2169,15 +2222,28 @@ export const addOfflineAppointment = async (req, res, next) => {
       time,
       notes,
       status: 'pending',
-      expiresAt,
     });
 
-    const savedAppointment = await appointment.save();
+    // ⏱️ AUTO CANCEL AFTER 5 MINUTES
+    setTimeout(async () => {
+      try {
+        const latestAppointment = await OfflineAppointment.findById(appointment._id);
+
+        // Cancel only if still pending
+        if (latestAppointment && latestAppointment.status === 'pending') {
+          latestAppointment.status = 'cancelled';
+          await latestAppointment.save();
+          console.log(`Offline appointment ${appointment._id} auto-cancelled`);
+        }
+      } catch (err) {
+        console.error('Auto cancel error:', err);
+      }
+    }, 5 * 60 * 1000); // 5 minutes
 
     return res.status(201).json({
       success: true,
-      message: 'Offline appointment created (auto-cancel in 5 minutes)',
-      data: savedAppointment,
+      message: 'Offline appointment created (will auto-cancel in 5 minutes)',
+      data: appointment,
     });
 
   } catch (error) {
