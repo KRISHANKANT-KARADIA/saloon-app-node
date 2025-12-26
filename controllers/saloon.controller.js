@@ -240,10 +240,10 @@ export const addSaloonContent = async (req, res, next) => {
 export const deleteSaloonContent = async (req, res, next) => {
   try {
     const { contentId } = req.params;
-    const ownerId = res.locals.user.id;
+    const ownerId = req.user.id || req.user._id; // depends on your middleware
 
-    // 1️⃣ Check if content exists and belongs to this owner's saloon
-    const content = await SaloonContentModel.findById(contentId).populate('saloon');
+    // 1️⃣ Find content and populate saloon
+    const content = await SaloonContentModel.findById(contentId).populate("saloon");
     if (!content) {
       return res.status(404).json({
         success: false,
@@ -251,15 +251,15 @@ export const deleteSaloonContent = async (req, res, next) => {
       });
     }
 
-    // 2️⃣ Ensure the content belongs to the owner's saloon
-    if (content.saloon.owner.toString() !== ownerId) {
+    // 2️⃣ Check if the logged-in owner owns this saloon
+    if (!content.saloon || content.saloon.owner.toString() !== ownerId.toString()) {
       return res.status(403).json({
         success: false,
         message: "You are not authorized to delete this content."
       });
     }
 
-    // 3️⃣ Delete the content
+    // 3️⃣ Delete content
     await content.remove();
 
     return res.status(200).json({
