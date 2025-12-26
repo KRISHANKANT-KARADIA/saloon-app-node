@@ -469,65 +469,6 @@ export const getServiceWiseCounts = async (req, res, next) => {
 };
 
 
-// export const getAppointmentById = async (req, res, next) => {
-//   try {
-//     const ownerId = res.locals.user?.id;
-//     if (!ownerId) {
-//       return next(new AppError("Unauthorized", STATUS_CODES.UNAUTHORIZED));
-//     }
-
-//     // ⭐ Find saloon of this owner
-//     const saloon = await Saloon.findOne({ owner: ownerId });
-//     if (!saloon) {
-//       return next(new AppError("Saloon not found", STATUS_CODES.NOT_FOUND));
-//     }
-
-//     const appointmentId = req.params.id;
-//     if (!appointmentId) {
-//       return next(new AppError("Appointment ID required", STATUS_CODES.BAD_REQUEST));
-//     }
-
-//     // ⭐ Appointment Find + Full Populate Fix
-//     const appointment = await Appointment.findOne({
-//       _id: appointmentId,
-//       saloonId: saloon._id,   // ensure the appointment belongs to this saloon
-//     })
-//       .populate({
-//         path: "customer.id",
-//         select: "name mobile",
-//       })
-//       .populate({
-//         path: "serviceIds",
-//         select: "name price",
-//       })
-//       .populate({
-//         path: "professionalId",
-//         model: "Professional",  
-//         select: "name mobile role",
-//       });
-
-//     // ⭐ If appointment not found
-//     if (!appointment) {
-//       return next(
-//         new AppError("Appointment not found or not authorized", STATUS_CODES.NOT_FOUND)
-//       );
-//     }
-
-//     // ⭐ Debugging (optional but very useful)
-//     console.log("Professional ID in DB:", appointment.professionalId);
-
-//     return res.status(200).json({
-//       success: true,
-//       message: `Appointment ${appointmentId} fetched successfully`,
-//       data: appointment,
-//     });
-//   } catch (err) {
-//     console.error(err);
-//     next(err);
-//   }
-// };
-
-
 export const getAppointmentById = async (req, res, next) => {
   try {
     const ownerId = res.locals.user?.id;
@@ -535,7 +476,7 @@ export const getAppointmentById = async (req, res, next) => {
       return next(new AppError("Unauthorized", STATUS_CODES.UNAUTHORIZED));
     }
 
-    // 1️⃣ Find saloon of owner
+    // ⭐ Find saloon of this owner
     const saloon = await Saloon.findOne({ owner: ownerId });
     if (!saloon) {
       return next(new AppError("Saloon not found", STATUS_CODES.NOT_FOUND));
@@ -543,15 +484,13 @@ export const getAppointmentById = async (req, res, next) => {
 
     const appointmentId = req.params.id;
     if (!appointmentId) {
-      return next(
-        new AppError("Appointment ID required", STATUS_CODES.BAD_REQUEST)
-      );
+      return next(new AppError("Appointment ID required", STATUS_CODES.BAD_REQUEST));
     }
 
-    // 2️⃣ FIRST: Try ONLINE appointment
-    let appointment = await Appointment.findOne({
+    // ⭐ Appointment Find + Full Populate Fix
+    const appointment = await Appointment.findOne({
       _id: appointmentId,
-      saloonId: saloon._id,
+      saloonId: saloon._id,   // ensure the appointment belongs to this saloon
     })
       .populate({
         path: "customer.id",
@@ -563,52 +502,113 @@ export const getAppointmentById = async (req, res, next) => {
       })
       .populate({
         path: "professionalId",
-        model: "Professional",
+        model: "Professional",  
         select: "name mobile role",
       });
 
-    // 3️⃣ If NOT found → Try OFFLINE appointment
+    // ⭐ If appointment not found
     if (!appointment) {
-      const offlineAppointment = await OfflineAppointment.findOne({
-        _id: appointmentId,
-        saloonId: saloon._id,
-      });
-
-      if (!offlineAppointment) {
-        return next(
-          new AppError(
-            "Appointment not found",
-            STATUS_CODES.NOT_FOUND
-          )
-        );
-      }
-
-      // 4️⃣ Normalize OFFLINE appointment response
-      return res.status(200).json({
-        success: true,
-        message: "Offline appointment fetched successfully",
-        data: {
-          ...offlineAppointment.toObject(),
-          mode: "offline",
-        },
-      });
+      return next(
+        new AppError("Appointment not found or not authorized", STATUS_CODES.NOT_FOUND)
+      );
     }
 
-    // 5️⃣ ONLINE appointment response
+    // ⭐ Debugging (optional but very useful)
+    console.log("Professional ID in DB:", appointment.professionalId);
+
     return res.status(200).json({
       success: true,
-      message: "Online appointment fetched successfully",
-      data: {
-        ...appointment.toObject(),
-        mode: "automatic",
-      },
+      message: `Appointment ${appointmentId} fetched successfully`,
+      data: appointment,
     });
-
   } catch (err) {
     console.error(err);
     next(err);
   }
 };
+
+
+// export const getAppointmentById = async (req, res, next) => {
+//   try {
+//     const ownerId = res.locals.user?.id;
+//     if (!ownerId) {
+//       return next(new AppError("Unauthorized", STATUS_CODES.UNAUTHORIZED));
+//     }
+
+//     // 1️⃣ Find saloon of owner
+//     const saloon = await Saloon.findOne({ owner: ownerId });
+//     if (!saloon) {
+//       return next(new AppError("Saloon not found", STATUS_CODES.NOT_FOUND));
+//     }
+
+//     const appointmentId = req.params.id;
+//     if (!appointmentId) {
+//       return next(
+//         new AppError("Appointment ID required", STATUS_CODES.BAD_REQUEST)
+//       );
+//     }
+
+//     // 2️⃣ FIRST: Try ONLINE appointment
+//     let appointment = await Appointment.findOne({
+//       _id: appointmentId,
+//       saloonId: saloon._id,
+//     })
+//       .populate({
+//         path: "customer.id",
+//         select: "name mobile",
+//       })
+//       .populate({
+//         path: "serviceIds",
+//         select: "name price",
+//       })
+//       .populate({
+//         path: "professionalId",
+//         model: "Professional",
+//         select: "name mobile role",
+//       });
+
+//     // 3️⃣ If NOT found → Try OFFLINE appointment
+//     if (!appointment) {
+//       const offlineAppointment = await OfflineAppointment.findOne({
+//         _id: appointmentId,
+//         saloonId: saloon._id,
+//       });
+
+//       if (!offlineAppointment) {
+//         return next(
+//           new AppError(
+//             "Appointment not found",
+//             STATUS_CODES.NOT_FOUND
+//           )
+//         );
+//       }
+
+//       // 4️⃣ Normalize OFFLINE appointment response
+//       return res.status(200).json({
+//         success: true,
+//         message: "Offline appointment fetched successfully",
+//         data: {
+//           ...offlineAppointment.toObject(),
+//           mode: "offline",
+//         },
+//       });
+//     }
+
+//     // 5️⃣ ONLINE appointment response
+//     return res.status(200).json({
+//       success: true,
+//       message: "Online appointment fetched successfully",
+//       data: {
+//         ...appointment.toObject(),
+//         mode: "automatic",
+//       },
+//     });
+
+//   } catch (err) {
+//     console.error(err);
+//     next(err);
+//   }
+// };
 
 export const getAppointmentByBookingRef = async (req, res, next) => {
   try {
@@ -2091,6 +2091,47 @@ export const getLast7DaysDashboardStats = async (req, res, next) => {
 
 
 
+// export const addOfflineAppointment = async (req, res, next) => {
+//   try {
+//     const {
+//       customerName,
+//       contactNumber,
+//       serviceId,
+//       serviceName,
+//       teamMemberId,
+//       teamMemberName,
+//       date,
+//       time,
+//       notes,
+//     } = req.body;
+
+//     // ✅ Use res.locals.user for saloon ID
+//     const saloonId = res.locals.user?.id;
+//     if (!saloonId) {
+//       return next(new AppError('Unauthorized', STATUS_CODES.UNAUTHORIZED));
+//     }
+
+//     const appointment = new OfflineAppointment({
+//       saloonId,
+//       customerName,
+//       contactNumber,
+//       serviceId,
+//       serviceName,
+//       teamMemberId,
+//       teamMemberName,
+//       date,
+//       time,
+//       notes,
+//     });
+
+//     const savedAppointment = await appointment.save();
+//     res.status(201).json({ success: true, data: savedAppointment });
+//   } catch (error) {
+//     console.error(error);
+//     next(error);
+//   }
+// };
+
 export const addOfflineAppointment = async (req, res, next) => {
   try {
     const {
@@ -2105,11 +2146,16 @@ export const addOfflineAppointment = async (req, res, next) => {
       notes,
     } = req.body;
 
-    // ✅ Use res.locals.user for saloon ID
     const saloonId = res.locals.user?.id;
     if (!saloonId) {
-      return next(new AppError('Unauthorized', STATUS_CODES.UNAUTHORIZED));
+      return res.status(401).json({
+        success: false,
+        message: 'Unauthorized',
+      });
     }
+
+    // ⏱️ 5 minutes later
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
 
     const appointment = new OfflineAppointment({
       saloonId,
@@ -2122,15 +2168,24 @@ export const addOfflineAppointment = async (req, res, next) => {
       date,
       time,
       notes,
+      status: 'pending',
+      expiresAt,
     });
 
     const savedAppointment = await appointment.save();
-    res.status(201).json({ success: true, data: savedAppointment });
+
+    return res.status(201).json({
+      success: true,
+      message: 'Offline appointment created (auto-cancel in 5 minutes)',
+      data: savedAppointment,
+    });
+
   } catch (error) {
     console.error(error);
     next(error);
   }
 };
+
 
 
 
@@ -2569,6 +2624,49 @@ export const getPublicOperatingHours = async (req, res, next) => {
   }
 };
 
+// export const getPublicOperatingBookingHours = async (req, res, next) => {
+//   try {
+//     const { saloonId } = req.params;
+
+//     // 1️⃣ Find saloon operating hours
+//     const saloon = await Saloon.findById(saloonId).select("operatingHours");
+//     if (!saloon) {
+//       return res.status(404).json({
+//         success: false,
+//         message: "Saloon not found",
+//       });
+//     }
+
+//     // 2️⃣ Get all upcoming & active bookings for this saloon
+//     const today = new Date();
+//     today.setHours(0, 0, 0, 0);
+
+//     const appointments = await Appointment.find({
+//       saloonId: saloonId,
+//       date: { $gte: today.toISOString().split("T")[0] }, // today & future
+//       status: { $ne: "cancelled" },
+//     }).select("date time");
+
+//     // 3️⃣ Format booked slots
+//     const bookedSlots = appointments.map(a => ({
+//       date: a.date,   // YYYY-MM-DD
+//       time: a.time,   // "10:30 AM"
+//     }));
+
+//     // 4️⃣ Send response
+//     return res.status(200).json({
+//       success: true,
+//       operatingHours: saloon.operatingHours,
+//       bookedSlots, // 👈 frontend will disable these
+//     });
+
+//   } catch (err) {
+//     next(err);
+//   }
+// };
+
+
+
 export const getPublicOperatingBookingHours = async (req, res, next) => {
   try {
     const { saloonId } = req.params;
@@ -2582,35 +2680,54 @@ export const getPublicOperatingBookingHours = async (req, res, next) => {
       });
     }
 
-    // 2️⃣ Get all upcoming & active bookings for this saloon
+    // 2️⃣ Today start
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const appointments = await Appointment.find({
-      saloonId: saloonId,
-      date: { $gte: today.toISOString().split("T")[0] }, // today & future
+    const todayStr = today.toISOString().split("T")[0];
+
+    // 3️⃣ ONLINE appointments
+    const onlineAppointments = await Appointment.find({
+      saloonId,
+      date: { $gte: todayStr },
       status: { $ne: "cancelled" },
     }).select("date time");
 
-    // 3️⃣ Format booked slots
-    const bookedSlots = appointments.map(a => ({
-      date: a.date,   // YYYY-MM-DD
-      time: a.time,   // "10:30 AM"
+    // 4️⃣ OFFLINE appointments
+    const offlineAppointments = await OfflineAppointment.find({
+      saloonId,
+      date: { $gte: todayStr },
+    }).select("date time");
+
+    // 5️⃣ Format booked slots (ONLINE)
+    const onlineSlots = onlineAppointments.map((a) => ({
+      date: a.date,
+      time: a.time,
+      mode: "automatic",
     }));
 
-    // 4️⃣ Send response
+    // 6️⃣ Format booked slots (OFFLINE)
+    const offlineSlots = offlineAppointments.map((a) => ({
+      date: a.date,
+      time: a.time,
+      mode: "offline",
+    }));
+
+    // 7️⃣ Merge both
+    const bookedSlots = [...onlineSlots, ...offlineSlots];
+
+    // 8️⃣ Send response
     return res.status(200).json({
       success: true,
       operatingHours: saloon.operatingHours,
-      bookedSlots, // 👈 frontend will disable these
+      bookedSlots,
     });
 
   } catch (err) {
+    console.error(err);
     next(err);
   }
 };
-
-
 
 
 export const getSocialLinks = async (req, res, next) => {
