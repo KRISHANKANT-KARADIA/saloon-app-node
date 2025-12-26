@@ -3012,6 +3012,63 @@ export const getPublicOperatingBookingHours = async (req, res, next) => {
 };
 
 
+export const getPublicOperatingBookingHoursP = async (req, res, next) => {
+  try {
+    const { saloonId } = req.params;
+
+    const saloon = await Saloon.findById(saloonId).select("operatingHours");
+    if (!saloon) {
+      return res.status(404).json({ success: false, message: "Saloon not found" });
+    }
+
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+
+    const endOfFuture = new Date();
+    endOfFuture.setFullYear(endOfFuture.getFullYear() + 1);
+
+    const formatDate = (d) =>
+      new Date(d).toISOString().split("T")[0];
+
+    // ✅ ONLINE (ONLY PENDING)
+    const onlineAppointments = await Appointment.find({
+      saloonId,
+      status: "pending",
+      date: { $gte: startOfToday, $lte: endOfFuture },
+    }).select("date time");
+
+    // ✅ OFFLINE (ONLY PENDING)
+    const offlineAppointments = await OfflineAppointment.find({
+      saloonId,
+      status: "pending",
+      date: { $gte: startOfToday, $lte: endOfFuture },
+    }).select("date time");
+
+    const onlineSlots = onlineAppointments.map(a => ({
+      date: formatDate(a.date),
+      time: a.time,
+      mode: "automatic",
+    }));
+
+    const offlineSlots = offlineAppointments.map(a => ({
+      date: formatDate(a.date),
+      time: a.time,
+      mode: "offline",
+    }));
+
+    return res.status(200).json({
+      success: true,
+      operatingHours: saloon.operatingHours,
+      bookedSlots: [...onlineSlots, ...offlineSlots],
+    });
+
+  } catch (err) {
+    console.error(err);
+    next(err);
+  }
+};
+
+
 export const getSocialLinks = async (req, res, next) => {
   try {
     const ownerId = res.locals.user.id;

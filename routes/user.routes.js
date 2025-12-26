@@ -4,7 +4,7 @@ import { AuthMiddlewares } from '../middlewares/auth.middleware.js';
 import Location from '../models/location.model.js';
 import Saloon from '../models/saloon.model.js'; 
 import { getAllUsers, createUser ,getMySaloonProfile, updateSaloonInfo, getRegisteredMobileNumber} from '../controllers/user.controller.js';
-import {  addSaloonContent,getPublicSaloonContent, deleteSaloonImage, getAllImages, getFullSaloonDetails, getFullSaloonDetailsUsingId, getOperatingHours, getPublicOperatingHours, getPublicOwnerLocation, getSaloonDetails, getSaloonUsingId, getSocialLinks, registerSaloon, updateOperatingHours, updateSaloonData, updateSaloonMobileNumber, updateSocialLinks, uploadSaloonImages, uploadSaloonLogo, getAppointmentsBySaloon, getSaloonDashboardStats, getLast7DaysDashboardStats, getUpcomingAppointments,getTodayRevenue,getTotalAppointments,getDashboardData,getPendingAppointments,getRevenueGrowth,getPastAppointments, addOfflineAppointment, getOfflineAppointments, deleteOfflineAppointment, updateOfflineAppointmentStatus, getOfflineAppointmentById, getAppointmentById, updateAppointmentStatus, filterAppointments, getOwnerSaloonContent, getServiceWiseCounts, getSaloonByOwnerId, getDashboardDataC, sayHello, getServiceWiseAppointmentsNe, getCumulativeDashboard, completeAppointmentByBookingRef, getCurrentsAppointments, getAllAppointments, getAppointmentByBookingRef, getPastAppointmentsProfessionalIdOnly, getPastAppointmentsFull, getUpcomingAppointmentsFull, getTodaysAppointmentsFull, getAllAppointmentsFull, generateReport, fullReport, getRejectedAppointments, getPublicOperatingBookingHours, deleteSaloonContent} from '../controllers/saloon.controller.js';
+import {  addSaloonContent,getPublicSaloonContent, deleteSaloonImage, getAllImages, getFullSaloonDetails, getFullSaloonDetailsUsingId, getOperatingHours, getPublicOperatingHours, getPublicOwnerLocation, getSaloonDetails, getSaloonUsingId, getSocialLinks, registerSaloon, updateOperatingHours, updateSaloonData, updateSaloonMobileNumber, updateSocialLinks, uploadSaloonImages, uploadSaloonLogo, getAppointmentsBySaloon, getSaloonDashboardStats, getLast7DaysDashboardStats, getUpcomingAppointments,getTodayRevenue,getTotalAppointments,getDashboardData,getPendingAppointments,getRevenueGrowth,getPastAppointments, addOfflineAppointment, getOfflineAppointments, deleteOfflineAppointment, updateOfflineAppointmentStatus, getOfflineAppointmentById, getAppointmentById, updateAppointmentStatus, filterAppointments, getOwnerSaloonContent, getServiceWiseCounts, getSaloonByOwnerId, getDashboardDataC, sayHello, getServiceWiseAppointmentsNe, getCumulativeDashboard, completeAppointmentByBookingRef, getCurrentsAppointments, getAllAppointments, getAppointmentByBookingRef, getPastAppointmentsProfessionalIdOnly, getPastAppointmentsFull, getUpcomingAppointmentsFull, getTodaysAppointmentsFull, getAllAppointmentsFull, generateReport, fullReport, getRejectedAppointments, getPublicOperatingBookingHours, deleteSaloonContent, getPublicOperatingBookingHoursP} from '../controllers/saloon.controller.js';
 import { addSaloonLocation, getSaloonLocation, putSaloonNewLocation } from '../controllers/location.controller.js';
 import { updateSaloonDetails } from '../controllers/updateSaloonDetails.js';
 import { deleteSaloonLocation, updateSaloonLocation } from '../controllers/updateSaloonLocation.js';
@@ -1309,6 +1309,10 @@ router.delete("/saloon/content/:contentId", AuthMiddlewares.checkAuth, deleteSal
 
 router.get('/saloon/:saloonId/operating/hours', getPublicOperatingHours);
 router.get('/saloon/:saloonId/operating/booking/hours', getPublicOperatingBookingHours);
+router.get('/saloon/:saloonId/operating/booking/hoursP', getPublicOperatingBookingHoursP);
+
+
+
 // router.put('/saloon/upload-logo',
 // AuthMiddlewares.checkAuth,
 //   uploadSaloonImage.single('logo'),
