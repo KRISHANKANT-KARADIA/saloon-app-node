@@ -237,6 +237,43 @@ export const addSaloonContent = async (req, res, next) => {
 };
 
 
+export const deleteSaloonContent = async (req, res, next) => {
+  try {
+    const { contentId } = req.params;
+    const ownerId = res.locals.user.id;
+
+    // 1️⃣ Check if content exists and belongs to this owner's saloon
+    const content = await SaloonContentModel.findById(contentId).populate('saloon');
+    if (!content) {
+      return res.status(404).json({
+        success: false,
+        message: "Saloon content not found."
+      });
+    }
+
+    // 2️⃣ Ensure the content belongs to the owner's saloon
+    if (content.saloon.owner.toString() !== ownerId) {
+      return res.status(403).json({
+        success: false,
+        message: "You are not authorized to delete this content."
+      });
+    }
+
+    // 3️⃣ Delete the content
+    await content.remove();
+
+    return res.status(200).json({
+      success: true,
+      message: "Saloon content deleted successfully."
+    });
+
+  } catch (error) {
+    console.error("Delete saloon content error:", error);
+    next(error);
+  }
+};
+
+
 export const getPublicSaloonContent = async (req, res, next) => {
    try {
     const { saloonId } = req.params;

@@ -84,6 +84,8 @@ router.post(
   AppointmentController.addAppointment
 );
 
+
+
 router.post(
   '/customer/appointment/payment',
   CustomerAuthMiddleware.checkAuth,
