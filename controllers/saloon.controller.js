@@ -2377,6 +2377,48 @@ export const getPublicOperatingHours = async (req, res, next) => {
   }
 };
 
+export const getPublicOperatingBookingHours = async (req, res, next) => {
+  try {
+    const { saloonId } = req.params;
+
+    // 1️⃣ Find saloon operating hours
+    const saloon = await Saloon.findById(saloonId).select("operatingHours");
+    if (!saloon) {
+      return res.status(404).json({
+        success: false,
+        message: "Saloon not found",
+      });
+    }
+
+    // 2️⃣ Get all upcoming & active bookings for this saloon
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const appointments = await Appointment.find({
+      saloonId: saloonId,
+      date: { $gte: today.toISOString().split("T")[0] }, // today & future
+      status: { $ne: "cancelled" },
+    }).select("date time");
+
+    // 3️⃣ Format booked slots
+    const bookedSlots = appointments.map(a => ({
+      date: a.date,   // YYYY-MM-DD
+      time: a.time,   // "10:30 AM"
+    }));
+
+    // 4️⃣ Send response
+    return res.status(200).json({
+      success: true,
+      operatingHours: saloon.operatingHours,
+      bookedSlots, // 👈 frontend will disable these
+    });
+
+  } catch (err) {
+    next(err);
+  }
+};
+
+
 
 
 export const getSocialLinks = async (req, res, next) => {
