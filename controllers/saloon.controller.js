@@ -2733,56 +2733,108 @@ export const getPublicOperatingHours = async (req, res, next) => {
 
 
 
+// export const getPublicOperatingBookingHours = async (req, res, next) => {
+//   try {
+//     const { saloonId } = req.params;
+
+//     // 1️⃣ Find saloon operating hours
+//     const saloon = await Saloon.findById(saloonId).select("operatingHours");
+//     if (!saloon) {
+//       return res.status(404).json({
+//         success: false,
+//         message: "Saloon not found",
+//       });
+//     }
+
+//     // 2️⃣ Today start
+//     const today = new Date();
+//     today.setHours(0, 0, 0, 0);
+
+//     const todayStr = today.toISOString().split("T")[0];
+
+//     // 3️⃣ ONLINE appointments
+//     const onlineAppointments = await Appointment.find({
+//       saloonId,
+//       date: { $gte: todayStr },
+//       status: { $ne: "cancelled" },
+//     }).select("date time");
+
+//     // 4️⃣ OFFLINE appointments
+//     const offlineAppointments = await OfflineAppointment.find({
+//       saloonId,
+//       date: { $gte: todayStr },
+//     }).select("date time");
+
+//     // 5️⃣ Format booked slots (ONLINE)
+//     const onlineSlots = onlineAppointments.map((a) => ({
+//       date: a.date,
+//       time: a.time,
+//       mode: "automatic",
+//     }));
+
+//     // 6️⃣ Format booked slots (OFFLINE)
+//     const offlineSlots = offlineAppointments.map((a) => ({
+//       date: a.date,
+//       time: a.time,
+//       mode: "offline",
+//     }));
+
+//     // 7️⃣ Merge both
+//     const bookedSlots = [...onlineSlots, ...offlineSlots];
+
+//     // 8️⃣ Send response
+//     return res.status(200).json({
+//       success: true,
+//       operatingHours: saloon.operatingHours,
+//       bookedSlots,
+//     });
+
+//   } catch (err) {
+//     console.error(err);
+//     next(err);
+//   }
+// };
+
 export const getPublicOperatingBookingHours = async (req, res, next) => {
   try {
     const { saloonId } = req.params;
 
-    // 1️⃣ Find saloon operating hours
     const saloon = await Saloon.findById(saloonId).select("operatingHours");
     if (!saloon) {
-      return res.status(404).json({
-        success: false,
-        message: "Saloon not found",
-      });
+      return res.status(404).json({ success: false, message: "Saloon not found" });
     }
 
-    // 2️⃣ Today start
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0); // Today 00:00
 
-    const todayStr = today.toISOString().split("T")[0];
-
-    // 3️⃣ ONLINE appointments
+    // Online appointments
     const onlineAppointments = await Appointment.find({
       saloonId,
-      date: { $gte: todayStr },
+      date: { $gte: today },
       status: { $ne: "cancelled" },
     }).select("date time");
 
-    // 4️⃣ OFFLINE appointments
+    // Offline appointments
     const offlineAppointments = await OfflineAppointment.find({
       saloonId,
-      date: { $gte: todayStr },
+      date: { $gte: today },
+      status: { $ne: "cancelled" }, // optional
     }).select("date time");
 
-    // 5️⃣ Format booked slots (ONLINE)
-    const onlineSlots = onlineAppointments.map((a) => ({
+    const onlineSlots = onlineAppointments.map(a => ({
       date: a.date,
       time: a.time,
       mode: "automatic",
     }));
 
-    // 6️⃣ Format booked slots (OFFLINE)
-    const offlineSlots = offlineAppointments.map((a) => ({
+    const offlineSlots = offlineAppointments.map(a => ({
       date: a.date,
       time: a.time,
       mode: "offline",
     }));
 
-    // 7️⃣ Merge both
     const bookedSlots = [...onlineSlots, ...offlineSlots];
 
-    // 8️⃣ Send response
     return res.status(200).json({
       success: true,
       operatingHours: saloon.operatingHours,
