@@ -1303,7 +1303,7 @@ export const getAllAppointmentsFull = async (req, res, next) => {
     const response = appointments.map(a => ({
       _id: a._id,
       bookingRef: a.bookingRef,
-      professionalId: a.professionalId?._id || a.professionalId,
+       professionalId: a.professionalId,
       professionalName: a.professionalId?.name || "Not Assigned",
       createdAt: a.createdAt,
       discount: a.discount,
