@@ -1188,7 +1188,7 @@ export const getRejectedAppointments = async (req, res, next) => {
     })
       .populate("customer.id", "name mobile")
       .populate("serviceIds", "name price")
-      .populate("professionalId", "name")
+      // .populate("professionalId", "name")
       .sort({ date: -1, time: -1 });
 
     // 3️⃣ Response
@@ -1228,7 +1228,7 @@ export const getTodaysAppointmentsFull = async (req, res, next) => {
     })
       .populate("customer.id", "name mobile")
       .populate("serviceIds", "name price")
-      .populate("professionalId", "name");
+      // .populate("professionalId", "name");
 
     // 4️⃣ Filter ONLY today's appointments (string-safe)
     const todaysAppointments = appointments.filter(a => {
@@ -1250,7 +1250,7 @@ export const getTodaysAppointmentsFull = async (req, res, next) => {
     const response = todaysAppointments.map(a => ({
       _id: a._id,
       bookingRef: a.bookingRef,
-      professionalId: a.professionalId?._id || a.professionalId,
+        professionalId: a.professionalId,
       professionalName: a.professionalId?.name || "Not Assigned",
       createdAt: a.createdAt,
       discount: a.discount,
