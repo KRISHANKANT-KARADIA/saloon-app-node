@@ -2795,6 +2795,59 @@ export const getPublicOperatingHours = async (req, res, next) => {
 //   }
 // };
 
+// export const getPublicOperatingBookingHours = async (req, res, next) => {
+//   try {
+//     const { saloonId } = req.params;
+
+//     const saloon = await Saloon.findById(saloonId).select("operatingHours");
+//     if (!saloon) {
+//       return res.status(404).json({ success: false, message: "Saloon not found" });
+//     }
+
+//     const today = new Date();
+//     today.setHours(0, 0, 0, 0); // Today 00:00
+
+//     // Online appointments
+//     const onlineAppointments = await Appointment.find({
+//       saloonId,
+//       date: { $gte: today },
+//       status: { $ne: "cancelled" },
+//     }).select("date time");
+
+//     // Offline appointments
+//     const offlineAppointments = await OfflineAppointment.find({
+//       saloonId,
+//       date: { $gte: today },
+//       status: { $ne: "cancelled" }, // optional
+//     }).select("date time");
+
+//     const onlineSlots = onlineAppointments.map(a => ({
+//       date: a.date,
+//       time: a.time,
+//       mode: "automatic",
+//     }));
+
+//     const offlineSlots = offlineAppointments.map(a => ({
+//       date: a.date,
+//       time: a.time,
+//       mode: "offline",
+//     }));
+
+//     const bookedSlots = [...onlineSlots, ...offlineSlots];
+
+//     return res.status(200).json({
+//       success: true,
+//       operatingHours: saloon.operatingHours,
+//       bookedSlots,
+//     });
+
+//   } catch (err) {
+//     console.error(err);
+//     next(err);
+//   }
+// };
+
+
 export const getPublicOperatingBookingHours = async (req, res, next) => {
   try {
     const { saloonId } = req.params;
@@ -2804,41 +2857,41 @@ export const getPublicOperatingBookingHours = async (req, res, next) => {
       return res.status(404).json({ success: false, message: "Saloon not found" });
     }
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0); // Today 00:00
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
 
-    // Online appointments
+    const endOfFuture = new Date();
+    endOfFuture.setFullYear(endOfFuture.getFullYear() + 1);
+
+    // ONLINE
     const onlineAppointments = await Appointment.find({
       saloonId,
-      date: { $gte: today },
       status: { $ne: "cancelled" },
     }).select("date time");
 
-    // Offline appointments
+    // OFFLINE
     const offlineAppointments = await OfflineAppointment.find({
       saloonId,
-      date: { $gte: today },
-      status: { $ne: "cancelled" }, // optional
+      date: { $gte: startOfToday, $lte: endOfFuture },
+      status: { $ne: "cancelled" },
     }).select("date time");
 
     const onlineSlots = onlineAppointments.map(a => ({
-      date: a.date,
+      date: a.date, // already string
       time: a.time,
       mode: "automatic",
     }));
 
     const offlineSlots = offlineAppointments.map(a => ({
-      date: a.date,
+      date: new Date(a.date).toDateString(), // 🔥 FIX
       time: a.time,
       mode: "offline",
     }));
 
-    const bookedSlots = [...onlineSlots, ...offlineSlots];
-
     return res.status(200).json({
       success: true,
       operatingHours: saloon.operatingHours,
-      bookedSlots,
+      bookedSlots: [...onlineSlots, ...offlineSlots],
     });
 
   } catch (err) {
@@ -2846,7 +2899,6 @@ export const getPublicOperatingBookingHours = async (req, res, next) => {
     next(err);
   }
 };
-
 
 export const getSocialLinks = async (req, res, next) => {
   try {
