@@ -1284,6 +1284,56 @@ export const getTodaysAppointmentsFull = async (req, res, next) => {
 
 
 
+// export const getAllAppointmentsFull = async (req, res, next) => {
+//   try {
+//     const ownerId = res.locals.user.id;
+
+//     // 1️⃣ Find the saloon of this owner
+//     const saloon = await Saloon.findOne({ owner: ownerId });
+//     if (!saloon) return next(new AppError("Saloon not found", 404));
+
+//     // 2️⃣ Fetch all appointments for this saloon
+//     const appointments = await Appointment.find({ saloonId: saloon._id })
+//       .populate("customer.id", "name mobile")
+//       .populate("serviceIds", "name price")
+//       .populate("professionalId", "name")
+//       .sort({ date: -1, time: -1 }); // latest first
+
+//     // 3️⃣ Map full details for response
+//     const response = appointments.map(a => ({
+//       _id: a._id,
+//       bookingRef: a.bookingRef,
+//        professionalId: a.professionalId,
+//       professionalName: a.professionalId?.name || "Not Assigned",
+//       createdAt: a.createdAt,
+//       discount: a.discount,
+//       saloonId: a.saloonId,
+//       serviceIds: a.serviceIds,
+//       date: a.date,
+//       time: a.time,
+//       duration: a.duration,
+//       price: a.price,
+//       status: a.status,
+//       discountCode: a.discountCode,
+//       discountAmount: a.discountAmount,
+//       discountCodeId: a.discountCodeId,
+//       cardstatus: a.cardstatus,
+//       notes: a.notes,
+//       customer: a.customer,
+//     }));
+
+//     return res.status(200).json({
+//       success: true,
+//       message: "All appointments with full details",
+//       data: response,
+//     });
+//   } catch (err) {
+//     next(err);
+//   }
+// };
+
+
+
 export const getAllAppointmentsFull = async (req, res, next) => {
   try {
     const ownerId = res.locals.user.id;
@@ -1296,15 +1346,18 @@ export const getAllAppointmentsFull = async (req, res, next) => {
     const appointments = await Appointment.find({ saloonId: saloon._id })
       .populate("customer.id", "name mobile")
       .populate("serviceIds", "name price")
-      .populate("professionalId", "name")
+      .populate("professionalId", "name") // 👈 populate professional
       .sort({ date: -1, time: -1 }); // latest first
 
     // 3️⃣ Map full details for response
     const response = appointments.map(a => ({
       _id: a._id,
       bookingRef: a.bookingRef,
-       professionalId: a.professionalId,
+
+      // ✅ FIXED PART
+      professionalId: a.professionalId?._id || null,
       professionalName: a.professionalId?.name || "Not Assigned",
+
       createdAt: a.createdAt,
       discount: a.discount,
       saloonId: a.saloonId,
@@ -1327,11 +1380,11 @@ export const getAllAppointmentsFull = async (req, res, next) => {
       message: "All appointments with full details",
       data: response,
     });
+
   } catch (err) {
     next(err);
   }
 };
-
 
 
 
