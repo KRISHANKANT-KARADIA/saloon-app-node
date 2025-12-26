@@ -8,6 +8,121 @@ import ownerModel from '../models/owner.model.js';
 
 export const AppointmentController = {};
 
+// AppointmentController.addAppointment = async (req, res, next) => {
+//   try {
+//     const {
+//       saloonId,
+//       services = [],
+//       professionalId,
+//       date,
+//       time,
+//       totalPrice,
+//       discount = false,
+//       discountCode,
+//       discountCodeId,
+//       discountAmount,
+//     } = req.body;
+
+//     const customer = res.locals.user;
+
+
+//     if (discount && discountCodeId) {
+//       const offer = await offerModel.findById(discountCodeId);
+
+//       if (!offer || !offer.active) {
+//         return next(new AppError("Offer is no longer active!", 400));
+//       }
+
+//       const now = new Date();
+//       if (new Date(offer.valid_until) < now) {
+//         return next(new AppError("Offer has expired!", 400));
+//       }
+
+//       if (offer.max_uses <= 0) {
+//         return next(new AppError("Offer usage limit reached!", 400));
+//       }
+
+//       const userUsedCount = await Appointment.countDocuments({
+//         "customer.id": customer.id,
+//         discountCodeId,
+//       });
+
+//       if (userUsedCount >= offer.max_uses_per_user) {
+//         return next(
+//           new AppError("You have already used this offer maximum times!", 400)
+//         );
+//       }
+
+//       offer.max_uses -= 1;
+//       if (offer.max_uses <= 0) offer.active = false;
+//       await offer.save();
+//     }
+
+
+//     const serviceIds = services.map((s) => s.serviceId);
+//     const duration = services.reduce((sum, s) => sum + Number(s.duration || 0), 0);
+
+//     const appointment = new Appointment({
+//       customer: { id: customer.id, mobile: customer.mobile },
+//       saloonId,
+//       serviceIds,
+//       professionalId,
+//       date,
+//       time,
+//       price: totalPrice,
+//       status: "pending",
+//       notes: req.body.notes || "No special instructions",
+//       duration: duration.toString(),
+//       discount,
+//       discountCode,
+//       discountAmount,
+//       discountCodeId,
+//     });
+
+//     await appointment.save();
+
+
+//     const owner = await ownerModel.findById(saloonId);
+
+//     if (owner && owner.fcmToken) {
+//       const payload = {
+//         notification: {
+//           title: "New Appointment!",
+//           body: `New appointment booked for ${
+//             services.map((s) => s.name).join(", ") || "services"
+//           }`,
+//         },
+//         data: {
+//           type: "appointment",
+//           appointmentId: appointment._id.toString(),
+//         },
+//       };
+
+//       try {
+//         await admin.messaging().send({
+//           token: owner.fcmToken, // your FCM token
+//           notification: payload.notification,
+//           data: payload.data,
+//         });
+//         console.log("Notification sent to owner:", owner._id);
+//       } catch (err) {
+//         console.error("Failed to send notification:", err.message);
+//       }
+//     }
+
+
+//     return res.status(201).json({
+//       success: true,
+//       message: "Appointment booked successfully",
+//       data: appointment,
+//     });
+//   } catch (err) {
+//     next(err);
+//   }
+// };
+
+
+
 AppointmentController.addAppointment = async (req, res, next) => {
   try {
     const {
@@ -25,7 +140,7 @@ AppointmentController.addAppointment = async (req, res, next) => {
 
     const customer = res.locals.user;
 
-
+    // ✅ Discount logic
     if (discount && discountCodeId) {
       const offer = await offerModel.findById(discountCodeId);
 
@@ -58,7 +173,7 @@ AppointmentController.addAppointment = async (req, res, next) => {
       await offer.save();
     }
 
-
+    // ✅ Appointment creation
     const serviceIds = services.map((s) => s.serviceId);
     const duration = services.reduce((sum, s) => sum + Number(s.duration || 0), 0);
 
@@ -81,9 +196,8 @@ AppointmentController.addAppointment = async (req, res, next) => {
 
     await appointment.save();
 
-
+    // ✅ Notification to owner
     const owner = await ownerModel.findById(saloonId);
-
     if (owner && owner.fcmToken) {
       const payload = {
         notification: {
@@ -100,7 +214,7 @@ AppointmentController.addAppointment = async (req, res, next) => {
 
       try {
         await admin.messaging().send({
-          token: owner.fcmToken, // your FCM token
+          token: owner.fcmToken,
           notification: payload.notification,
           data: payload.data,
         });
@@ -110,6 +224,15 @@ AppointmentController.addAppointment = async (req, res, next) => {
       }
     }
 
+    // ✅ Auto-reject after 5 minutes if still pending
+    setTimeout(async () => {
+      const appt = await Appointment.findById(appointment._id);
+      if (appt && appt.status === "pending") {
+        appt.status = "cancelled";
+        await appt.save();
+        console.log(`Appointment ${appt._id} automatically cancelled.`);
+      }
+    }, 5 * 60 * 1000); // 5 minutes
 
     return res.status(201).json({
       success: true,
@@ -120,6 +243,7 @@ AppointmentController.addAppointment = async (req, res, next) => {
     next(err);
   }
 };
+
 
 export const getTodayReport = async (req, res, next) => {
   try {
