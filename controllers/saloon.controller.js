@@ -1346,7 +1346,7 @@ export const getAllAppointmentsFull = async (req, res, next) => {
     const appointments = await Appointment.find({ saloonId: saloon._id })
       .populate("customer.id", "name mobile")
       .populate("serviceIds", "name price")
-      .populate("professionalId", "name") // 👈 populate professional
+      // .populate("professionalId", "name") // 👈 populate professional
       .sort({ date: -1, time: -1 }); // latest first
 
     // 3️⃣ Map full details for response
@@ -1354,9 +1354,7 @@ export const getAllAppointmentsFull = async (req, res, next) => {
       _id: a._id,
       bookingRef: a.bookingRef,
 
-      // ✅ FIXED PART
-      professionalId: a.professionalId?._id || null,
-      professionalName: a.professionalId?.name || "Not Assigned",
+     professionalId: a.professionalId, 
 
       createdAt: a.createdAt,
       discount: a.discount,
