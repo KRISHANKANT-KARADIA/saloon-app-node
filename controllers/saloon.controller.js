@@ -2309,15 +2309,40 @@ export const addOfflineAppointment = async (req, res, next) => {
 
 
 
+// export const getOfflineAppointments = async (req, res, next) => {
+//   try {
+//     const saloonId = res.locals.user?.id; // must match what you used in add API
+//     if (!saloonId) return next(new AppError('Unauthorized', STATUS_CODES.UNAUTHORIZED));
+
+//     const appointments = await offlineAppointments.find({ saloonId })
+//       .sort({ date: 1, time: 1 });
+
+//     res.status(200).json({ success: true, data: appointments });
+//   } catch (error) {
+//     console.error(error);
+//     next(error);
+//   }
+// };
 export const getOfflineAppointments = async (req, res, next) => {
   try {
-    const saloonId = res.locals.user?.id; // must match what you used in add API
-    if (!saloonId) return next(new AppError('Unauthorized', STATUS_CODES.UNAUTHORIZED));
+    const saloonId = res.locals.user?.id;
+    if (!saloonId) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
 
+  
     const appointments = await OfflineAppointment.find({ saloonId })
-      .sort({ date: 1, time: 1 });
+      .sort({ createdAt: -1 }); // latest first (optional)
 
-    res.status(200).json({ success: true, data: appointments });
+    return res.status(200).json({
+      success: true,
+      total: appointments.length,
+      data: appointments,
+    });
+
   } catch (error) {
     console.error(error);
     next(error);
