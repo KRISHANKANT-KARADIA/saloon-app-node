@@ -13,7 +13,11 @@ const offlineAppointmentSchema = new mongoose.Schema({
     time: { type: String, required: true },
     notes: { type: String },
     mode: { type: String, default: 'offline' },
-    status: { type: String, default: 'pending' }
+    status: { type: String, default: 'pending' },
+      expireAt: {
+    type: Date,
+    index: true,
+  }
 }, { timestamps: true });
 
 export default mongoose.model('OfflineAppointment', offlineAppointmentSchema);

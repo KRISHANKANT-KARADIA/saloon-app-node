@@ -2253,6 +2253,61 @@ export const getLast7DaysDashboardStats = async (req, res, next) => {
 // };
 
 
+// export const addOfflineAppointment = async (req, res, next) => {
+//   try {
+//     const {
+//       customerName,
+//       contactNumber,
+//       serviceId,
+//       serviceName,
+//       teamMemberId,
+//       teamMemberName,
+//       date,
+//       time,
+//       notes,
+//     } = req.body;
+
+//     const ownerId = res.locals.user?.id;
+//     if (!ownerId) {
+//       return res.status(401).json({ success: false, message: "Unauthorized" });
+//     }
+
+//     // 🔥 GET SALOON ID (IMPORTANT)
+//     const saloon = await Saloon.findOne({ owner: ownerId }).select("_id");
+//     if (!saloon) {
+//       return res.status(404).json({ success: false, message: "Saloon not found" });
+//     }
+
+//     const appointment = new OfflineAppointment({
+//       saloonId: saloon._id, // ✅ CORRECT
+//       customerName,
+//       contactNumber,
+//       serviceId,
+//       serviceName,
+//       teamMemberId,
+//       teamMemberName,
+//       date: new Date(date), // ensure Date type
+//       time,
+//       notes,
+//       status: "pending",
+//       mode: "offline",
+//     });
+
+//     const saved = await appointment.save();
+
+//     return res.status(201).json({
+//       success: true,
+//       message: "Offline appointment created",
+//       data: saved,
+//     });
+
+//   } catch (err) {
+//     console.error(err);
+//     next(err);
+//   }
+// };
+
+
 export const addOfflineAppointment = async (req, res, next) => {
   try {
     const {
@@ -2272,25 +2327,27 @@ export const addOfflineAppointment = async (req, res, next) => {
       return res.status(401).json({ success: false, message: "Unauthorized" });
     }
 
-    // 🔥 GET SALOON ID (IMPORTANT)
     const saloon = await Saloon.findOne({ owner: ownerId }).select("_id");
     if (!saloon) {
       return res.status(404).json({ success: false, message: "Saloon not found" });
     }
 
     const appointment = new OfflineAppointment({
-      saloonId: saloon._id, // ✅ CORRECT
+      saloonId: saloon._id,
       customerName,
       contactNumber,
       serviceId,
       serviceName,
       teamMemberId,
       teamMemberName,
-      date: new Date(date), // ensure Date type
+      date: new Date(date),
       time,
       notes,
       status: "pending",
       mode: "offline",
+
+      // 👇 AUTO CANCEL AFTER 5 MIN
+      expireAt: new Date(Date.now() + 5 * 60 * 1000),
     });
 
     const saved = await appointment.save();
@@ -2300,7 +2357,6 @@ export const addOfflineAppointment = async (req, res, next) => {
       message: "Offline appointment created",
       data: saved,
     });
-
   } catch (err) {
     console.error(err);
     next(err);
