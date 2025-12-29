@@ -3096,56 +3096,141 @@ export const getPublicOperatingHours = async (req, res, next) => {
 export const getPublicOperatingBookingHours = async (req, res, next) => {
   try {
     const { saloonId } = req.params;
+
+    // 1️⃣ Get saloon operating hours
     const saloon = await Saloon.findById(saloonId).select("operatingHours");
-    
-    if (!saloon) return res.status(404).json({ success: false, message: "Saloon not found" });
+    if (!saloon) {
+      return res.status(404).json({
+        success: false,
+        message: "Saloon not found",
+      });
+    }
 
-    const startOfToday = new Date();
-    startOfToday.setHours(0, 0, 0, 0);
-
+    // 2️⃣ Fetch online + offline appointments
     const [onlineAppts, offlineAppts] = await Promise.all([
-      Appointment.find({ saloonId, status: { $ne: "cancelled" } }).select("date time"),
-      OfflineAppointment.find({ saloonId, status: { $ne: "cancelled" } }).select("date time")
+      Appointment.find({
+        saloonId,
+        status: { $ne: "cancelled" },
+      }).select("date time professionalId"),
+
+      OfflineAppointment.find({
+        saloonId,
+        status: { $ne: "cancelled" },
+      }).select("date time teamMemberId"),
     ]);
 
-    const normalizeBooking = (appt, isOnline) => {
+    // 3️⃣ Normalize booking (🔥 MAIN LOGIC)
+    const normalizeBooking = (appt, type) => {
       let cleanDate = "";
       let cleanTime = "";
+      let staffId = null;
 
-      if (isOnline) {
-        // Online: "Sun, Dec 28, 2025" -> "2025-12-28"
+      if (type === "online") {
+        // 📅 Date: "Sat, Dec 27, 2025" -> "2025-12-27"
         const d = new Date(appt.date);
         if (!isNaN(d)) {
-          cleanDate = d.toISOString().split('T')[0];
+          cleanDate = d.toISOString().split("T")[0];
         }
-        // Online Time: "9:00 am - 9:15 am..." -> "9:00 AM"
-        cleanTime = appt.time.split('-')[0].trim().toUpperCase();
-      } else {
-        // Offline Date: ISO string -> "2025-12-26"
-        cleanDate = new Date(appt.date).toISOString().split('T')[0];
-        // Offline Time: "6:30 PM" -> "6:30 PM"
-        cleanTime = appt.time.trim().toUpperCase();
+
+        // ⏰ Time: "21:47 - 22:02 (15 mins)" -> "21:47"
+        cleanTime = appt.time.split("-")[0].trim().toUpperCase();
+
+        // 👤 Professional
+        staffId = appt.professionalId;
       }
 
-      return { date: cleanDate, time: cleanTime };
+      if (type === "offline") {
+        // 📅 Date already ISO
+        cleanDate = new Date(appt.date).toISOString().split("T")[0];
+
+        // ⏰ Time: "6:00 PM"
+        cleanTime = appt.time.trim().toUpperCase();
+
+        // 👤 Team member
+        staffId = appt.teamMemberId;
+      }
+
+      return {
+        date: cleanDate,
+        time: cleanTime,
+        staffId,
+        mode: type, // online | offline
+      };
     };
 
+    // 4️⃣ Merge bookings
     const bookedSlots = [
-      ...onlineAppts.map(a => normalizeBooking(a, true)),
-      ...offlineAppts.map(a => normalizeBooking(a, false))
-    ];
+      ...onlineAppts.map(a => normalizeBooking(a, "online")),
+      ...offlineAppts.map(a => normalizeBooking(a, "offline")),
+    ].filter(b => b.date && b.time && b.staffId);
 
+    // 5️⃣ Final response
     return res.status(200).json({
       success: true,
       operatingHours: saloon.operatingHours,
-      bookedSlots: bookedSlots.filter(s => s.date !== "") // Remove invalid dates
+      bookedSlots,
     });
 
   } catch (err) {
-    console.error(err);
+    console.error("getPublicOperatingBookingHours error:", err);
     next(err);
   }
 };
+
+
+// export const getPublicOperatingBookingHours = async (req, res, next) => {
+//   try {
+//     const { saloonId } = req.params;
+//     const saloon = await Saloon.findById(saloonId).select("operatingHours");
+    
+//     if (!saloon) return res.status(404).json({ success: false, message: "Saloon not found" });
+
+//     const startOfToday = new Date();
+//     startOfToday.setHours(0, 0, 0, 0);
+
+//     const [onlineAppts, offlineAppts] = await Promise.all([
+//       Appointment.find({ saloonId, status: { $ne: "cancelled" } }).select("date time"),
+//       OfflineAppointment.find({ saloonId, status: { $ne: "cancelled" } }).select("date time")
+//     ]);
+
+//     const normalizeBooking = (appt, isOnline) => {
+//       let cleanDate = "";
+//       let cleanTime = "";
+
+//       if (isOnline) {
+//         // Online: "Sun, Dec 28, 2025" -> "2025-12-28"
+//         const d = new Date(appt.date);
+//         if (!isNaN(d)) {
+//           cleanDate = d.toISOString().split('T')[0];
+//         }
+//         // Online Time: "9:00 am - 9:15 am..." -> "9:00 AM"
+//         cleanTime = appt.time.split('-')[0].trim().toUpperCase();
+//       } else {
+//         // Offline Date: ISO string -> "2025-12-26"
+//         cleanDate = new Date(appt.date).toISOString().split('T')[0];
+//         // Offline Time: "6:30 PM" -> "6:30 PM"
+//         cleanTime = appt.time.trim().toUpperCase();
+//       }
+
+//       return { date: cleanDate, time: cleanTime };
+//     };
+
+//     const bookedSlots = [
+//       ...onlineAppts.map(a => normalizeBooking(a, true)),
+//       ...offlineAppts.map(a => normalizeBooking(a, false))
+//     ];
+
+//     return res.status(200).json({
+//       success: true,
+//       operatingHours: saloon.operatingHours,
+//       bookedSlots: bookedSlots.filter(s => s.date !== "") // Remove invalid dates
+//     });
+
+//   } catch (err) {
+//     console.error(err);
+//     next(err);
+//   }
+// };
 
 
 export const getPublicOperatingBookingHoursP = async (req, res, next) => {
