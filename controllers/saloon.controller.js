@@ -3040,62 +3040,54 @@ export const getPublicOperatingHours = async (req, res, next) => {
 export const getPublicOperatingBookingHours = async (req, res, next) => {
   try {
     const { saloonId } = req.params;
-
     const saloon = await Saloon.findById(saloonId).select("operatingHours");
-    if (!saloon) {
-      return res.status(404).json({ success: false, message: "Saloon not found" });
-    }
+    
+    if (!saloon) return res.status(404).json({ success: false, message: "Saloon not found" });
 
-    // Aaj se lekar 1 saal tak ka data fetch karne ke liye
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
 
-    const endOfFuture = new Date();
-    endOfFuture.setFullYear(endOfFuture.getFullYear() + 1);
-
-    // Filter appointments (Not Cancelled and Date range)
-    const query = {
-      saloonId,
-      status: { $ne: "cancelled" },
-      // Agar date direct string hai toh query badalni hogi, assume Date Object
-      date: { $gte: startOfToday, $lte: endOfFuture },
-    };
-
-    const [onlineAppointments, offlineAppointments] = await Promise.all([
-      Appointment.find(query).select("date time"),
-      OfflineAppointment.find(query).select("date time"),
+    const [onlineAppts, offlineAppts] = await Promise.all([
+      Appointment.find({ saloonId, status: { $ne: "cancelled" } }).select("date time"),
+      OfflineAppointment.find({ saloonId, status: { $ne: "cancelled" } }).select("date time")
     ]);
 
-    // Helper function to ensure YYYY-MM-DD format (Zero-padding fix)
-    const formatDate = (dateInput) => {
-      const d = new Date(dateInput);
-      const year = d.getFullYear();
-      const month = String(d.getMonth() + 1).padStart(2, '0');
-      const day = String(d.getDate()).padStart(2, '0');
-      return `${year}-${month}-${day}`;
+    const normalizeBooking = (appt, isOnline) => {
+      let cleanDate = "";
+      let cleanTime = "";
+
+      if (isOnline) {
+        // Online: "Sun, Dec 28, 2025" -> "2025-12-28"
+        const d = new Date(appt.date);
+        if (!isNaN(d)) {
+          cleanDate = d.toISOString().split('T')[0];
+        }
+        // Online Time: "9:00 am - 9:15 am..." -> "9:00 AM"
+        cleanTime = appt.time.split('-')[0].trim().toUpperCase();
+      } else {
+        // Offline Date: ISO string -> "2025-12-26"
+        cleanDate = new Date(appt.date).toISOString().split('T')[0];
+        // Offline Time: "6:30 PM" -> "6:30 PM"
+        cleanTime = appt.time.trim().toUpperCase();
+      }
+
+      return { date: cleanDate, time: cleanTime };
     };
 
-    const onlineSlots = onlineAppointments.map(a => ({
-      date: formatDate(a.date),
-      time: a.time, // Make sure 'a.time' is stored as "10:00 AM" format
-      mode: "online",
-    }));
-
-    const offlineSlots = offlineAppointments.map(a => ({
-      date: formatDate(a.date),
-      time: a.time,
-      mode: "offline",
-    }));
+    const bookedSlots = [
+      ...onlineAppts.map(a => normalizeBooking(a, true)),
+      ...offlineAppts.map(a => normalizeBooking(a, false))
+    ];
 
     return res.status(200).json({
       success: true,
       operatingHours: saloon.operatingHours,
-      bookedSlots: [...onlineSlots, ...offlineSlots],
+      bookedSlots: bookedSlots.filter(s => s.date !== "") // Remove invalid dates
     });
 
   } catch (err) {
-    console.error("Backend Error:", err);
-    res.status(500).json({ success: false, error: err.message });
+    console.error(err);
+    next(err);
   }
 };
 
