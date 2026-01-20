@@ -150,9 +150,9 @@ router.post('/saloon/owner/verify-otp', async (req, res) => {
 // const router = express.Router();
 // const otpStore = new Map();
 // const JWT_SECRET = process.env.JWT_SECRET;
-// const accountSid = 'AC47f3fe8da03dc0261b84b80890e6968f';
-// const authToken = '2a2d21c39f61f08b01cabd3b0abdef99';
-// const verifyServiceSid = 'VAc756fccde5f7835816b95e94a66dcbbd';
+// const accountSid = '';
+// const authToken = '';
+// const verifyServiceSid = '';
 
 // const client = twilio(accountSid, authToken);
 // if (!JWT_SECRET) {
