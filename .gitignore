@@ -4,3 +4,12 @@ saloonapp-227b0-firebase-adminsdk-*.json
 backend/serviceAccountKey.json
 routes/serviceAccountKey.json
 saloonapp-*-firebase-adminsdk-*.json
+
+node_modules
+.env
+.env.*
+uploads
+dist
+coverage
+*.log
+
