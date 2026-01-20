@@ -7,7 +7,7 @@ export const saloonNotification = (req, res, next) => {
       const ownerId = res.locals.user?.id;
       if (!ownerId) return;
 
-      // ✅ Saloon find karo based on ownerId
+      
       const saloon = await Saloon.findOne({ owner: ownerId });
       if (!saloon) {
         console.error("Saloon not found for owner:", ownerId);
@@ -16,7 +16,6 @@ export const saloonNotification = (req, res, next) => {
 
       const saloonId = saloon._id;
 
-      // ✅ Notification message
       const message = `Operation ${req.method} ${req.originalUrl} performed`;
 
       await createNotification(saloonId, "saloon_event", message, {

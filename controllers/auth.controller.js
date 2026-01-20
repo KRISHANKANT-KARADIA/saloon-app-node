@@ -15,16 +15,16 @@ export const sendOtp = async (req, res, next) => {
       return res.status(400).json({ error: 'Mobile number is required' });
     }
 
-    const otp = generateOtpCode(); // e.g. 6-digit code
-    const otpExpires = new Date(Date.now() + 5 * 60 * 1000); // 5 min
+    const otp = generateOtpCode(); 
+    const otpExpires = new Date(Date.now() + 5 * 60 * 1000); 
 
-    // Save OTP in both (if user exists), else prepare for creation on verify
+    
     await Promise.all([
       Customer.updateOne({ mobile }, { otp, otpExpires }, { upsert: true }),
       Owner.updateOne({ mobile }, { otp, otpExpires }, { upsert: true })
     ]);
 
-    await sendOtpToMobile(mobile, otp); // your SMS service
+    await sendOtpToMobile(mobile, otp);
 
     res.status(200).json({
       success: true,
@@ -44,7 +44,6 @@ export const verifyOtp = async (req, res, next) => {
       return res.status(400).json({ error: 'Mobile and OTP are required' });
     }
 
-    // Check in both models
     const [customer, owner] = await Promise.all([
       Customer.findOne({ mobile }),
       Owner.findOne({ mobile })
@@ -57,7 +56,7 @@ export const verifyOtp = async (req, res, next) => {
       return res.status(401).json({ error: 'Invalid or expired OTP' });
     }
 
-    // Clear OTP
+  
     user.otp = undefined;
     user.otpExpires = undefined;
     user.lastTokenIssuedAt = new Date();

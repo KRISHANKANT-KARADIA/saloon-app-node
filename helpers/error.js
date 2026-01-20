@@ -14,13 +14,7 @@ export class AppError extends Error {
   }
 }
 
-/**
- * @description
- * the following method is a centralized way to handle application errors
- * @param {object} error the error object to be handled
- * @param {object} req the request object
- * @param {object} res the response object
- */
+
 export const handleError = (error, req, res) => {
   const statusCode = error.statusCode || STATUS_CODES.INTERNAL_SERVER_ERROR;
   delete error?.statusCode;

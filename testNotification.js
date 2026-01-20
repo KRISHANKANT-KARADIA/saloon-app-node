@@ -5,7 +5,7 @@ const fcmToken = "fCKrSnFGQceCgdy8n7P1PN:APA91bHsWieeIm0ZBv9wI-MTKMdiy4p8qudcMdc
 const message = {
   notification: {
     title: "Test Notification",
-    body: "Firebase integration is working ✅",
+    body: "Firebase integration is working ",
   },
   token: fcmToken,
 };

@@ -3,7 +3,7 @@ import { Version } from '../models/version.model.js';
 
 const router = express.Router();
 
-// POST /api/version
+
 router.post('/customer/version', async (req, res) => {
   try {
     const { version, platform, notes } = req.body;
@@ -15,7 +15,7 @@ router.post('/customer/version', async (req, res) => {
   }
 });
 
-// GET /api/version
+
 router.get('/customer/version', async (req, res) => {
   try {
     const latest = await Version.findOne().sort({ createdAt: -1 });

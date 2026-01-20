@@ -38,7 +38,7 @@ SaloonsController.searchSaloons = async (req, res, next) => {
     const saloons = await Saloon.find(query)
       .skip(skip)
       .limit(parseInt(limit))
-      .sort({ createdAt: -1 }); // newest first
+      .sort({ createdAt: -1 }); 
 
     const total = await Saloon.countDocuments(query);
 

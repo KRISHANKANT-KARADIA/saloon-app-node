@@ -1,17 +1,18 @@
 import mongoose from 'mongoose';
 
-// Schema for each image
+
 const ImageSchema = new mongoose.Schema({
-  id: { type: String, required: true },     // Unique ID for deletion
-  path: { type: String, required: true }    // File path
+  id: { type: String, required: true },     
+  path: { type: String, required: true }  
 });
 
 const saloonSchema = new mongoose.Schema({
   name: { type: String, required: true },
   logo: { type: String },
-  images: [ImageSchema],                     // <- use the ImageSchema here
+  images: [ImageSchema],                     
   ownerName: { type: String, required: true },
   mobile: { type: String, required: true },
+  salonType: { type: String, required: true },
   owner: { type: mongoose.Schema.Types.ObjectId, ref: 'Owner', required: true },
 
   operatingHours: {
@@ -30,6 +31,20 @@ const saloonSchema = new mongoose.Schema({
    rating: { type: Number, default: 0 },
   reviewsCount: { type: Number, default: 0 },
   isTrending: { type: Boolean, default: false },
+
+location: {
+  type: { type: String, enum: ["Point"], default: "Point" },
+  coordinates: { type: [Number], index: "2dsphere" } // [lng, lat]
+},
+
+genderType: {
+  type: String,
+  enum: ["male", "female", "unisex", "everyone"],
+  default: "everyone"
+},
+
+minPrice: { type: Number, default: 0 },
+
 
   socialLinks: {
     instagram: { type: String, trim: true },

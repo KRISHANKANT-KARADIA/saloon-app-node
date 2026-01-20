@@ -4,7 +4,7 @@ import { STATUS_CODES } from '../helpers/constants.js';
 
 export const ProfileController = {};
 
-// Get profile details
+
 ProfileController.getProfile = async (req, res, next) => {
   try {
     const customerId = res.locals.user.id;
@@ -23,13 +23,13 @@ ProfileController.getProfile = async (req, res, next) => {
   }
 };
 
-// Update profile details
+
 ProfileController.updateProfile = async (req, res, next) => {
   try {
     const customerId = res.locals.user.id;
     const updateFields = {};
 
-    // Allowed fields to update
+   
     const allowedFields = ['profileImage', 'name', 'mobile', 'email', 'dob', 'gender'];
 
     allowedFields.forEach(field => {
@@ -38,7 +38,7 @@ ProfileController.updateProfile = async (req, res, next) => {
       }
     });
 
-    // Optionally: add validation for fields here (e.g., email format, gender enum)
+   
 
     const updatedCustomer = await Customer.findByIdAndUpdate(
       customerId,

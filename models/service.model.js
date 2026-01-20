@@ -20,7 +20,7 @@ const serviceSchema = new mongoose.Schema({
     trim: true
   },
   duration: {
-    type: String, // Example: '1 hour', '2 hours'
+    type: String, 
     required: true
   },
   price: {
@@ -28,7 +28,7 @@ const serviceSchema = new mongoose.Schema({
     required: true
   },
   logo: {
-    type: String // Image URL
+    type: String 
   },
   status: {
     type: String,

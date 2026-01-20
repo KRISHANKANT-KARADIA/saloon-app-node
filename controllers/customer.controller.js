@@ -14,13 +14,13 @@ export const getUserDetails = async (req, res, next) => {
   try {
     const customerId = res.locals.user.id;
 
-    // Fetch customer
+  
     const customer = await Customer.findById(customerId).populate('country');
     if (!customer) {
       return next(new AppError('Customer not found', STATUS_CODES.NOT_FOUND));
     }
 
-    // Fetch all locations of the customer
+   
     const locations = await CustomerLocationModel.find({ customer: customerId });
 
     res.status(STATUS_CODES.OK).json({
@@ -47,7 +47,7 @@ export const getUserDetails = async (req, res, next) => {
           
           
         addresses: customer.addresses,
-        locations, // ✅ all saved locations
+        locations,
         favouriteSaloonIds: customer.favouriteSaloonIds,
         lastTokenIssuedAt: customer.lastTokenIssuedAt,
          profileImage: customer.profileImage
@@ -60,7 +60,7 @@ export const getUserDetails = async (req, res, next) => {
   }
 };
 
-// Get authenticated customer details
+
 CustomerController.getProfile = async (req, res, next) => {
   try {
     const customerId = res.locals.user.id;
@@ -81,7 +81,6 @@ CustomerController.getProfile = async (req, res, next) => {
 
 
 
-// Update/Add personal details
 CustomerController.updateProfile = async (req, res, next) => {
   try {
     const customerId = res.locals.user.id;
@@ -123,14 +122,14 @@ CustomerController.addOrUpdateProfile = async (req, res, next) => {
       return res.status(404).json({ success: false, message: "Customer not found" });
     }
 
-    // ✅ Update basic info
+  
     if (name) customer.name = name;
     if (gender) customer.gender = gender.toLowerCase();
     if (email) customer.email = email;
     if (dob) customer.dob = dob;
     if (status) customer.status = status;
 
-    // ✅ Mobile number update with duplicate check
+    
     if (mobile && mobile !== customer.mobile) {
       const existingUser = await Customer.findOne({ mobile });
       if (existingUser) {
@@ -142,7 +141,7 @@ CustomerController.addOrUpdateProfile = async (req, res, next) => {
       customer.mobile = mobile;
     }
 
-    // ✅ Profile image
+ 
     if (req.file) {
       customer.profileImage = `/uploads/profile/${req.file.filename}`;
     }
@@ -195,7 +194,7 @@ CustomerController.removeFavouriteSaloon = async (req, res, next) => {
 };
 CustomerController.addFavouriteSaloon = async (req, res, next) => {
   try {
-    const customerId = res.locals.user.id; // From auth middleware
+    const customerId = res.locals.user.id; 
     const { saloonId } = req.body;
 
     if (!saloonId) {
@@ -204,7 +203,7 @@ CustomerController.addFavouriteSaloon = async (req, res, next) => {
 
     const updatedCustomer = await Customer.findByIdAndUpdate(
       customerId,
-      { $addToSet: { favouriteSaloonIds: saloonId } }, // $addToSet avoids duplicates
+      { $addToSet: { favouriteSaloonIds: saloonId } }, 
       { new: true }
     ).populate('favouriteSaloonIds', 'name logo address');
 
@@ -221,7 +220,7 @@ CustomerController.addFavouriteSaloon = async (req, res, next) => {
 
 CustomerController.removeFavouriteSaloon = async (req, res, next) => {
   try {
-    const customerId = res.locals.user.id; // From auth middleware
+    const customerId = res.locals.user.id; 
     const { saloonId } = req.body;
 
     if (!saloonId) {
@@ -230,7 +229,7 @@ CustomerController.removeFavouriteSaloon = async (req, res, next) => {
 
     const updatedCustomer = await Customer.findByIdAndUpdate(
       customerId,
-      { $pull: { favouriteSaloonIds: saloonId } }, // Remove the saloonId
+      { $pull: { favouriteSaloonIds: saloonId } },
       { new: true }
     ).populate('favouriteSaloonIds', 'name logo address');
 
@@ -246,7 +245,6 @@ CustomerController.removeFavouriteSaloon = async (req, res, next) => {
 };
 
 
-// Get all favourite saloons for the customer
 CustomerController.getFavouriteSaloons = async (req, res, next) => {
   try {
     const customerId = res.locals.user.id;
@@ -271,7 +269,7 @@ CustomerController.updateProfile = async (req, res, next) => {
     const customerId = res.locals.user.id;
     const { profileImage, name, mobile, email, dob, gender } = req.body;
 
-    // You may want validation here
+   
 
     const updatedCustomer = await Customer.findByIdAndUpdate(
       customerId,
@@ -297,8 +295,6 @@ CustomerController.updateProfile = async (req, res, next) => {
 
 
 
-
-// Insert Partial Details
 
 
 export const partialCustomerProfile = async (req, res, next) => {
@@ -344,16 +340,14 @@ export const partialCustomerProfile = async (req, res, next) => {
 
 CustomerController.deleteAccount = async (req, res, next) => {
    try {
-    const customerId = res.locals.user.id; // assuming auth middleware sets this
+    const customerId = res.locals.user.id; 
 
     const customer = await Customer.findById(customerId);
     if (!customer) {
       return next(new AppError('Customer not found', STATUS_CODES.NOT_FOUND));
     }
 
-    // Delete the customer document
-    await customer.deleteOne(); // or Customer.findByIdAndDelete(customerId)
-
+    await customer.deleteOne();
     res.status(STATUS_CODES.OK).json({
       success: true,
       message: 'Your account has been deleted successfully'

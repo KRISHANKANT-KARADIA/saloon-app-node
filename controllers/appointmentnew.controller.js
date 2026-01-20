@@ -22,12 +22,12 @@ AppointmentNewController.addAppointmentWithPayment = async (req, res, next) => {
       cardNumber,
       expiryDate,
       securityPin,
-      notes // ✅ new field
+      notes 
     } = req.body;
 
     const customer = res.locals.user;
 
-    // Validation
+    
     if (!saloonId || !Array.isArray(serviceIds) || serviceIds.length === 0 || !professionalId || !date || !time) {
       return next(new AppError('Missing required fields', STATUS_CODES.BAD_REQUEST));
     }
@@ -45,7 +45,7 @@ AppointmentNewController.addAppointmentWithPayment = async (req, res, next) => {
       time,
       status: 'pending',
 
-      // Optional / Payment Fields
+      
       discount: discount === 1 || discount === '1',
       discountCode,
       discountAmount,
@@ -54,7 +54,7 @@ AppointmentNewController.addAppointmentWithPayment = async (req, res, next) => {
       cardNumber,
       expiryDate,
       securityPin,
-      notes // ✅ Added
+      notes 
     });
 
     await appointment.save();
@@ -70,7 +70,7 @@ AppointmentNewController.addAppointmentWithPayment = async (req, res, next) => {
   }
 };
 
-// ✅ 2. Get Only Pending Appointments
+
 AppointmentNewController.getPendingAppointments = async (req, res, next) => {
   try {
     const customer = res.locals.user;
@@ -94,9 +94,6 @@ AppointmentNewController.getPendingAppointments = async (req, res, next) => {
     next(err);
   }
 };
-
-
-// Confirm
 
 
 AppointmentNewController.getConfirmAppointments = async (req, res, next) => {
@@ -129,7 +126,7 @@ AppointmentNewController.getAllAppointments = async (req, res, next) => {
   try {
     const customer = res.locals.user;
 
-    // 1️⃣ Fetch appointments
+   
     const appointments = await Appointment.find({
       'customer.id': customer.id,
     })
@@ -138,9 +135,9 @@ AppointmentNewController.getAllAppointments = async (req, res, next) => {
       .populate('professionalId', 'name')
       .sort({ createdAt: -1 });
 
-    // 2️⃣ Loop & auto reject past appointments (date only)
+   
     const today = new Date();
-    today.setHours(0, 0, 0, 0); // Reset time to 00:00
+    today.setHours(0, 0, 0, 0); 
 
     for (const appt of appointments) {
       if (appt.status === "pending") {
@@ -163,14 +160,13 @@ AppointmentNewController.getAllAppointments = async (req, res, next) => {
   }
 };
 
-// Parse date string and ignore time
 const getAppointmentDateOnly = (dateStr) => {
   try {
-    // Support different formats: "Mon, Dec 15, 2025" or "2025-12-15"
+
     const date = new Date(dateStr);
     if (isNaN(date.getTime())) return null;
 
-    // Reset time to 00:00
+    
     date.setHours(0, 0, 0, 0);
     return date;
   } catch (err) {
@@ -183,52 +179,50 @@ AppointmentNewController.cancelAppointments = async (req, res, next) => {
 
 
    try {
-    const customer = res.locals.user; // Populated by CustomerAuthMiddleware
+    const customer = res.locals.user; 
     const appointmentId = req.params.id;
 
-    // Log the request for debugging
-    console.log("🔹 Cancel request received for Appointment ID:", appointmentId);
-    console.log("🔹 Authenticated Customer ID:", customer?.id);
+   
+    console.log(" Cancel request received for Appointment ID:", appointmentId);
+    console.log(" Authenticated Customer ID:", customer?.id);
 
-    // 1️⃣ Find appointment by ID and customer
+   
     const appointment = await Appointment.findOne({
       _id: appointmentId,
       "customer.id": customer.id,
     });
 
-    // 2️⃣ Check if found and belongs to customer
+   
     if (!appointment) {
-      console.log("⚠️ Appointment not found or unauthorized access");
+      console.log(" Appointment not found or unauthorized access");
       return res.status(404).json({
         success: false,
         message: "Appointment not found or unauthorized access",
       });
     }
 
-    // 3️⃣ Prevent duplicate cancel requests
     if (appointment.status === "cancelled") {
-      console.log("⚠️ Appointment is already cancelled");
+      console.log("Appointment is already cancelled");
       return res.status(400).json({
         success: false,
         message: "Appointment is already cancelled",
       });
     }
 
-    // 4️⃣ Update status and save
+ 
     appointment.status = "cancelled";
-    appointment.cancelledAt = new Date(); // optional, add this field in schema
+    appointment.cancelledAt = new Date(); 
     await appointment.save();
 
-    console.log("✅ Appointment cancelled successfully:", appointment._id);
+    console.log(" Appointment cancelled successfully:", appointment._id);
 
-    // 5️⃣ Send success response
     return res.status(200).json({
       success: true,
       message: "Appointment cancelled successfully",
       data: appointment,
     });
   } catch (err) {
-    console.error("❌ Cancel Appointment Error:", err);
+    console.error("Cancel Appointment Error:", err);
     return res.status(500).json({
       success: false,
       message: "Server error while cancelling appointment",
@@ -238,7 +232,7 @@ AppointmentNewController.cancelAppointments = async (req, res, next) => {
 };
 
 
-// Get Appointment By ID - Optional
+
 
 AppointmentNewController.getAppointmentById = async (req, res, next) => {
   try {
@@ -286,10 +280,10 @@ AppointmentNewController.getAppointmentByIdSec = async (req, res, next) => {
     }
 
     const appointment = await appointModel.findById(appointmentId)
-      .populate('saloonId', 'name logo') // Saloon info
-      .populate('serviceIds', 'name price') // Services
-      .populate('professionalId', 'name') // Professional
-      .lean(); // convert to plain JS object for adding extra fields
+      .populate('saloonId', 'name logo') 
+      .populate('serviceIds', 'name price') 
+      .populate('professionalId', 'name') 
+      .lean(); 
 
     if (!appointment) {
       return res.status(404).json({
@@ -298,7 +292,7 @@ AppointmentNewController.getAppointmentByIdSec = async (req, res, next) => {
       });
     }
 
-    // Fetch the location associated with the saloon
+   
     if (appointment.saloonId) {
       const location = await locationModel.findOne({ saloon: appointment.saloonId._id })
         .select('address1 address2 area city state pincode mapLink');
@@ -316,12 +310,9 @@ AppointmentNewController.getAppointmentByIdSec = async (req, res, next) => {
 };
 
 
-
-
-// Cancel appointment by ID
 AppointmentNewController.cancelAppointment = async (req, res, next) => {
   try {
-    const { id } = req.params; // appointment ID from route
+    const { id } = req.params; 
 
     const updatedAppointment = await Appointment.findByIdAndUpdate(
       id,
@@ -354,14 +345,12 @@ AppointmentNewController.cancelAppointment = async (req, res, next) => {
 
 
 
-// Update Appointment
-
 AppointmentNewController.updateAppointment = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { date, time } = req.body;
 
-    // Validate input
+  
     if (!date || !time) {
       return res.status(400).json({
         success: false,
@@ -369,15 +358,15 @@ AppointmentNewController.updateAppointment = async (req, res, next) => {
       });
     }
 
-    // Only update date and time
+   
     const updatedAppointment = await Appointment.findByIdAndUpdate(
       id,
       { 
         date, 
         time, 
-        updatedAt: new Date() // optional, for tracking last update
+        updatedAt: new Date() 
       },
-      { new: true, fields: { date: 1, time: 1 } } // return only updated fields if you want
+      { new: true, fields: { date: 1, time: 1 } } 
     );
 
     if (!updatedAppointment) {

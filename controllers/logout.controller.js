@@ -11,7 +11,7 @@ export const logout = async (req, res, next) => {
       return next(new AppError('Owner not found', STATUS_CODES.NOT_FOUND));
     }
 
-    // Invalidate token by updating the timestamp
+   
     owner.lastTokenIssuedAt = new Date();
     await owner.save();
 

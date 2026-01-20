@@ -5,6 +5,6 @@ export function generateOtpCode(length = 6) {
 }
 
 export async function sendOtpToMobile(mobile, otp) {
-  // TODO: Integrate with actual SMS provider (like Twilio, MSG91, etc.)
+  
   console.log(`📲 Sending OTP ${otp} to mobile ${mobile}`);
 }

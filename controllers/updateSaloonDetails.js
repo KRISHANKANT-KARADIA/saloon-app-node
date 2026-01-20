@@ -5,14 +5,14 @@ export const updateSaloonDetails = async (req, res, next) => {
     const ownerId = res.locals.user.id;
     const updateData = req.body;
 
-    // Find the saloon by owner
+ 
     const saloon = await Saloon.findOne({ owner: ownerId });
 
     if (!saloon) {
       return res.status(404).json({ message: 'Saloon not found' });
     }
 
-    // Update fields from request body (only allow certain fields)
+  
     const allowedFields = ['name', 'logo', 'ownerName', 'mobile'];
     allowedFields.forEach(field => {
       if (updateData[field] !== undefined) {

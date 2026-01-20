@@ -43,7 +43,7 @@ const OfflineBookingSchema = new mongoose.Schema({
     },
     createdBy: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "User", // Saloon owner id
+        ref: "User",
     },
 }, { timestamps: true });
 

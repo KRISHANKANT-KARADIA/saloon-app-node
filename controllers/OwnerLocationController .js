@@ -9,7 +9,7 @@ export const OwnerLocationController = {};
 
  OwnerLocationController.addOrUpdateLocation = async (req, res, next) => {
     try {
-      const ownerId = res.locals.user.id; // JWT se nikala ownerId
+      const ownerId = res.locals.user.id; 
       const {
         label = 'Home',
         address1,
@@ -22,19 +22,19 @@ export const OwnerLocationController = {};
         state
       } = req.body;
 
-      // 🔴 Validate required fields
+  
       if (!address1 || !pincode || !city || !state || lat === undefined || long === undefined) {
         return next(new AppError('Missing required location fields', STATUS_CODES.BAD_REQUEST));
       }
 
-      // 🔹 Construct geoLocation automatically
+     
       const geoLocation = { type: 'Point', coordinates: [long, lat] };
 
-      // 🔍 Check if location with same label exists for this owner
+      
       let location = await OwnerLocation.findOne({ owner: ownerId, label });
 
       if (location) {
-        // ✅ Update existing location
+    
         ['address1','address2','lat','long','pincode','area','city','state'].forEach(field => {
           if (req.body[field] !== undefined) location[field] = req.body[field];
         });
@@ -42,7 +42,7 @@ export const OwnerLocationController = {};
 
         await location.save();
         const owner = await ownerModel.findById(ownerId);
-        owner.owner_state_status = 2; // Example: profile completed
+        owner.owner_state_status = 2; 
         await owner.save();
 
         return res.status(200).json({
@@ -53,7 +53,7 @@ export const OwnerLocationController = {};
         });
       }
 
-      // ✅ Create new location if not exists
+   
       location = new OwnerLocation({
         owner: ownerId,
         label,
@@ -87,9 +87,9 @@ export const OwnerLocationController = {};
   },
   OwnerLocationController.getLocations=async (req, res, next) => {
     try {
-      const ownerId = res.locals.user.id; // From JWT
+      const ownerId = res.locals.user.id; 
 
-      // Optional: filter by label
+  
       const { label } = req.query;
       const filter = { owner: ownerId };
       if (label) filter.label = label;
@@ -113,7 +113,7 @@ export const OwnerLocationController = {};
     }
   },
 
-  // Optional: Get a single location by ID
+
   OwnerLocationController.getLocationById= async (req, res, next) => {
     try {
       const { locationId } = req.params;

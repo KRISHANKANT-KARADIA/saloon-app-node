@@ -26,7 +26,7 @@ export const createUser = async (req, res, next) => {
 
     user = new Owner({
   mobile,
-  role: role ? role.toLowerCase() : 'owner', // enforce lowercase or default
+  role: role ? role.toLowerCase() : 'owner', 
   name,
   gender,
   saloonName,
@@ -50,10 +50,10 @@ export const getAllUsers = async (req, res, next) => {
   try {
     const requestingUser = res.locals.user;
 
-    // Optional: Console log to debug
+    
     console.log('Requesting user:', requestingUser);
 
-    // Only allow access to admins
+   
     if (!requestingUser || requestingUser.role !== 'owner') {
       return res.status(403).json({
         success: false,
@@ -74,13 +74,11 @@ export const getAllUsers = async (req, res, next) => {
 };
 
 
-// update saloon profile
-
 
 
 export const updateSaloonInfo = async (req, res, next) => {
   try {
-    const { id } = req.params; // User ID from the route
+    const { id } = req.params; 
     const { saloonName, ownerName, logo } = req.body;
 
     if (!id) {
@@ -118,7 +116,6 @@ export const getMySaloonProfile = async (req, res, next) => {
       return res.status(401).json({ success: false, message: 'Unauthorized: User ID missing' });
     }
 
-    // Ensure only owners can access their saloon profile
     if (role !== 'owner') {
       return res.status(403).json({
         success: false,

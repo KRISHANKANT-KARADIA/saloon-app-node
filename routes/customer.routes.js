@@ -16,23 +16,12 @@ const router = express.Router();
 
 
 
-// const storage = multer.diskStorage({
-//   destination: (req, file, cb) => {
-//     cb(null, "uploads/profile/");
-//   },
-//   filename: (req, file, cb) => {
-//     const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-//     cb(null, file.fieldname + "-" + uniqueSuffix + path.extname(file.originalname));
-//   }
-// });
-
-// const upload = multer({ storage });
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const uploadPath = path.join(process.cwd(), "uploads/profile");
 
-    // create folder if it doesn't exist
+   
     if (!fs.existsSync(uploadPath)) {
       fs.mkdirSync(uploadPath, { recursive: true });
     }
@@ -56,7 +45,6 @@ router.post('/customer/add/partial/profile', CustomerAuthMiddleware.checkAuth, p
 
 router.get('/customer/getdetails', CustomerAuthMiddleware.checkAuth, getUserDetails);
 
-// router.post('/customer/add/profile', CustomerAuthMiddleware.checkAuth, CustomerController.addOrUpdateProfile);
 
 
 router.post(
@@ -132,7 +120,6 @@ router.post('/favourite-saloons/delete', CustomerAuthMiddleware.checkAuth, Custo
 
 
 
-// Get favourite saloons (GET)
 router.get('/favourite-saloons', CustomerAuthMiddleware.checkAuth, CustomerController.getFavouriteSaloons);
 
 router.post('/favourites/remove', CustomerAuthMiddleware.checkAuth, CustomerController.removeFavouriteSaloon);

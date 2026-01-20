@@ -13,9 +13,9 @@ const message = {
 const sendTest = async () => {
   try {
     const response = await admin.messaging().send(message);
-    console.log("🔥 Notification Sent:", response);
+    console.log(" Notification Sent:", response);
   } catch (error) {
-    console.error("❌ Error:", error);
+    console.error("Error:", error);
   }
 };
 

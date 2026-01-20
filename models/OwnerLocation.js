@@ -13,7 +13,7 @@ const ownerLocationSchema = new mongoose.Schema({
   state: { type: String, required: true },
   geoLocation: {
     type: { type: String, enum: ['Point'], default: 'Point' },
-    coordinates: { type: [Number], default: [0, 0] } // [long, lat]
+    coordinates: { type: [Number], default: [0, 0] } 
   }
 }, { timestamps: true });
 

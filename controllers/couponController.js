@@ -50,7 +50,7 @@ export const addCoupon = async (req, res, next) => {
   }
 };
 
-// ➤ Get coupon details
+
 export const getCoupon = async (req, res, next) => {
   try {
     const ownerId = res.locals.user.id;
@@ -123,7 +123,6 @@ export const verifyCoupon = async (req, res, next) => {
       }
     }
 
-    // Calculate discount
     let discount = 0;
     if (coupon.discount_type === 'percent') {
       discount = (cart_amount * coupon.discount_value) / 100;
@@ -134,7 +133,7 @@ export const verifyCoupon = async (req, res, next) => {
 
     const final_amount = cart_amount - discount;
 
-    // ✅ Increment usage (optional: only if you want to count usage immediately)
+    
     coupon.uses = (coupon.uses || 0) + 1;
     if (user_id) {
       if (!coupon.users_used) coupon.users_used = new Map();

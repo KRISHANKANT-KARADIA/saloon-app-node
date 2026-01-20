@@ -4,7 +4,7 @@ import { AppError } from '../helpers/error.js';
 import { STATUS_CODES } from '../helpers/constants.js';
 
 export const CustomerLocationController = {
-  // ✅ Add or update a location
+  
   addLocation: async (req, res, next) => {
     try {
       const customerId = res.locals.user.id;
@@ -140,7 +140,7 @@ export const CustomerLocationController = {
     }
   },
 
-  // ✅ Get all locations
+  
   getLocations: async (req, res, next) => {
     try {
       const customerId = res.locals.user.id;
@@ -173,7 +173,7 @@ updateNewLocation: async (req, res, next) => {
       geoLocation,
     } = req.body;
 
-    // 🔴 Validate required fields
+ 
     if (!address1 || !pincode || !city || !state || lat === undefined || long === undefined) {
       return res.status(400).json({
         success: false,
@@ -181,7 +181,7 @@ updateNewLocation: async (req, res, next) => {
       });
     }
 
-    // ✅ Check if location exists and belongs to customer
+    
     const location = await CustomerLocation.findOne({
       _id: locationId,
       customer: customerId,
@@ -194,7 +194,6 @@ updateNewLocation: async (req, res, next) => {
       });
     }
 
-    // ✅ Update fields
     location.label = label || location.label;
     location.address1 = address1;
     location.address2 = address2;
@@ -209,7 +208,7 @@ updateNewLocation: async (req, res, next) => {
 
     await location.save();
 
-    // ✅ Update user_state_status = 2 (or keep highest state)
+   
     const customer = await Customer.findById(customerId);
     if (customer && (!customer.user_state_status || customer.user_state_status < 2)) {
       customer.user_state_status = 2;
@@ -223,7 +222,7 @@ updateNewLocation: async (req, res, next) => {
       user_state_status: customer.user_state_status,
     });
   } catch (err) {
-    console.error("❌ updateNewLocation error:", err);
+    console.error("updateNewLocation error:", err);
     return res.status(500).json({
       success: false,
       message: "Internal server error",
@@ -232,7 +231,6 @@ updateNewLocation: async (req, res, next) => {
   }
 },
 
-  // ✅ Delete a location
   deleteLocation: async (req, res, next) => {
     try {
       const customerId = res.locals.user.id;

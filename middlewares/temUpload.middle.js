@@ -4,7 +4,7 @@ import fs from 'fs';
 
 const TEAM_MEMBER_UPLOAD_DIR = 'uploads/teamMembers/';
 
-// Ensure directory exists
+
 if (!fs.existsSync(TEAM_MEMBER_UPLOAD_DIR)) {
   fs.mkdirSync(TEAM_MEMBER_UPLOAD_DIR, { recursive: true });
 }

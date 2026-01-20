@@ -1,9 +1,7 @@
 import Saloon from "../models/saloon.model.js";
 
 
-/**
- * Get saloon by logged-in owner
- */
+
 export const getSaloonByOwner = async (ownerId) => {
   if (!ownerId) throw new Error("Owner ID is required");
 

@@ -16,11 +16,11 @@ export const updateSaloonLocation = async (req, res, next) => {
       state
     } = req.body;
 
-    // Find saloon for this owner
+  
     const saloon = await Saloon.findOne({ owner: ownerId });
     if (!saloon) return res.status(404).json({ message: 'Saloon not found' });
 
-    // Build location data
+ 
     const locationData = {
       saloon: saloon._id,
       owner: ownerId,
@@ -36,14 +36,14 @@ export const updateSaloonLocation = async (req, res, next) => {
       geoLocation: lat && long ? { type: 'Point', coordinates: [long, lat] } : undefined
     };
 
-    // Remove undefined fields
+   
     Object.keys(locationData).forEach(key => locationData[key] === undefined && delete locationData[key]);
 
-    // Update if exists, otherwise create
+   
     const location = await Location.findOneAndUpdate(
-      { saloon: saloon._id }, // filter
-      { $set: locationData },  // update fields
-      { new: true, upsert: true } // return updated doc or insert if not found
+      { saloon: saloon._id }, 
+      { $set: locationData },
+      { new: true, upsert: true } 
     );
 
     return res.status(200).json({
@@ -60,16 +60,16 @@ export const updateSaloonLocation = async (req, res, next) => {
 export const deleteSaloonLocation = async (req, res, next) => {
   try {
     const ownerId = res.locals.user.id;
-    const { locationId } = req.body; // Or req.params.locationId if using URL param
+    const { locationId } = req.body; 
 
-    // Validate input
+ 
     if (!locationId) {
       return res.status(STATUS_CODES.BAD_REQUEST).json({
         message: 'Location ID is required'
       });
     }
 
-    // Find location belonging to this owner
+
     const location = await Location.findOne({ _id: locationId, owner: ownerId });
 
     if (!location) {
@@ -78,14 +78,14 @@ export const deleteSaloonLocation = async (req, res, next) => {
       });
     }
 
-    // Delete the location
+  
     await location.deleteOne();
 
     return res.status(STATUS_CODES.OK).json({
       message: 'Location deleted successfully'
     });
   } catch (err) {
-    console.error('Error deleting location:', err); // Optional: log for debugging
+    console.error('Error deleting location:', err); 
     next(err);
   }
 };

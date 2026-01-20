@@ -12,7 +12,7 @@ const ownerSchema = new mongoose.Schema({
     trim: true,
     lowercase: true,
     unique: true,
-    sparse: true   // ✅ Allows email to be optional
+    sparse: true  
   },
  
   role: {
@@ -32,8 +32,8 @@ const ownerSchema = new mongoose.Schema({
   lastTokenIssuedAt: Date,
  owner_state_status: {
   type: Number,
-  enum: [1, 2, 3, 4], // extend as needed
-  default: 1 // first-time users
+  enum: [1, 2, 3, 4], 
+  default: 1 
 },
   country: { type: mongoose.Schema.Types.ObjectId, ref: 'Country' },
 }, { timestamps: true });

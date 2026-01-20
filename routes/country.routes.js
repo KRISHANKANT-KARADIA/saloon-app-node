@@ -5,7 +5,7 @@ import { CustomerAuthMiddleware } from '../middlewares/customer.auth.middleware.
 const router = express.Router();
 
 router.post('/add', CustomerAuthMiddleware.checkAuth, addCountry);
-router.get('/all', CustomerAuthMiddleware.checkAuth ,getAllCountries); // public GET
+router.get('/all', CustomerAuthMiddleware.checkAuth ,getAllCountries); 
 
 
 

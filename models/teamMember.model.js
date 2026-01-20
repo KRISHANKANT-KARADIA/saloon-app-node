@@ -6,7 +6,7 @@ const teamMemberSchema = new mongoose.Schema({
     ref: 'Saloon',
     required: true,
   },
-  profile: String,  // profile image URL/path
+  profile: String,  
   name: {
     type: String,
     required: true,
@@ -17,10 +17,10 @@ const teamMemberSchema = new mongoose.Schema({
     required: true,
     trim: true,
   },
-  services: [String],  // list of services
-  startTime: String,   // e.g. "09:00"
-  endTime: String,     // e.g. "17:00"
-  workingDays: [String],  // e.g. ["Monday", "Tuesday"]
+  services: [String],  
+  startTime: String, 
+  endTime: String,     
+  workingDays: [String],  
   mobile: {
     type: String,
     required: true,

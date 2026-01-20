@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Admin",
   "main": "index.js",
+  
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -26,7 +27,7 @@
     "encodeurl": "^2.0.0",
     "escape-html": "^1.0.3",
     "etag": "^1.8.1",
-    "express": "^5.1.0",
+    "express": "^5.2.1",
     "fill-range": "^7.1.1",
     "finalhandler": "^2.1.0",
     "firebase-admin": "^13.5.0",
@@ -45,6 +46,7 @@
     "routes": "^2.1.0",
     "safe-buffer": "^5.2.1",
     "socket.io": "^4.8.1",
+    "twilio": "^5.11.2",
     "uuid": "^13.0.0"
   }
 }

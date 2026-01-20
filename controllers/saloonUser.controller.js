@@ -2,7 +2,7 @@ import Owner from '../models/owner.model.js';
 
 export const getSaloonRegisteredMobileNumber = async (req, res, next) => {
   try {
-    const ownerId = res.locals.user.id; // set by your auth middleware
+    const ownerId = res.locals.user.id; 
 
     const owner = await Owner.findById(ownerId).select('mobile');
     if (!owner) {

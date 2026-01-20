@@ -1,12 +1,12 @@
 // nearby.controller.js
 import Location from '../models/location.model.js';
 
-// Controller: Get Nearby Salons
+
 export const getNearbySalonsController = async (req, res, next) => {
   try {
     const { lat, long, city } = req.query;
 
-    // Validate input
+    
     if (!lat || !long || !city) {
       return res.status(400).json({ message: "Latitude, longitude, and city are required." });
     }
@@ -18,9 +18,9 @@ export const getNearbySalonsController = async (req, res, next) => {
       return res.status(400).json({ message: "Latitude and longitude must be valid numbers." });
     }
 
-    const maxDistance = 5000; // 5 km in meters
+    const maxDistance = 5000;
 
-    // Use aggregation with $geoNear
+    
     let nearbyLocations = await Location.aggregate([
       {
         $geoNear: {
@@ -33,24 +33,24 @@ export const getNearbySalonsController = async (req, res, next) => {
       },
       {
         $lookup: {
-          from: 'saloons', // ensure this matches your collection name
+          from: 'saloons',
           localField: 'saloon',
           foreignField: '_id',
           as: 'saloon'
         }
       },
       { $unwind: "$saloon" },
-      { $sort: { distance: 1 } } // sort by nearest first
+      { $sort: { distance: 1 } }
     ]);
 
-    // Fallback: if no nearby locations, get by city
+
     if (nearbyLocations.length === 0) {
       nearbyLocations = await Location.find({ city, status: 'active' })
         .populate('saloon')
         .lean();
     }
 
-    // Extract salons
+ 
     const salons = nearbyLocations.map(loc => loc.saloon).filter(Boolean);
 
     return res.status(200).json({

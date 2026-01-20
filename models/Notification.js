@@ -2,9 +2,9 @@ import mongoose from "mongoose";
 
 const notificationSchema = new mongoose.Schema({
   saloonId: { type: mongoose.Schema.Types.ObjectId, ref: "Saloon", required: true },
-  type: { type: String, required: true }, // e.g., appointment_created, team_member_updated
+  type: { type: String, required: true }, 
   message: { type: String, required: true },
-  meta: { type: Object, default: {} }, // extra data (appointmentId, memberId etc.)
+  meta: { type: Object, default: {} },
   createdAt: { type: Date, default: Date.now }
 });
 

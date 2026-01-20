@@ -12,9 +12,9 @@ export const sendNotification = async (token, title, body, data = {}) => {
     };
 
     const response = await admin.messaging().send(message);
-    console.log("📩 Notification sent:", response);
+    console.log("Notification sent:", response);
     return response;
   } catch (err) {
-    console.error("❌ Error sending notification:", err);
+    console.error("Error sending notification:", err);
   }
 };

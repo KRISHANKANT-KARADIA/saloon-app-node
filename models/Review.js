@@ -9,7 +9,7 @@ const reviewSchema = new mongoose.Schema({
   comment: { type: String },
   replies: [
     {
-      replyBy: { type: String, default: "Saloon" }, // e.g., salon name
+      replyBy: { type: String, default: "Saloon" }, 
       replyComment: { type: String },
       createdAt: { type: Date, default: Date.now }
     }

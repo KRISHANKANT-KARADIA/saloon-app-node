@@ -6,7 +6,7 @@ import Review from "../models/Review.js";
 import Appointment from "../models/appointment.model.js";
 import appointmentModel from "../models/appointment.model.js";
 
-// Add new offer
+
 export const addOffer = async (req, res, next) => {
   try {
     const ownerId = res.locals.user.id;
@@ -45,7 +45,7 @@ export const addOffer = async (req, res, next) => {
   }
 };
 
-// Get all offers for owner
+
 export const getOffers = async (req, res, next) => {
   try {
     const ownerId = res.locals.user.id;
@@ -68,11 +68,11 @@ export const getOffersWithData = async (req, res, next) => {
       .sort({ createdAt: -1 })
       .populate({
         path: "applicable_services",
-        match: { status: "active" }, // only active services
+        match: { status: "active" }, 
         select: "name saloon",
         populate: {
           path: "saloon",
-          select: "name logo", // use correct field for image, usually 'logo'
+          select: "name logo", 
         },
       });
 
@@ -94,7 +94,7 @@ export const getOffersWithData = async (req, res, next) => {
         saloon: s.saloon ? {
           id: s.saloon._id,
           name: s.saloon.name,
-          image: s.saloon.logo || null // corrected field here
+          image: s.saloon.logo || null 
         } : null
       }))
     }));
@@ -106,7 +106,7 @@ export const getOffersWithData = async (req, res, next) => {
   }
 };
 
-// Get single offer by ID
+
 export const getOfferById = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -120,7 +120,7 @@ export const getOfferById = async (req, res, next) => {
   }
 };
 
-// Update offer
+
 export const updateOffer = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -136,7 +136,7 @@ export const updateOffer = async (req, res, next) => {
   }
 };
 
-// Delete offer
+
 export const deleteOffer = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -157,11 +157,11 @@ export const getAllActiveOffers = async (req, res, next) => {
     const offers = await Offer.find()
       .populate({
         path: "applicable_services",
-        populate: { path: "saloon", select: "name logo" }, // assuming logo = saloon image
+        populate: { path: "saloon", select: "name logo" }, 
       })
       .sort({ createdAt: -1 });
 
-    // Format response
+   
     const formattedOffers = offers.map(offer => ({
       id: offer._id,
       title: offer.title,
@@ -212,7 +212,6 @@ export const updateTrendingSaloons = async (req, res) => {
       await s.save();
     }
 
-    // 🔹 If none qualified, mark first 5 active saloons as trending
     if (trendingCount === 0) {
       const fallbackSaloons = await Saloon.find({ status: "active" }).limit(5);
       for (const fs of fallbackSaloons) {
@@ -248,7 +247,7 @@ export const getTrendingSaloons = async (req, res) => {
   },
   { $unwind: "$saloon" },
 
-  // Optional city filter
+
   ...(city
     ? [
         {
@@ -283,7 +282,7 @@ export const getTrendingSaloons = async (req, res) => {
 
 
     if (trending.length === 0) {
-      // fallback — top 5 active salons
+     
       const fallback = await Saloon.find({ status: "active" }).limit(25);
       return res.status(200).json({ success: true, saloons: fallback });
     }
@@ -322,8 +321,8 @@ try {
 
     const review = await Review.create({
       saloon: saloonId,
-      user: null,          // No real user reference
-      userName,            // store name dynamically
+      user: null,         
+      userName,          
       userProfile: userProfile || null,
       rating,
       comment,
@@ -336,13 +335,13 @@ try {
 };
 
 
-// 2️⃣ Get Reviews for a Saloon
+
 export const getUserReviews = async (req, res) => {
   try {
-    const userId = res.locals.user.id; // obtained from auth middleware
+    const userId = res.locals.user.id; 
 
     const reviews = await Review.find({ user: userId })
-      .populate("saloon", "name logo") // populate saloon details
+      .populate("saloon", "name logo") 
       .sort({ createdAt: -1 });
 
     res.json({ success: true, total: reviews.length, reviews });
@@ -351,10 +350,7 @@ export const getUserReviews = async (req, res) => {
   }
 };
 
-// Get all reviews by the logged-in user
 
-
-// 3️⃣ Saloon Owner Reply
 export const replyToReview = async (req, res) => {
  try {
     const { reviewId } = req.params;
@@ -373,7 +369,7 @@ export const replyToReview = async (req, res) => {
         .json({ success: false, message: "Reply comment is required" });
     }
 
-    // Fetch review and populate saloon owner
+   
     const review = await Review.findById(reviewId).populate("saloon", "owner name");
     if (!review) {
       return res
@@ -386,21 +382,20 @@ export const replyToReview = async (req, res) => {
     console.log("Saloon owner ID:", review.saloon?.owner?.toString());
     console.log("Current user ID:", userId);
 
-    // Check if review has a linked saloon
+  
     if (!review.saloon) {
       return res
         .status(400)
         .json({ success: false, message: "This review is not linked to any saloon" });
     }
 
-    // Ensure only the saloon owner can reply
     if (review.saloon.owner.toString() !== userId) {
       return res
         .status(403)
         .json({ success: false, message: "Only the saloon owner can reply to this review" });
     }
 
-    // Add reply
+
     review.replies.push({
       replyBy: userName,
       replyComment,
@@ -422,8 +417,8 @@ export const forMultipleSaloonReview = async (req, res) => {
     const { saloonId } = req.params;
 
     const reviews = await Review.find({ saloon: saloonId })
-      .sort({ createdAt: -1 }) // latest first
-      .limit(5);               // return only max 5 reviews
+      .sort({ createdAt: -1 }) 
+      .limit(5);               
 
     const mappedReviews = reviews.map((r) => ({
       _id: r._id,
@@ -461,11 +456,11 @@ export const forMultipleSaloonReview = async (req, res) => {
 export const forMultipleSaloonReviews = async (req, res) => {
  try {
     const { saloonId } = req.params;
-    const page = parseInt(req.query.page) || 1;      // default page 1
-    const limit = parseInt(req.query.limit) || 10;   // default 10 per page
+    const page = parseInt(req.query.page) || 1;      
+    const limit = parseInt(req.query.limit) || 10;   
     const skip = (page - 1) * limit;
 
-    // Fetch reviews with pagination
+ 
     const reviews = await Review.find({ saloon: saloonId })
       .sort({ createdAt: -1 })
       .skip(skip)
@@ -484,7 +479,7 @@ export const forMultipleSaloonReviews = async (req, res) => {
       },
     }));
 
-    // Count total reviews for frontend to know when to stop
+    
     const total = await Review.countDocuments({ saloon: saloonId });
 
     res.json({
@@ -505,7 +500,7 @@ export const addReply = async (req, res) => {
 
    try {
     const { reviewId, replyComment } = req.body;
-    const userId = res.locals.user.id; // owner ID
+    const userId = res.locals.user.id; 
 
     if (!reviewId || !replyComment) {
       return res.status(400).json({ success: false, message: "Review ID and comment required" });
@@ -516,12 +511,12 @@ export const addReply = async (req, res) => {
       return res.status(404).json({ success: false, message: "Review not found" });
     }
 
-    // Get the saloon's name
+ 
     const saloon = await Saloon.findById(review.saloon);
     if (!saloon) return res.status(404).json({ success: false, message: "Saloon not found" });
 
     review.replies.push({
-      replyBy: saloon.name,   // store saloon name directly
+      replyBy: saloon.name,   
       replyComment,
     });
 
@@ -537,7 +532,7 @@ export const getSaloonReview = async (req, res) => {
   try {
     const { saloonId } = req.params;
 
-    // Fetch all reviews for this saloon
+
     const reviews = await Review.find({ saloon: saloonId }).sort({ createdAt: -1 });
 
     const mappedReviews = reviews.map((r) => ({
@@ -552,7 +547,7 @@ export const getSaloonReview = async (req, res) => {
         profileImage: r.userProfile || null,
       },
       replies: r.replies.map((reply) => ({
-        replyBy: reply.replyBy,       // saloon name
+        replyBy: reply.replyBy,      
         replyComment: reply.replyComment,
         createdAt: reply.createdAt,
       })),

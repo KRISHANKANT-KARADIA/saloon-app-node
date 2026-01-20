@@ -1,13 +1,13 @@
 import mongoose from 'mongoose';
 
 const locationSchema = new mongoose.Schema({
-  // Link to owner
+ 
   owner: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Owner',
     required: true
   },
-  // Optional Saloon reference for future profile
+ 
   saloon: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Saloon',
@@ -23,7 +23,7 @@ const locationSchema = new mongoose.Schema({
   
    mapLink: { type: String, trim: true },
 
-  // GeoJSON field
+
   geoLocation: {
     type: {
       type: String,
@@ -31,7 +31,7 @@ const locationSchema = new mongoose.Schema({
       default: 'Point',
     },
     coordinates: {
-      type: [Number], // [longitude, latitude]
+      type: [Number],
       required: true,
     },
   },
@@ -42,7 +42,7 @@ const locationSchema = new mongoose.Schema({
   timestamps: true,
 });
 
-// 2dsphere index for geospatial queries
+
 locationSchema.index({ geoLocation: '2dsphere' });
 
 export default mongoose.model('Location', locationSchema);
