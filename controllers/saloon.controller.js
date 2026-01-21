@@ -2992,65 +2992,114 @@ async function generateCSV(fileName, rows) {
 
 
 
+
 export const filterSaloons = async (req, res) => {
   try {
     const {
-      type,          
+      type,
       lat,
       lng,
-      gender,        
-      priceOrder     
-    } = req.body;
+      gender,
+      priceOrder
+    } = req.query;
 
-    let query = { status: "active" };
+    let saloonMatch = { status: "active" };
 
-  
     if (gender) {
-      query.genderType = gender;
+      saloonMatch.genderType = gender;
     }
 
-    let saloons;
+    let locations = [];
 
 
-    if (type === "nearest" && lat && lng) {
-      saloons = await Saloon.find({
-        ...query,
-        location: {
-          $near: {
-            $geometry: {
-              type: "Point",
-              coordinates: [lng, lat]
-            },
-            $maxDistance: 8000 
+  if (type === "nearest" && lat && lng) {
+  locations = await Location.aggregate([
+    {
+      $geoNear: {
+        near: {
+          type: "Point",
+          coordinates: [Number(lng), Number(lat)] 
+        },
+        distanceField: "distance",
+        maxDistance: 100,
+        spherical: true,
+        query: { status: "active" }
+      }
+    },
+    {
+      $lookup: {
+        from: "saloons",
+        localField: "owner",
+        foreignField: "owner",
+        as: "saloon"
+      }
+    },
+    { $unwind: "$saloon" },
+    { $match: { "saloon.status": "active", ...(gender ? { "saloon.genderType": gender } : {}) } },
+    { $sort: { distance: 1 } }
+  ]);
+}
+
+
+    // 🔹 TOP RATED
+    else if (type === "topRated") {
+      locations = await Location.aggregate([
+        {
+          $lookup: {
+            from: "saloons",
+            localField: "owner",
+            foreignField: "owner",
+            as: "saloon"
+          }
+        },
+        { $unwind: "$saloon" },
+        { $match: saloonMatch },
+        { $sort: { "saloon.rating": -1, "saloon.reviewsCount": -1 } }
+      ]);
+    }
+
+    // 🔹 PRICE
+    else if (type === "price") {
+      locations = await Location.aggregate([
+        {
+          $lookup: {
+            from: "saloons",
+            localField: "owner",
+            foreignField: "owner",
+            as: "saloon"
+          }
+        },
+        { $unwind: "$saloon" },
+        { $match: saloonMatch },
+        {
+          $sort: {
+            "saloon.minPrice": priceOrder === "high" ? -1 : 1
           }
         }
-      });
+      ]);
     }
 
-
-    else if (type === "topRated") {
-      saloons = await Saloon.find(query)
-        .sort({ rating: -1, reviewsCount: -1 });
-    }
-
- 
-    else if (type === "price") {
-      saloons = await Saloon.find(query)
-        .sort({ minPrice: priceOrder === "high" ? -1 : 1 });
-    }
-
- 
+    // 🔹 RECOMMENDED (Default)
     else {
-      saloons = await Saloon.aggregate([
-        { $match: query },
+      locations = await Location.aggregate([
+        {
+          $lookup: {
+            from: "saloons",
+            localField: "owner",
+            foreignField: "owner",
+            as: "saloon"
+          }
+        },
+        { $unwind: "$saloon" },
+        { $match: saloonMatch },
         {
           $addFields: {
             score: {
               $add: [
-                { $multiply: ["$rating", 2] },
-                { $multiply: ["$bookingsCount", 0.3] },
-                { $multiply: ["$viewsCount", 0.1] },
-                { $cond: ["$isTrending", 5, 0] }
+                { $multiply: ["$saloon.rating", 2] },
+                { $multiply: ["$saloon.bookingsCount", 0.3] },
+                { $multiply: ["$saloon.viewsCount", 0.1] },
+                { $cond: ["$saloon.isTrending", 5, 0] }
               ]
             }
           }
@@ -3059,10 +3108,25 @@ export const filterSaloons = async (req, res) => {
       ]);
     }
 
+    // 🎯 FINAL RESPONSE FORMAT
+    const result = locations.map(item => ({
+      ...item.saloon,
+      location: {
+        address1: item.address1,
+        city: item.city,
+        state: item.state,
+        pincode: item.pincode,
+        geoLocation: item.geoLocation,
+        mapLink: item.mapLink,
+        distance: item.distance || null
+      }
+    }));
+
     return res.status(200).json({
       success: true,
-      message: "Saloon list fetched",
-      data: saloons
+      message: "Saloon list fetched successfully",
+      total: result.length,
+      data: result
     });
 
   } catch (err) {
@@ -3073,6 +3137,61 @@ export const filterSaloons = async (req, res) => {
     });
   }
 };
+
+
+export const getAllSaloonss = async (req, res) => {
+  try {
+    // 1️⃣ Fetch all saloons
+    const saloons = await Saloon.find({}).lean();
+
+    // 2️⃣ Collect saloon IDs
+    const saloonIds = saloons.map(s => s._id);
+
+    // 3️⃣ Fetch locations using correct field
+    const locations = await Location.find({
+      saloon: { $in: saloonIds },
+      status: "active"
+    }).lean();
+
+    // 4️⃣ Map geoLocation by saloonId
+    const locationMap = {};
+    locations.forEach(loc => {
+      locationMap[loc.saloon.toString()] = {
+        geoLocation: loc.geoLocation,
+        address1: loc.address1,
+        address2: loc.address2,
+        area: loc.area,
+        city: loc.city,
+        state: loc.state,
+        pincode: loc.pincode,
+        mapLink: loc.mapLink
+      };
+    });
+
+    // 5️⃣ Attach location to saloon
+    const result = saloons.map(saloon => ({
+      ...saloon,
+      location: locationMap[saloon._id.toString()] || null
+    }));
+
+    return res.status(200).json({
+      success: true,
+      message: "All saloons fetched successfully",
+      total: result.length,
+      data: result
+    });
+
+  } catch (error) {
+    console.error("Get all saloons error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error"
+    });
+  }
+};
+
+
+
 
 
 

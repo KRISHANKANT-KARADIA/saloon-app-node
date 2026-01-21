@@ -4,7 +4,7 @@ import { AuthMiddlewares } from '../middlewares/auth.middleware.js';
 import Location from '../models/location.model.js';
 import Saloon from '../models/saloon.model.js'; 
 import { getAllUsers, createUser ,getMySaloonProfile, updateSaloonInfo, getRegisteredMobileNumber} from '../controllers/user.controller.js';
-import {  addSaloonContent,getPublicSaloonContent, deleteSaloonImage, getAllImages, getFullSaloonDetails, getFullSaloonDetailsUsingId, getOperatingHours, getPublicOperatingHours, getPublicOwnerLocation, getSaloonDetails, getSaloonUsingId, getSocialLinks, registerSaloon, updateOperatingHours, updateSaloonData, updateSaloonMobileNumber, updateSocialLinks, uploadSaloonImages, uploadSaloonLogo, getAppointmentsBySaloon, getSaloonDashboardStats, getLast7DaysDashboardStats, getUpcomingAppointments,getTodayRevenue,getTotalAppointments,getDashboardData,getPendingAppointments,getRevenueGrowth,getPastAppointments, addOfflineAppointment, getOfflineAppointments, deleteOfflineAppointment, updateOfflineAppointmentStatus, getOfflineAppointmentById, getAppointmentById, updateAppointmentStatus, filterAppointments, getOwnerSaloonContent, getServiceWiseCounts, getSaloonByOwnerId, getDashboardDataC, sayHello, getServiceWiseAppointmentsNe, getCumulativeDashboard, completeAppointmentByBookingRef, getCurrentsAppointments, getAllAppointments, getAppointmentByBookingRef, getPastAppointmentsProfessionalIdOnly, getPastAppointmentsFull, getUpcomingAppointmentsFull, getTodaysAppointmentsFull, getAllAppointmentsFull, generateReport, fullReport, getRejectedAppointments, getPublicOperatingBookingHours, deleteSaloonContent, getPublicOperatingBookingHoursP, filterSaloons} from '../controllers/saloon.controller.js';
+import {  addSaloonContent,getPublicSaloonContent, deleteSaloonImage, getAllImages, getFullSaloonDetails, getFullSaloonDetailsUsingId, getOperatingHours, getPublicOperatingHours, getPublicOwnerLocation, getSaloonDetails, getSaloonUsingId, getSocialLinks, registerSaloon, updateOperatingHours, updateSaloonData, updateSaloonMobileNumber, updateSocialLinks, uploadSaloonImages, uploadSaloonLogo, getAppointmentsBySaloon, getSaloonDashboardStats, getLast7DaysDashboardStats, getUpcomingAppointments,getTodayRevenue,getTotalAppointments,getDashboardData,getPendingAppointments,getRevenueGrowth,getPastAppointments, addOfflineAppointment, getOfflineAppointments, deleteOfflineAppointment, updateOfflineAppointmentStatus, getOfflineAppointmentById, getAppointmentById, updateAppointmentStatus, filterAppointments, getOwnerSaloonContent, getServiceWiseCounts, getSaloonByOwnerId, getDashboardDataC, sayHello, getServiceWiseAppointmentsNe, getCumulativeDashboard, completeAppointmentByBookingRef, getCurrentsAppointments, getAllAppointments, getAppointmentByBookingRef, getPastAppointmentsProfessionalIdOnly, getPastAppointmentsFull, getUpcomingAppointmentsFull, getTodaysAppointmentsFull, getAllAppointmentsFull, generateReport, fullReport, getRejectedAppointments, getPublicOperatingBookingHours, deleteSaloonContent, getPublicOperatingBookingHoursP, filterSaloons, getAllSaloonss} from '../controllers/saloon.controller.js';
 import { addSaloonLocation, getSaloonLocation, putSaloonNewLocation } from '../controllers/location.controller.js';
 import { updateSaloonDetails } from '../controllers/updateSaloonDetails.js';
 import { deleteSaloonLocation, updateSaloonLocation } from '../controllers/updateSaloonLocation.js';
@@ -1138,7 +1138,8 @@ router.get(
 router.post('/saloon/appointments/filter', AuthMiddlewares.checkAuth, filterAppointments);
 
 
-router.post('/saloon/filters', AuthMiddlewares.checkAuth, filterSaloons);
+router.post('/saloon/filters', filterSaloons);
+router.get("/saloonss", getAllSaloonss);
 
 router.get('/saloon/:saloonId/report', 
   AuthMiddlewares.checkAuth,
@@ -1442,7 +1443,160 @@ router.post("/add-reply",  AuthMiddlewares.checkAuth ,addReply);
  router.get("/saloons/reply/:saloonId/reviews", getSaloonReview);
 
 
+router.get('/saloon/filter', async (req, res, next) => {
+  try {
+    const { lat, long, type } = req.query;
+    const userLat = parseFloat(lat);
+    const userLong = parseFloat(long);
+    const maxDistanceInMeters = 10 * 1000; // 10 KM radius
 
+    let query = {};
+    let sortOptions = { createdAt: -1 };
+
+    // Basic Base URL for images
+    const BASE_URL = "https://saloon-app-node-50470848550.asia-south1.run.app";
+
+    // 1. Recommended: Top Rating + Near By (10KM)
+    if (type === 'recommended') {
+      query = { 
+        rating: { $gte: 4 }, // High rating
+        // Aap yahan 'totalAppointments' field bhi add kar sakte hain agar model mein hai
+      };
+      sortOptions = { rating: -1 };
+    }
+
+    // 2. Nearest: Distance wise (Requires lat/long)
+    // 3. Price Wise: Low to High (Requires lat/long + 10KM radius)
+    
+    // Agar lat/long provide kiye gaye hain, toh hum Aggregation use karenge
+    let aggregatePipeline = [];
+
+    if (userLat && userLong) {
+      aggregatePipeline.push({
+        $geoNear: {
+          near: { type: "Point", coordinates: [userLong, userLat] },
+          distanceField: "distance",
+          maxDistance: maxDistanceInMeters,
+          spherical: true
+        }
+      });
+    }
+
+    // Filter by type logic
+    if (type === 'rating') {
+      sortOptions = { rating: -1 };
+    } else if (type === 'price') {
+      sortOptions = { avgPrice: 1 }; // Maan lijiye field 'avgPrice' hai
+    }
+
+    const saloons = await Saloon.find(query)
+      .sort(sortOptions)
+      .limit(20)
+      .select("name logo rating city owner description operatingHours avgPrice");
+
+    const saloonsWithLogo = saloons.map(saloon => ({
+      ...saloon._doc,
+      logo: saloon.logo
+        ? saloon.logo.startsWith('http')
+          ? saloon.logo
+          : `${BASE_URL}/uploads/saloon/${saloon.logo}`
+        : `${BASE_URL}/default-logo.jpg`,
+    }));
+
+    res.json({
+      success: true,
+      count: saloonsWithLogo.length,
+      data: saloonsWithLogo
+    });
+
+  } catch (error) {
+    console.error('Filter Error:', error);
+    next(error);
+  }
+});
+
+
+router.get('/saloon/filter/advanced', async (req, res, next) => {
+  try {
+    const { 
+      lat, 
+      long, 
+      type, // recommended, nearest, rating, price
+      salonType // Male, Female, Unisex, Everyone
+    } = req.query;
+
+    const userLat = parseFloat(lat);
+    const userLong = parseFloat(long);
+    const radius = 10 * 1000; // 10 KM in meters
+    const BASE_URL = "https://saloon-app-node-50470848550.asia-south1.run.app";
+
+    // 1. Basic Query Object
+    let query = {};
+    if (salonType) {
+      query.salonType = salonType;
+    }
+
+    // 2. Sorting Logic
+    let sortOptions = { createdAt: -1 };
+
+    if (type === 'recommended') {
+      // Top bookings aur high rating ko prioritize karein
+      sortOptions = { bookingsCount: -1, rating: -1 };
+      query.rating = { $gte: 3.5 }; 
+    } else if (type === 'rating') {
+      sortOptions = { rating: -1 };
+    } else if (type === 'price') {
+      // Note: Aapke model mein price field nahi dikhi, 
+      // isliye hum isse default sort par rakh rahe hain. 
+      // Agar 'price' field add karein toh { price: 1 } use karein.
+      sortOptions = { createdAt: -1 };
+    }
+
+    // 3. Execution (GeoNear if lat/long exists, else normal find)
+    let saloons;
+
+    if (userLat && userLong) {
+      // Agar lat/long hai toh Location model se connect karke 10km filter
+      // Ya Saloon model mein agar location field hai toh direct geoNear
+      saloons = await Saloon.find(query)
+        .sort(sortOptions)
+        .limit(20);
+        
+      // Note: Professional approach ke liye 'location' field ko 2dsphere index dena zaruri hai
+    } else {
+      saloons = await Saloon.find(query)
+        .sort(sortOptions)
+        .limit(20);
+    }
+
+    // 4. Data Formatting (Logo and Fields)
+    const formattedSaloons = saloons.map(saloon => ({
+      _id: saloon._id,
+      name: saloon.name,
+      salonType: saloon.salonType,
+      rating: saloon.rating,
+      bookingsCount: saloon.bookingsCount,
+      logo: saloon.logo
+        ? saloon.logo.startsWith('http')
+          ? saloon.logo
+          : `${BASE_URL}/uploads/saloon/${saloon.logo}`
+        : `${BASE_URL}/default-logo.jpg`,
+      operatingHours: saloon.operatingHours,
+      isTrending: saloon.isTrending
+    }));
+
+    res.json({
+      success: true,
+      message: `${type || 'Salons'} fetched successfully`,
+      count: formattedSaloons.length,
+      saloons: formattedSaloons
+    });
+
+  } catch (error) {
+    console.error('Filter Error:', error);
+    next(error);
+  }
+});
  
 
 

@@ -32,20 +32,6 @@ const saloonSchema = new mongoose.Schema({
   reviewsCount: { type: Number, default: 0 },
   isTrending: { type: Boolean, default: false },
 
-location: {
-  type: { type: String, enum: ["Point"], default: "Point" },
-  coordinates: { type: [Number], index: "2dsphere" } // [lng, lat]
-},
-
-genderType: {
-  type: String,
-  enum: ["male", "female", "unisex", "everyone"],
-  default: "everyone"
-},
-
-minPrice: { type: Number, default: 0 },
-
-
   socialLinks: {
     instagram: { type: String, trim: true },
     facebook: { type: String, trim: true },
