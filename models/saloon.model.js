@@ -12,7 +12,11 @@ const saloonSchema = new mongoose.Schema({
   images: [ImageSchema],                     
   ownerName: { type: String, required: true },
   mobile: { type: String, required: true },
-  salonType: { type: String, required: true },
+ salonType: {
+    type: String,
+    enum: ["men", "women", "unisex","everyone"], // optional
+    required: true
+  },
   owner: { type: mongoose.Schema.Types.ObjectId, ref: 'Owner', required: true },
 
   operatingHours: {

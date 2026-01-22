@@ -2016,7 +2016,7 @@ export const registerSaloon = async (req, res) => {
     const { name, ownerName, mobile ,salonType} = req.body;
     const ownerId = res.locals.user.id;
 
-    if (!name || !ownerName || !mobile) {
+    if (!name || !ownerName || !mobile || !salonType) {
       return res.status(400).json({
         success: false,
         message: "All fields are required",
