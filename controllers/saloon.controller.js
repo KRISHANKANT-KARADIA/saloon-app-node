@@ -2013,6 +2013,7 @@ export const getPublicOwnerLocation = async (req, res, next) => {
 
 export const registerSaloon = async (req, res) => {
   try {
+    console.log("Incoming Body:", req.body);
     const { name, ownerName, mobile ,salonType} = req.body;
     console.log("Received salonType:", salonType);
     const ownerId = res.locals.user.id;
@@ -2037,7 +2038,7 @@ const logo = req.file
       saloon.name = name;
       saloon.ownerName = ownerName;
       saloon.mobile = mobile;
-      saloon.salonType = salonType.toLowerCase();;
+      saloon.salonType = salonType.toLowerCase();
       if (logo) saloon.logo = logo;
       saloon.status = "active";
       await saloon.save();
