@@ -2011,75 +2011,137 @@ export const getPublicOwnerLocation = async (req, res, next) => {
 
 
 
+// export const registerSaloon = async (req, res) => {
+//   try {
+//     console.log("Incoming Body:", req.body);
+//     const { name, ownerName, mobile ,salonType} = req.body;
+//     console.log("Received salonType:", salonType);
+//     const ownerId = res.locals.user.id;
+
+//     if (!name || !ownerName || !mobile || !salonType) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "All fields are required",
+//       });
+//     }
+
+//     const BASE_URL = "https://saloon-app-node-50470848550.asia-south1.run.app";
+
+// const logo = req.file
+//   ? `${BASE_URL}/uploads/saloon/${req.file.filename}`
+//   : null;
+    
+//     let saloon = await Saloon.findOne({ owner: ownerId });
+
+//     if (saloon) {
+   
+//       saloon.name = name;
+//       saloon.ownerName = ownerName;
+//       saloon.mobile = mobile;
+//       saloon.salonType = salonType.toLowerCase();
+//       if (logo) saloon.logo = logo;
+//       saloon.status = "active";
+//       await saloon.save();
+//     } else {
+   
+//       saloon = await Saloon.create({
+//         name,
+//         ownerName,
+//         mobile,
+//         salonType,
+//         owner: ownerId,
+//         logo,
+//         status: "active",
+//       });
+//     }
+
+//     await ownerModel.findByIdAndUpdate(ownerId, {
+//       owner_state_status: 4,
+//     });
+    
+
+//     return res.status(201).json({
+//       success: true,
+//       message: "Saloon registered successfully",
+//       saloon: {
+//         ...saloon._doc,
+//         logo: saloon.logo
+//           ? `${IMAGE_BASE_URL1}/${saloon.logo}`
+//           : null,
+//       },
+//     });
+//   } catch (err) {
+//     console.error("Register saloon error:", err);
+//     return res.status(500).json({
+//       success: false,
+//       message: "Server error",
+//     });
+//   }
+// };
+
+
 export const registerSaloon = async (req, res) => {
   try {
+    // 1. Debugging ke liye body ko check karein
     console.log("Incoming Body:", req.body);
-    const { name, ownerName, mobile ,salonType} = req.body;
-    console.log("Received salonType:", salonType);
+    
+    // Destructure data
+    const { name, ownerName, mobile, salonType } = req.body;
     const ownerId = res.locals.user.id;
 
+    // 2. Validation: Agar salonType missing hai toh request yahi ruk jayegi
     if (!name || !ownerName || !mobile || !salonType) {
       return res.status(400).json({
         success: false,
-        message: "All fields are required",
+        message: `Missing fields: ${!name ? 'name ' : ''}${!salonType ? 'salonType' : ''}`,
       });
     }
 
-    const BASE_URL = "https://saloon-app-node-50470848550.asia-south1.run.app";
-
-const logo = req.file
-  ? `${BASE_URL}/uploads/saloon/${req.file.filename}`
-  : null;
+    // const BASE_URL = "https://saloon-app-node-50470848550.asia-south1.run.app";
+   const BASE_URL = "https://saloon-app-node-50470848550.asia-south1.run.app";
+    // 3. Logo path fix: Double domain issue ko rokein
+    const logoUrl = req.file
+      ? `${BASE_URL}/uploads/saloon/${req.file.filename}`
+      : null;
     
-    let saloon = await Saloon.findOne({ owner: ownerId });
+    // 4. Update or Create logic (findOneAndUpdate use karna zyada safe hai)
+    const updateData = {
+      name,
+      ownerName,
+      mobile,
+      salonType: salonType.toLowerCase().trim(), // Ensure data is clean
+      status: "active",
+    };
 
-    if (saloon) {
-   
-      saloon.name = name;
-      saloon.ownerName = ownerName;
-      saloon.mobile = mobile;
-      saloon.salonType = salonType.toLowerCase();
-      if (logo) saloon.logo = logo;
-      saloon.status = "active";
-      await saloon.save();
-    } else {
-   
-      saloon = await Saloon.create({
-        name,
-        ownerName,
-        mobile,
-        salonType,
-        owner: ownerId,
-        logo,
-        status: "active",
-      });
-    }
+    if (logoUrl) updateData.logo = logoUrl;
 
+    const saloon = await Saloon.findOneAndUpdate(
+      { owner: ownerId },
+      { $set: updateData },
+      { new: true, upsert: true, runValidators: true }
+    );
+
+    // Update owner status
     await ownerModel.findByIdAndUpdate(ownerId, {
       owner_state_status: 4,
     });
-    
 
+    // 5. Response Fix: saloon object ko directly return karein
+    // Pehle aap ${IMAGE_BASE_URL1} laga rahe the, jo undefined ho sakta hai
     return res.status(201).json({
       success: true,
       message: "Saloon registered successfully",
-      saloon: {
-        ...saloon._doc,
-        logo: saloon.logo
-          ? `${IMAGE_BASE_URL1}/${saloon.logo}`
-          : null,
-      },
+      saloon: saloon
     });
+
   } catch (err) {
     console.error("Register saloon error:", err);
     return res.status(500).json({
       success: false,
-      message: "Server error",
+      message: err.message || "Server error",
     });
   }
 };
-
-
 
 export const getSaloonDetails = async (req, res, next) => {
   try {
